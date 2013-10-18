@@ -28,7 +28,7 @@ continue:
 
 	lgdt gdt_ptr
     MOVL %cr0, %ecx
-    MOVL  $1, %ecx
+    MOVW  $1, %cx
     LMSW %cx
     #MOVL %ecx, %cr0
 
