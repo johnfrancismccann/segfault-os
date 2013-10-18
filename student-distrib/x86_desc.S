@@ -38,8 +38,6 @@ tss_bottom:
 gdt:
 _gdt:
 
-gdt_desc:
-
 	# First GDT entry cannot be used
 	.quad 0
 	
@@ -76,7 +74,7 @@ gdt_ptr:
 	# Set up an entry for user DS
 	.quad 0x00CFF2000000FFFF
 
-# Set up an entry for TSS
+	# Set up an entry for TSS
 tss_desc_ptr:
 	.quad 0
 
