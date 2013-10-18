@@ -28,8 +28,9 @@ continue:
 
 	lgdt gdt_ptr
     MOVL %cr0, %ecx
-    ORL  $1, %eax
-    MOVL %ecx, %cr0
+    MOVL  $1, %eax
+    LMSW %ax
+    #MOVL %ecx, %cr0
 
 	# Load CS with the new descriptor value
 	ljmp    $KERNEL_CS, $keep_going
@@ -60,6 +61,3 @@ halt:
 	hlt
 	jmp     halt
 
-gdt_48:
-	.word	gdt_desc - gdt_ptr - 1		# gdt limit
-	.word	0, 0				# gdt base (filled in later)
