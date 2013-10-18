@@ -26,12 +26,10 @@ _start:
 continue:
 	# Load the GDT
 
-	lgdt gdt_desc
-    PUSHL %eax
-    MOVL %cr0, %eax
-    ORL  $1, %eax
-    MOVL %eax, %cr0
-    POPL %eax
+	lgdt gdt_48
+    MOVL %cr0, %ecx
+    ORL  $1, %ecx
+    MOVL %ecx, %cr0
 
 	# Load CS with the new descriptor value
 	ljmp    $KERNEL_CS, $keep_going
@@ -62,3 +60,6 @@ halt:
 	hlt
 	jmp     halt
 
+gdt_48:
+	.word	gdt_desc - gdt_ptr - 1		# gdt limit
+	.word	0, 0				# gdt base (filled in later)
