@@ -28,8 +28,8 @@ continue:
 
 	lgdt gdt_ptr
     MOVL %cr0, %ecx
-    MOVL  $1, %eax
-    LMSW %ax
+    MOVL  $1, %ecx
+    LMSW %cx
     #MOVL %ecx, %cr0
 
 	# Load CS with the new descriptor value
