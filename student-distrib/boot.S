@@ -26,9 +26,9 @@ _start:
 continue:
 	# Load the GDT
 
-	lgdt gdt_48
+	lgdt gdt_ptr
     MOVL %cr0, %ecx
-    ORL  $1, %ecx
+    ORL  $1, %eax
     MOVL %ecx, %cr0
 
 	# Load CS with the new descriptor value
