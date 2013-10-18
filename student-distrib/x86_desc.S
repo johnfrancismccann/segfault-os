@@ -38,6 +38,8 @@ tss_bottom:
 gdt:
 _gdt:
 
+gdt_desc:
+
 	# First GDT entry cannot be used
 	.quad 0
 	
