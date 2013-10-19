@@ -24,12 +24,13 @@ _start:
 	jmp     continue
 
 continue:
-	# Load the GDT
 
-	lgdt gdt_ptr
-    MOVL %cr0, %ecx
-    MOVW  $1, %cx
-    LMSW %cx
+	# Load the GDT
+	lgdt gdt_pseudo_desc 
+	
+    #MOVL %cr0, %ecx
+    #MOVW  $1, %cx
+    #LMSW %cx
     #MOVL %ecx, %cr0
 
 	# Load CS with the new descriptor value
