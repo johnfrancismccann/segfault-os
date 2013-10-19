@@ -40,10 +40,12 @@ enable_irq(uint32_t irq_num)
 	if(irq_num >= 0 && irq_num < 8)
 	{
 		master_mask &= ~(0x1 << irq_num);
+        outb(master_mask, MASTER_8259_PORT + 1);
 	}
 	else if(irq_num >= 8 && irq_num < 16)
 	{
 		slave_mask &= ~(0x1 << (irq_num - 8));
+        outb(slave_mask, SLAVE_8259_PORT + 1);
 	}
 }
 
@@ -54,10 +56,12 @@ disable_irq(uint32_t irq_num)
 	if(irq_num >= 0 && irq_num < 8)
 	{
 		master_mask |= (0x1 << irq_num);
+        outb(master_mask, MASTER_8259_PORT + 1);
 	}
 	else if(irq_num >= 8 && irq_num < 16)
 	{
 		slave_mask |= (0x1 << (irq_num - 16));
+        outb(slave_mask, SLAVE_8259_PORT + 1);
 	}
 }
 
