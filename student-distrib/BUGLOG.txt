@@ -1,1 +1,15 @@
 Team SegFault Bug Log
+
+1:
+SYMPTOM:    Boot fails at LJMP instruction.
+TIME SPENT: 6 hours
+SOLUTION:   In our LGDT statement, we were loading an incorrect
+            value into GDTR.  This caused the jump to go to an
+            invalid address, crashing the OS.  By changing the
+            GDTR value, we successfully initialized the GDT and
+            booted the OS.
+
+2:
+SYMPTOM:
+TIME SPENT:
+SOLUTION:
