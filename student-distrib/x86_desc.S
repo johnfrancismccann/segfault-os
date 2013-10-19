@@ -9,7 +9,7 @@
 .globl  ldt_size, tss_size
 .globl  gdt_desc, ldt_desc, tss_desc
 .globl  tss, tss_desc_ptr, ldt, ldt_desc_ptr
-.globl  gdt_ptr
+.globl  gdt_ptr, gdt_pseudo_desc
 .globl  idt_desc_ptr, idt
 
 .align 4
@@ -74,7 +74,7 @@ gdt_ptr:
 	# Set up an entry for user DS
 	.quad 0x00CFF2000000FFFF
 
-	# Set up an entry for TSS
+	# Set up an entry for TSS 
 tss_desc_ptr:
 	.quad 0
 
@@ -85,6 +85,21 @@ ldt_desc_ptr:
 gdt_bottom:
 
 	.align 16
+
+#------------------------------------------------------
+# use gdt_pseudo_desc to initialize gdtr
+#         gdtr: [0-15]  = gdt table size
+# 				[16-47] = pointer to start of gdt table
+#------------------------------------------------------
+gdt_pseudo_desc:
+# align to odd address
+	.align 2
+# init with size and pointer	
+	.word gdt_bottom - gdt - 1
+	.long gdt					
+# restore alignment from gdt_bottom
+	.align 16
+	
 ldt:
 	.rept 4
 	.quad 0
