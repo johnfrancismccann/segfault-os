@@ -108,16 +108,22 @@ typedef struct __attribute__((packed)) tss_t {
 
 	uint16_t debug_trap : 1;
 	uint16_t io_pad : 15;
-	uint16_t io_base_addr;
+	uint16_t io_base_addr; 
 } tss_t;
+
 
 /* Some external descriptors declared in .S files */
 extern x86_desc_t gdt_desc;
+
+/* 48-bit "pseudo descriptor" as described in 3.5.1 of the IA-32
+   system programming guide. stores base address and size of gdt */
+extern x86_desc_t gdt_pseudo_desc;
 
 extern uint16_t ldt_desc;
 extern uint32_t ldt_size;
 extern seg_desc_t ldt_desc_ptr;
 extern seg_desc_t gdt_ptr;
+
 extern uint32_t ldt;
 
 extern uint32_t tss_size;
