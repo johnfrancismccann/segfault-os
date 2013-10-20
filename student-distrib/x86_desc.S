@@ -121,14 +121,15 @@ _idt:
 
 idt_bottom:
 
-# Custom IDT Layout
+# IDT Layout
+# These are set in setup_idt.c
 # Source: Table 5-1, IA-32 Reference Manual Vol. 3
 # 0:  Divide Error                Fault
 # 1:  RESERVED                    Fault/Trap
 # 2:  NMI Interrupt               Interrupt
 # 3:  Breakpoint                  Trap
 # 4:  Overflow                    Trap
-# 5:  BOUND Rnage Exceeded        Fault
+# 5:  BOUND Range Exceeded        Fault
 # 6:  Invalid Opcode              Fault
 # 7:  Device Not Available        Fault
 # 8:  Double Fault                Abort
