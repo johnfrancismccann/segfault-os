@@ -33,7 +33,12 @@
  *  255:
  */
 
+#ifndef SETUPIDT
+#define SETUPIDT
+
 #define QUAD_SIZE 8
 
 //only externally accessable function to setup main exceptions
 void init_idt();
+
+#endif
