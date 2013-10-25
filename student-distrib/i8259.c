@@ -29,6 +29,9 @@ i8259_init(void)
 	outb(ICW3_SLAVE, SLAVE_8259_PORT + 1);	//Tell it it is a slave on IR2
 	outb(ICW4, SLAVE_8259_PORT + 1);		//Normal EOI (not auto)
 
+	master_mask = 0xFF;
+	slave_mask = 0xFF;
+
 	outb(master_mask, MASTER_8259_PORT + 1); //Restore Interrupt mask for master
     outb(slave_mask, SLAVE_8259_PORT + 1);   //Restore Interrupt mask for slave
 }

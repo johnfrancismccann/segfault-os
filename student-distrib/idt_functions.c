@@ -3,10 +3,6 @@
  *  functions called from the IDT and set up in setup_idt.c.
  */
 
-/****THESE ARE BROKEN!  NEED ASM *AND* C HANDLERS AS PER:
- ****http://www.phrack.org/issues.html?issue=59&id=4&mode=txt
- ****Understanding the Linux Kernel §4.5
- */
 
 #include "lib.h"
 #include "idt_functions.h"
@@ -14,268 +10,196 @@
 /*
  *
  */
-void idt_div_error()
+void do_idt_div_error()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("DIV BY 0 ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("DIV BY 0 ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_debug()
+void do_idt_debug()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("DEBUG ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("DEBUG ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_nmi()
+void do_idt_nmi()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("NMI ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("NMI ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_breakpoint()
+void do_idt_breakpoint()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("BREAKPOINT ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("BREAKPOINT ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_overflow()
+void do_idt_overflow()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("OVERFLOW ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("OVERFLOW ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_bound()
+void do_idt_bound()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("BOUND ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("BOUND ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_invalid_op()
+void do_idt_invalid_op()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("INVALID OPCODE ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("INVALID OPCODE ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_device_not_available()
+void do_idt_device_not_available()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("DEVICE NOT AVAILABLE ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("DEVICE NOT AVAILABLE ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_double_fault()
+void do_idt_double_fault()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("DOUBLE FAULT ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("DOUBLE FAULT ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_coprocessor_segment_overrun()
+void do_idt_coprocessor_segment_overrun()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("SEGMENT OVERRUN ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("SEGMENT OVERRUN ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_invalid_TSS()
+void do_idt_invalid_TSS()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("INVALID TSS ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("INVALID TSS ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_segment_not_present()
+void do_idt_segment_not_present()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("SEGMENT NOT PRESENT ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("SEGMENT NOT PRESENT ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_stack_segment()
+void do_idt_stack_segment()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("STACK SEGMENT ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("STACK SEGMENT ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_general_protection()
+void do_idt_general_protection()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("GENERAL PROTECTION ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("GENERAL PROTECTION ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_page_fault()
+void do_idt_page_fault()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("PAGE FAULT ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("PAGE FAULT ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_coprocessor_error()
+void do_idt_coprocessor_error()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("COPROCESSOR ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("COPROCESSOR ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_alignment_check()
+void do_idt_alignment_check()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("ALIGNMENT CHECK ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("ALIGNMENT CHECK ERROR!\n");
+	while(1);
 }
 
 
 /*
  *
  */
-void idt_system_call()
+void do_idt_system_call()//uint32_t error_code, uint32_t stack_address)
 {
 	clear();
-	printf("SYSTEM CALL ERROR! \n");
-	asm volatile("IRET"                 \
-				:                       \
-				:                       \
-				: "memory", "cc"        \
-				);                      \
+	printf("SYSTEM CALL ERROR!\n");
+	while(1);
 }

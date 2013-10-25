@@ -10,6 +10,16 @@ SOLUTION:   In our LGDT statement, we were loading an incorrect
             booted the OS.
 
 2:
+SYMPTOM:    General Protection exception is raised repeatedly
+TIME SPENT: 30 minutes
+SOLUTION:   When initializing the PIC, we failed to mask the interrupts
+            before any of the interrupt handlers were created.
+            This caused a rogue interrupt to be triggered, which
+            called an unwritten handler at an undefined memory
+            location, causing an interrupt.  Masking HW interrupts
+            fixed the problem.
+
+3:
 SYMPTOM:
 TIME SPENT:
 SOLUTION:
