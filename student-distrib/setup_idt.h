@@ -38,7 +38,11 @@
 
 #define QUAD_SIZE 8
 
-//only externally accessable function to setup main exceptions
+//only externally accessable functions are to setup main exceptions
+//and to set interrupt handlers.
+ 
 void init_idt();
+
+void set_interrupt_gate(uint8_t entry_num, void* function);
 
 #endif
