@@ -151,7 +151,7 @@ entry (unsigned long magic, unsigned long addr)
 	 * PIC, any other initialization stuff... */
 
 	init_idt();
-
+	//init_paging();
 
 
 	/* Enable interrupts */
@@ -161,9 +161,9 @@ entry (unsigned long magic, unsigned long addr)
 	printf("Enabling Interrupts\n");
 	sti();
 
-	// int i = 5
-	// int j = 0;
-	// *i /= j;
+	 //int i = 5;
+	 //int j = 0;
+	 //i /= j;
 
 	/* Execute the first program (`shell') ... */
 
