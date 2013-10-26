@@ -10,7 +10,7 @@
 /*
  *
  */
-void do_idt_div_error()//uint32_t error_code, uint32_t stack_address)
+void do_idt_div_error()
 {
 	clear();
 	printf("DIV BY 0 ERROR!\n");
@@ -21,7 +21,7 @@ void do_idt_div_error()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_debug()//uint32_t error_code, uint32_t stack_address)
+void do_idt_debug()
 {
 	clear();
 	printf("DEBUG ERROR!\n");
@@ -32,7 +32,7 @@ void do_idt_debug()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_nmi()//uint32_t error_code, uint32_t stack_address)
+void do_idt_nmi()
 {
 	clear();
 	printf("NMI ERROR!\n");
@@ -43,7 +43,7 @@ void do_idt_nmi()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_breakpoint()//uint32_t error_code, uint32_t stack_address)
+void do_idt_breakpoint()
 {
 	clear();
 	printf("BREAKPOINT ERROR!\n");
@@ -54,7 +54,7 @@ void do_idt_breakpoint()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_overflow()//uint32_t error_code, uint32_t stack_address)
+void do_idt_overflow()
 {
 	clear();
 	printf("OVERFLOW ERROR!\n");
@@ -65,7 +65,7 @@ void do_idt_overflow()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_bound()//uint32_t error_code, uint32_t stack_address)
+void do_idt_bound()
 {
 	clear();
 	printf("BOUND ERROR!\n");
@@ -76,7 +76,7 @@ void do_idt_bound()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_invalid_op()//uint32_t error_code, uint32_t stack_address)
+void do_idt_invalid_op()
 {
 	clear();
 	printf("INVALID OPCODE ERROR!\n");
@@ -87,7 +87,7 @@ void do_idt_invalid_op()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_device_not_available()//uint32_t error_code, uint32_t stack_address)
+void do_idt_device_not_available()
 {
 	clear();
 	printf("DEVICE NOT AVAILABLE ERROR!\n");
@@ -98,7 +98,7 @@ void do_idt_device_not_available()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_double_fault()//uint32_t error_code, uint32_t stack_address)
+void do_idt_double_fault()
 {
 	clear();
 	printf("DOUBLE FAULT ERROR!\n");
@@ -109,7 +109,7 @@ void do_idt_double_fault()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_coprocessor_segment_overrun()//uint32_t error_code, uint32_t stack_address)
+void do_idt_coprocessor_segment_overrun()
 {
 	clear();
 	printf("SEGMENT OVERRUN ERROR!\n");
@@ -120,7 +120,7 @@ void do_idt_coprocessor_segment_overrun()//uint32_t error_code, uint32_t stack_a
 /*
  *
  */
-void do_idt_invalid_TSS()//uint32_t error_code, uint32_t stack_address)
+void do_idt_invalid_TSS()
 {
 	clear();
 	printf("INVALID TSS ERROR!\n");
@@ -131,7 +131,7 @@ void do_idt_invalid_TSS()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_segment_not_present()//uint32_t error_code, uint32_t stack_address)
+void do_idt_segment_not_present()
 {
 	clear();
 	printf("SEGMENT NOT PRESENT ERROR!\n");
@@ -142,7 +142,7 @@ void do_idt_segment_not_present()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_stack_segment()//uint32_t error_code, uint32_t stack_address)
+void do_idt_stack_segment()
 {
 	clear();
 	printf("STACK SEGMENT ERROR!\n");
@@ -153,7 +153,7 @@ void do_idt_stack_segment()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_general_protection()//uint32_t error_code, uint32_t stack_address)
+void do_idt_general_protection()
 {
 	clear();
 	printf("GENERAL PROTECTION ERROR!\n");
@@ -164,7 +164,7 @@ void do_idt_general_protection()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_page_fault()//uint32_t error_code, uint32_t stack_address)
+void do_idt_page_fault()
 {
 	clear();
 	printf("PAGE FAULT ERROR!\n");
@@ -175,7 +175,7 @@ void do_idt_page_fault()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_coprocessor_error()//uint32_t error_code, uint32_t stack_address)
+void do_idt_coprocessor_error()
 {
 	clear();
 	printf("COPROCESSOR ERROR!\n");
@@ -186,7 +186,7 @@ void do_idt_coprocessor_error()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_alignment_check()//uint32_t error_code, uint32_t stack_address)
+void do_idt_alignment_check()
 {
 	clear();
 	printf("ALIGNMENT CHECK ERROR!\n");
@@ -197,7 +197,7 @@ void do_idt_alignment_check()//uint32_t error_code, uint32_t stack_address)
 /*
  *
  */
-void do_idt_system_call()//uint32_t error_code, uint32_t stack_address)
+void do_idt_system_call()
 {
 	clear();
 	printf("SYSTEM CALL ERROR!\n");
