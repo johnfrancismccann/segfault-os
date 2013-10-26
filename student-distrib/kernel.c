@@ -8,6 +8,7 @@
 #include "i8259.h"
 #include "debug.h"
 #include "setup_idt.h"
+#include "paging.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
