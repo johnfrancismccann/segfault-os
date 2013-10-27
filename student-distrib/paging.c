@@ -8,11 +8,15 @@ unsigned int page_table[PAGE_TABLE_SIZE] __attribute__((aligned(PG_TBL_ALIGN)));
 
 /*
  * enable_paging
- *   DESCRIPTION: enabling paging
- *   INPUTS: 
+ *   DESCRIPTION: enables paging within the processor by utilizing
+ *                 the processor control registers
+ *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: Changes cr3, cr0 and cr4.
+ *   SIDE EFFECTS: Changes the Page-Directory-Base field of CR3 to 
+ *                 the address of the page directory. Sets the PSE
+ *								 field of the CR4 to enable 4MB pages. Finally 
+ *								 sets the PE field of CR0 to enable paging								 
  */
 void enable_paging()
 {
@@ -39,8 +43,20 @@ void enable_paging()
 
 /*
  * init_paging
- *
- *
+ *	DESCRIPTION: initialize a page directory and page table so 
+ *               that the first 4MB (not including the first 4KB) of 
+ *               virtual memory is directly mapped to physical 
+ *							 memory and broken into 1024 4 KB pages. the 
+ *							 second 4 MB of virtual memory is also directly
+ *               mapped to physical memory, but is broken into 
+ *               into one 4 MB page.
+ *	INPUTS: none
+ *	OUTPUTS: none
+ * 	RETURN VALUE: none
+ *	SIDE EFFECTS: the first 8 MB of virtual memory(not including the 
+ *                first 4 KB) are present within physical memory and 
+ *                mapped directly to physical memory. the rest of memory 
+ *                is not present within physical memory.
  */
 void init_paging()
 {
