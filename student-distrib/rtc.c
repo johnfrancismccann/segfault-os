@@ -55,8 +55,6 @@ void init_rtc()
 	//Unmask RTC interrupts
 	enable_irq(RTC_IRQ_NUM);
     enable_irq(PIC_CHAIN_IRQ);
-    //Unnecessary setting of IRQ2 to rtc handler, just for my fleeting sanity.
-    // set_interrupt_gate(34, rtc_wrapper);
 	//Restore flags
 	restore_flags(flags);
 }
