@@ -1,46 +1,10 @@
 #include "paging.h"
 #include "lib.h"
 
+/* page directory memory */
 unsigned int page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
+/* page table for first 4MB of memory */
 unsigned int page_table[PAGE_TABLE_SIZE] __attribute__((aligned(PG_TBL_ALIGN)));
-
-void enable_paging();
-
-void init_paging()
-{
-
-	/* declare page directory entries */
-	unsigned int video_dir;
-	unsigned int ker_dir;
-	/* counter */
-	unsigned int i;
-	
-	/* initialize page_table to contain contiguous 4MB block of memory */
-	for(i=0; i<1024; i++)
-		page_table[i] = 4096*i;
-
-	/* initialize video directory entry with page_table and set to present, r/w */
-	video_dir = (unsigned int)page_table;
-	video_dir |= 0x3;
-	
-	/* initialize kernel directory entry to point to page at 4MB */
-	ker_dir = 0x400000;
-	/* set kernel directory as present */
-	ker_dir |= 0x1;
-	/* set as a 4MB page */
-	ker_dir |= 64;
-	
-	/* assign directory entries for first 8 MB of memory */
-	page_dir[0] = video_dir;
-	page_dir[1] = ker_dir;
-	
-	/* set rest of memory as not present */
-	for(i=2; i<1024; i++)
-		page_dir[i] = 0;
-		
-	enable_paging();
-	
-}
 
 /*
  * enable_paging
@@ -52,41 +16,68 @@ void init_paging()
  */
 void enable_paging()
 {
-    //%eax and %ecx is being used
-    __asm__("pushl %eax\n\t"
-	        "pushl %ecx\n\t"
-	        "movl page_dir, %eax\n\t"//load cr3 with address of page directory, change this to the apporiate address
-	        "andl $0xFFC00000,%eax\n\t"//get the first 10 bits of memory address,clear everything else
-			"movl %cr3, %ecx\n\t"
-            "andl $0x3FFFFF,%ecx\n\t"//clear first 10 digits of cr3
-            "orl %ecx, %eax\n\t"			
-            "movl %eax, %cr3\n\t"
- 
-            //set paging bit in CR0
-            "movl %cr0, %eax\n\t"
-            "orl $0x80000000, %eax\n\t"
-            "movl %eax, %cr0\n\t"
-	
-	        //enable PSE in CR4 because we need 4MB pages 
-	        "movl %cr4, %eax\n\t"
-            "orl $0x00000010, %eax\n\t"
-            "movl %eax, %cr4\n\t"
-			"popl %ecx\n\t"
-			"popl %eax\n\t");
+		
+	asm volatile(
+				/* load address of page directory into CR3 */
+				"movl %0, %%cr3\n\t"
+				
+				/* enable PSE field in CR4 to enable 4MB page accesses  */
+				"movl %%cr4, %%eax\n\t"
+				"orl $0x00000010, %%eax\n\t"
+				"movl %%eax, %%cr4\n\t" 
 
-			
-	printf("Paging Enabled\n");
+				/*set paging bit in CR0 to enable paging */
+				"movl %%cr0, %%eax\n\t"
+				"orl $0x80000000, %%eax\n\t"
+				"movl %%eax, %%cr0\n\t"
+
+				:								// no output
+				:	"r"(page_dir)	// input is pointer to page directory
+				: "%eax"				// eax is clobbered
+				);
 }
 
-
-#if 0
-int main()
+/*
+ * init_paging
+ *
+ *
+ */
+void init_paging()
 {
+	/* declare page directory entries, general purpose counter */
+	unsigned int video_dir;
+	unsigned int ker_dir;
+	unsigned int i;
+		
+	/* initialize first page to not present, but r/w */	
+	page_table[0] = SET_PAGE_RW;	
+	/* initialize page_table to contain contiguous 4MB block of memory */
+	for(i=1; i<PAGE_TABLE_SIZE; i++) 
+		page_table[i] = ((PAGE_SIZE_4K*i) | (SET_PAGE_PRES | SET_PAGE_RW));
 
-	init_paging();
-	return 0;
-
-
+	/* initialize video directory entry with page_table and set to present, r/w */
+	video_dir = (unsigned int)page_table;
+	video_dir |= (SET_PAGE_PRES | SET_PAGE_RW);
+	
+	/* initialize kernel directory entry to point to page at 4MB */
+	ker_dir = KERNEL_LOAD_POINT;
+	/* set kernel directory as present, r/w */
+	ker_dir |= (SET_PAGE_PRES | SET_PAGE_RW);
+	/* set as a 4MB page */
+	ker_dir |= SET_PAGE_4MB;
+	
+	/* assign directory entries for first 8 MB of memory */
+	page_dir[0] = video_dir;
+	page_dir[1] = ker_dir;
+	
+	/* set rest of memory as not present, but to read/write */
+	for(i=2; i<PAGE_DIR_SIZE; i++)
+		page_dir[i] = SET_PAGE_RW;		
+		
+	/* enable paging by changing control register values */	
+	enable_paging();
+	
 }
-#endif
+
+
 
