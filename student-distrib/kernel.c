@@ -10,6 +10,7 @@
 #include "setup_idt.h"
 #include "rtc.h"
 #include "paging.h"
+#include "keyboard.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -155,7 +156,9 @@ entry (unsigned long magic, unsigned long addr)
 	init_idt();
 	//init_paging();
 
-	// init_rtc();
+	//init_rtc();
+
+	init_kbd();
 
 
 	/* Enable interrupts */
@@ -163,6 +166,7 @@ entry (unsigned long magic, unsigned long addr)
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
+
 	sti();
 
 	 //int i = 5;
