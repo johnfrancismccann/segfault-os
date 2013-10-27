@@ -159,16 +159,13 @@ entry (unsigned long magic, unsigned long addr)
 	init_idt();
 
 #if 0 /* replace 0 with 1 to test paging */
-	int address;
+	unsigned int address;
+	//address = NULL;			
 	
-	address = NULL;							// this generates a page fault, as it should
-	//address = 0x4000;
-	//address = 0x7FFFFC;				// this doesn't generate a page fault, as it shouldn't
-	
-	/* the following generates a page fault, which it shouldn't. I can't understand why 
-     this would occur, because the same page is referenced here as with 0x7FFFFC	*/
-	//address = 0x7FFFFD;	
-	int x = *((int*)address);
+	char x;
+	/* dereferences all present locations in memory */
+	for(address = 4096; address < 0x800000; address++)
+		x = *((char*)address);
 #endif /* TEST PAGING */
 
 	init_kbd();
