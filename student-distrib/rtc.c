@@ -39,15 +39,15 @@ void init_rtc()
 
 
     //select status register A of RTC
-    outb(0x0A, RTC_PORT);
-    //disable NMI
-    outb(0x27, RTC_PORT + 1);
+    outb(0x8A, RTC_PORT);
+    //Set Frequency
+    outb(0x21, RTC_PORT + 1);
     //select register B of RTC
-    outb(0x0B, RTC_PORT);
+    outb(0x8B, RTC_PORT);
     //save current value of register B of RTC
     prev_b_val = inb(RTC_PORT + 1);
     //re-select register B of RTC
-    outb(0x0B, RTC_PORT);
+    outb(0x8B, RTC_PORT);
     // Set bit 6 of register B on RTC to enable periodic interrupts
     outb(prev_b_val | 0x40, RTC_PORT + 1);
 	// Set handler function; in this case, the assembly wrapper
@@ -56,7 +56,7 @@ void init_rtc()
 	enable_irq(RTC_IRQ_NUM);
     enable_irq(PIC_CHAIN_IRQ);
     //Unnecessary setting of IRQ2 to rtc handler, just for my fleeting sanity.
-    set_interrupt_gate(34, rtc_wrapper);
+    // set_interrupt_gate(34, rtc_wrapper);
 	//Restore flags
 	restore_flags(flags);
 }
@@ -76,8 +76,10 @@ void rtc_idt_handle()
     // clear();
     test_interrupts();
     //Clear inerrupt info from RTC to allow future interrupts.
+    send_eoi(RTC_IRQ_NUM);
+    // send_eoi(PIC_CHAIN_IRQ);
+    //Register C on RTC must be read to re-enable interrupts
+    //on IRQ_8.  See OS Dev Wiki.
     outb(0x0C, RTC_PORT);
     inb(RTC_PORT + 1);
-    send_eoi(RTC_IRQ_NUM);
-    send_eoi(PIC_CHAIN_IRQ);
 }
