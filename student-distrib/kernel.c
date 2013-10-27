@@ -157,7 +157,7 @@ entry (unsigned long magic, unsigned long addr)
 	init_idt();
 	//init_paging();
 
-	init_rtc();
+	// init_rtc();
 
 	init_kbd();
 
