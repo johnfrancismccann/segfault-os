@@ -15,7 +15,6 @@
 #define RTC_IDT_NUM 0x28
 
 #define PIC_CHAIN_IRQ 0x2
-#define PIC_CHAIN_ENABLE 1
 
 #define RTC_PORT 0x70
 
