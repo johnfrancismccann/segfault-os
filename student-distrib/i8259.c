@@ -80,8 +80,37 @@ disable_irq(uint32_t irq_num)
 void
 send_eoi(uint32_t irq_num)
 {
-    //Send EOI OR'd with irq number to both PICs
-    outb(EOI | irq_num, MASTER_8259_PORT);
-    outb(EOI | irq_num, SLAVE_8259_PORT);
+    if(irq_num > 15)
+        return;
+    else if(irq_num < 8)
+    {
+        //Send EOI OR'd with irq number to both PICs
+        outb(EOI | irq_num, MASTER_8259_PORT);
+        __asm__("MOVL $50, %%eax \n\t"
+                "_wait_loop_2: DECL %%eax \n\t"
+                "JGE _wait_loop_2 \n\t"
+                :
+                :
+                : "eax");
+    }
+    else
+    {
+        //Send EOI OR'd with irq number to both PICs
+        outb(EOI | (irq_num - 8), SLAVE_8259_PORT);
+        __asm__("MOVL $50, %%eax \n\t"
+                "_wait_loop_3: DECL %%eax \n\t"
+                "JGE _wait_loop_3 \n\t"
+                :
+                :
+                : "eax");
+
+        outb(EOI | 0x2, MASTER_8259_PORT);
+        __asm__("MOVL $50, %%eax \n\t"
+                "_wait_loop_4: DECL %%eax \n\t"
+                "JGE _wait_loop_4 \n\t"
+                :
+                :
+                : "eax");
+    }
 }
 
