@@ -157,8 +157,7 @@ entry (unsigned long magic, unsigned long addr)
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
 	init_idt();
-	
-	
+
 #if 0 /* replace 0 with 1 to test paging */
 	int address;
 	
@@ -174,6 +173,7 @@ entry (unsigned long magic, unsigned long addr)
 
 	init_kbd();
 
+	// init_rtc();
 
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your

@@ -27,8 +27,8 @@
 void init_rtc()
 {
 	uint32_t flags;
-    // uint8_t idt_num = RTC_IDT_NUM;
-	uint8_t  prev_b_val;
+    uint8_t idt_num = RTC_IDT_NUM;
+	// uint8_t  prev_b_val;
     //Block interrupts and save flags
 	cli_and_save(flags);
 	//Mask RTC interrupts during initialization.
@@ -37,33 +37,34 @@ void init_rtc()
 	disable_irq(RTC_IRQ_NUM);
     disable_irq(PIC_CHAIN_IRQ);
 
-    // outb(RTC_PORT, 0x0A);
-    // outb(RTC_PORT + 1, 0x27);
-    // outb(RTC_PORT, 0x0B);
+    // outb(RTC_PORT, 0x8A);
+    // outb(RTC_PORT + 1, 0x21);
+    // outb(RTC_PORT, 0x8B);
     // prev_b_val = inb(RTC_PORT + 1);
-    // printf("%x\t%x\n", prev_b_val, prev_b_val | 0x40);
+    // // printf("%x\t%x\n", prev_b_val, prev_b_val | 0x40);
     // outb(RTC_PORT + 1, prev_b_val | 0x40);
 
 
-    //select status register A of RTC
-    outb(RTC_PORT, 0x0A);
-    //disable NMI
-    outb(RTC_PORT + 1, 0x20);
-    //select register B of RTC
-    outb(RTC_PORT, 0x0B);
-    //save current value of register B of RTC
-    prev_b_val = inb(RTC_PORT + 1);
-    //re-select register B of RTC
-    outb(RTC_PORT, 0x0B);
-    // Set bit 6 of register B on RTC to enable periodic interrupts
-    outb(RTC_PORT + 1, prev_b_val | 0x40);
+    // //select status register A of RTC
+    // outb(RTC_PORT, 0x0A);
+    // //disable NMI
+    // outb(RTC_PORT + 1, 0x20);
+    // //select register B of RTC
+    // outb(RTC_PORT, 0x0B);
+    // //save current value of register B of RTC
+    // prev_b_val = inb(RTC_PORT + 1);
+    // //re-select register B of RTC
+    // outb(RTC_PORT, 0x0B);
+    // // Set bit 6 of register B on RTC to enable periodic interrupts
+    // outb(RTC_PORT + 1, prev_b_val | 0x40);
 	//Set handler function; in this case, the assembly wrapper
-	set_interrupt_gate(RTC_IDT_NUM, rtc_wrapper);	//Unmask RTC interrupts
+	set_interrupt_gate(idt_num, rtc_wrapper);
+	//Unmask RTC interrupts
 	enable_irq(RTC_IRQ_NUM);
-    //Unmask PIC chain IRQ if chain needs enabled
-    #if PIC_CHAIN_ENABLE
-    enable_irq(PIC_CHAIN_IRQ);
-    #endif	//Restore flags
+    //Unnecessary setting of IRQ2 to rtc handler, just for my fleeting sanity.
+    set_interrupt_gate(34, rtc_wrapper);
+    printf("TO *HATE* ");
+	//Restore flags
 	restore_flags(flags);
 }
 
@@ -82,7 +83,7 @@ void rtc_idt_handle()
     // clear();
     test_interrupts();
     //Clear inerrupt info from RTC to allow future interrupts.
-    // outb(RTC_PORT, 0x0C);
-    // inb(RTC_PORT + 1);
+    outb(RTC_PORT, 0x0C);
+    inb(RTC_PORT + 1);
     send_eoi(RTC_IRQ_NUM);
 }
