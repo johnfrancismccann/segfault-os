@@ -32,6 +32,14 @@ i8259_init(void)
 	master_mask = 0xFF;
 	slave_mask = 0xFF;
 
+    //Manual delay function
+    __asm__("MOVL $50, %%eax \n\t"
+            "_wait_loop_: DECL %%eax \n\t"
+            "JGE _wait_loop_ \n\t"
+            :
+            :
+            : "eax");
+
 	outb(master_mask, MASTER_8259_PORT + 1); //Restore Interrupt mask for master
     outb(slave_mask, SLAVE_8259_PORT + 1);   //Restore Interrupt mask for slave
 }
@@ -63,7 +71,7 @@ disable_irq(uint32_t irq_num)
 	}
 	else if(irq_num >= 8 && irq_num < 16)
 	{
-		slave_mask |= (0x1 << (irq_num - 16));
+		slave_mask |= (0x1 << (irq_num - 8));
         outb(slave_mask, SLAVE_8259_PORT + 1);
 	}
 }
