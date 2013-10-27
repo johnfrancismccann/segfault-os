@@ -8,6 +8,7 @@
 #include "i8259.h"
 #include "debug.h"
 #include "setup_idt.h"
+#include "rtc.h"
 #include "paging.h"
 
 /* Macros. */
@@ -153,6 +154,8 @@ entry (unsigned long magic, unsigned long addr)
 
 	init_idt();
 	//init_paging();
+
+	// init_rtc();
 
 
 	/* Enable interrupts */

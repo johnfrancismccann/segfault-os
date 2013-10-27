@@ -20,6 +20,11 @@ SOLUTION:   When initializing the PIC, we failed to mask the interrupts
             fixed the problem.
 
 3:
-SYMPTOM:
-TIME SPENT:
-SOLUTION:
+SYMPTOM:    rtc.S doesn't compile with rtc.c
+TIME SPENT:	2 hours
+SOLUTION:   The provided makefile compiles .S and .c files into separate
+            .o files, which causes the linker to think that functions are
+            either undefined or defined multiple times.  By changing
+            rtc.S to rtc_asm.S and adding a new header file, rtc_asm.h, 
+            we were able to link the assemly and c files to compile into
+            one big, happy OS kernel.
