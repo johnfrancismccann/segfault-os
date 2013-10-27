@@ -12,6 +12,7 @@
 #include "setup_idt.h"
 #include "i8259.h"
 #include "lib.h"
+#include "types.h"
 
 static const char KBD_MAP[256] =
 {0x00, 0x1B, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x2D, 0X3D, 0x08, 0x09,
@@ -57,8 +58,7 @@ void init_kbd()
  */
 void kbd_handle()
 {
-    //printf("Chris is the best\n");
-    int scancode;
+    uint8_t scancode;
 
     scancode = inb(KBD_PORT);
 
@@ -68,6 +68,5 @@ void kbd_handle()
 
     putc(KBD_MAP[scancode]);
 
-    //test_interrupts();
     send_eoi(KBD_IRQ_NUM);
 }
