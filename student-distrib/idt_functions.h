@@ -3,10 +3,8 @@
  *  functions called from the IDT and set up in setup_idt.c.
  */
 
-#ifndef IDTFUNCTIONS
-#define IDTFUNCTIONS
-
-#include "types.h"
+#ifndef _IDTFUNCTIONS_H
+#define _IDTFUNCTIONS_H
 
 void do_idt_div_error();
 void do_idt_debug();

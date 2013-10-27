@@ -6,6 +6,7 @@
 
 #include "lib.h"
 #include "idt_functions.h"
+#include "types.h"
 
 /*
  *
