@@ -13,7 +13,7 @@
  */
 void do_idt_div_error()
 {
-	clear();
+	// clear();
 	printf("DIV BY 0 ERROR!\n");
 	while(1);
 }
@@ -24,7 +24,7 @@ void do_idt_div_error()
  */
 void do_idt_debug()
 {
-	clear();
+	// clear();
 	printf("DEBUG ERROR!\n");
 	while(1);
 }
@@ -35,7 +35,7 @@ void do_idt_debug()
  */
 void do_idt_nmi()
 {
-	clear();
+	// clear();
 	printf("NMI ERROR!\n");
 	while(1);
 }
@@ -46,7 +46,7 @@ void do_idt_nmi()
  */
 void do_idt_breakpoint()
 {
-	clear();
+	// clear();
 	printf("BREAKPOINT ERROR!\n");
 	while(1);
 }
@@ -57,7 +57,7 @@ void do_idt_breakpoint()
  */
 void do_idt_overflow()
 {
-	clear();
+	// clear();
 	printf("OVERFLOW ERROR!\n");
 	while(1);
 }
@@ -68,7 +68,7 @@ void do_idt_overflow()
  */
 void do_idt_bound()
 {
-	clear();
+	// clear();
 	printf("BOUND ERROR!\n");
 	while(1);
 }
@@ -79,7 +79,7 @@ void do_idt_bound()
  */
 void do_idt_invalid_op()
 {
-	clear();
+	// clear();
 	printf("INVALID OPCODE ERROR!\n");
 	while(1);
 }
@@ -90,7 +90,7 @@ void do_idt_invalid_op()
  */
 void do_idt_device_not_available()
 {
-	clear();
+	// clear();
 	printf("DEVICE NOT AVAILABLE ERROR!\n");
 	while(1);
 }
@@ -101,7 +101,7 @@ void do_idt_device_not_available()
  */
 void do_idt_double_fault()
 {
-	clear();
+	// clear();
 	printf("DOUBLE FAULT ERROR!\n");
 	while(1);
 }
@@ -112,7 +112,7 @@ void do_idt_double_fault()
  */
 void do_idt_coprocessor_segment_overrun()
 {
-	clear();
+	// clear();
 	printf("SEGMENT OVERRUN ERROR!\n");
 	while(1);
 }
@@ -123,7 +123,7 @@ void do_idt_coprocessor_segment_overrun()
  */
 void do_idt_invalid_TSS()
 {
-	clear();
+	// clear();
 	printf("INVALID TSS ERROR!\n");
 	while(1);
 }
@@ -134,7 +134,7 @@ void do_idt_invalid_TSS()
  */
 void do_idt_segment_not_present()
 {
-	clear();
+	// clear();
 	printf("SEGMENT NOT PRESENT ERROR!\n");
 	while(1);
 }
@@ -145,7 +145,7 @@ void do_idt_segment_not_present()
  */
 void do_idt_stack_segment()
 {
-	clear();
+	// clear();
 	printf("STACK SEGMENT ERROR!\n");
 	while(1);
 }
@@ -156,7 +156,7 @@ void do_idt_stack_segment()
  */
 void do_idt_general_protection()
 {
-	clear();
+	// clear();
 	printf("GENERAL PROTECTION ERROR!\n");
 	while(1);
 }
@@ -167,7 +167,7 @@ void do_idt_general_protection()
  */
 void do_idt_page_fault()
 {
-	clear();
+	// clear();
 	printf("PAGE FAULT ERROR!\n");
 	while(1);
 }
@@ -178,7 +178,7 @@ void do_idt_page_fault()
  */
 void do_idt_coprocessor_error()
 {
-	clear();
+	// clear();
 	printf("COPROCESSOR ERROR!\n");
 	while(1);
 }
@@ -189,7 +189,7 @@ void do_idt_coprocessor_error()
  */
 void do_idt_alignment_check()
 {
-	clear();
+	// clear();
 	printf("ALIGNMENT CHECK ERROR!\n");
 	while(1);
 }
@@ -200,7 +200,7 @@ void do_idt_alignment_check()
  */
 void do_idt_system_call()
 {
-	clear();
+	// clear();
 	printf("SYSTEM CALL ERROR!\n");
 	while(1);
 }

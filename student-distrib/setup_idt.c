@@ -38,7 +38,6 @@
 #include "setup_idt.h"
 #include "idt_functions.h"
 #include "lib.h"
-//#include "idt_stubs.S"
 
 /*
  * write_to_idt
@@ -72,8 +71,8 @@ void set_trap_gate(uint8_t entry_num, void* function)
     //See Fig 5-2 from IA32 Reference Manual Vol. 3
     uint8_t outdata[QUAD_SIZE];
     //Handler addr [31:16]
-    outdata[7] = (((uint32_t)function & 0xFF000000) >> 24);
-    outdata[6] = (((uint32_t)function & 0x00FF0000) >> 16);
+    outdata[7] = (((uint32_t)function >> 24) & 0xFF);
+    outdata[6] = (((uint32_t)function >> 16) & 0xFF);
     //P=0b1, DPL=0b00 (kernel), D=0b1 (32-bit)
     outdata[5] = 0x8F; //0b10001111
     //Reserved (0x0)
@@ -82,7 +81,7 @@ void set_trap_gate(uint8_t entry_num, void* function)
     outdata[3] = ((KERNEL_CS >> 8) & 0xFF);
     outdata[2] = KERNEL_CS & 0xFF;
     //Handler addr [15:0]
-    outdata[1] = (((uint32_t)function & 0x0000FF00) >> 8);
+    outdata[1] = (((uint32_t)function >> 8) & 0xFF);
     outdata[0] = (uint32_t)function & 0xFF;
 
     //Write to IDT
@@ -105,17 +104,17 @@ void set_system_gate(uint8_t entry_num, void* function)
     //See Fig 5-2 from IA32 Reference Manual Vol. 3
     uint8_t outdata[QUAD_SIZE];
     //Handler addr [31:16]
-    outdata[7] = (((uint32_t)function & 0xFF000000) >> 24);
-    outdata[6] = (((uint32_t)function & 0x00FF0000) >> 16);
+    outdata[7] = (((uint32_t)function >> 24) & 0xFF);
+    outdata[6] = (((uint32_t)function >> 16) & 0xFF);
     //P=0b1, DPL=0b11 (user), D=0b1 (32-bit)
     outdata[5] = 0xEF; //0b11101111
     //Reserved (0x0)
     outdata[4] = 0x0;
     //Segment = kernel code
-    outdata[3] = ((USER_CS >> 8) & 0xFF);
-    outdata[2] = USER_CS & 0xFF;
+    outdata[3] = ((KERNEL_CS >> 8) & 0xFF);
+    outdata[2] = KERNEL_CS & 0xFF;
     //Handler addr [15:0]
-    outdata[1] = (((uint32_t)function & 0x0000FF00) >> 8);
+    outdata[1] = (((uint32_t)function >> 8) & 0xFF);
     outdata[0] = (uint32_t)function & 0xFF;
 
     //Write to IDT
@@ -148,7 +147,7 @@ void set_interrupt_gate(uint8_t entry_num, void* function)
     outdata[3] = ((KERNEL_CS >> 8) & 0xFF);
     outdata[2] = KERNEL_CS & 0xFF;
     //Handler addr [15:0]
-    outdata[1] = (((uint32_t)function & 0x0000FF00) >> 8);
+    outdata[1] = (((uint32_t)function >> 8) & 0xFF);
     outdata[0] = (uint32_t)function & 0xFF;
 
     //Write to IDT

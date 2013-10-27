@@ -10,6 +10,7 @@
 #include "setup_idt.h"
 #include "rtc.h"
 #include "paging.h"
+#include "rtc_asm.h"
 #include "keyboard.h"
 
 /* Macros. */
@@ -156,7 +157,7 @@ entry (unsigned long magic, unsigned long addr)
 	init_idt();
 	//init_paging();
 
-	//init_rtc();
+	init_rtc();
 
 	init_kbd();
 
@@ -169,9 +170,9 @@ entry (unsigned long magic, unsigned long addr)
 
 	sti();
 
-	 //int i = 5;
-	 //int j = 0;
-	 //i /= j;
+	// int i = 5;
+	// int j = 0;
+	// i /= j;
 
 	/* Execute the first program (`shell') ... */
 
