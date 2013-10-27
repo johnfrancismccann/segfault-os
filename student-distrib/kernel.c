@@ -148,16 +148,29 @@ entry (unsigned long magic, unsigned long addr)
 		ltr(KERNEL_TSS);
 	}
 
+	/* initialize paging */
+	init_paging();
+	
 	/* Init the PIC */
 	i8259_init();
 
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
-
 	init_idt();
-	//init_paging();
-
-	// init_rtc();
+	
+	
+#if 0 /* replace 0 with 1 to test paging */
+	int address;
+	
+	address = NULL;							// this generates a page fault, as it should
+	//address = 0x4000;
+	//address = 0x7FFFFC;				// this doesn't generate a page fault, as it shouldn't
+	
+	/* the following generates a page fault, which it shouldn't. I can't understand why 
+     this would occur, because the same page is referenced here as with 0x7FFFFC	*/
+	//address = 0x7FFFFD;	
+	int x = *((int*)address);
+#endif /* TEST PAGING */
 
 	init_kbd();
 
