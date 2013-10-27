@@ -38,6 +38,20 @@ SOLUTION:   There was an issue caused by the set_interrupt_gate function
 			of sending the KERNEL_CS to the IDT, we were sending the USER_CS.
 
 5:
-SYMPTOM:    
-TIME SPENT:	
-SOLUTION:   
+SYMPTOM:		Attempt to enable paging crashes kernel 
+TIME SPENT:	8 hours
+SOLUTION:   When the enable_paging function was called from init_paging 
+						which is called from kernel.c, the kernel crashes and causes
+						the processor to reload the booloader. Within the 
+						enable_paging function, inline assembly code is executed. 
+						The problem was that we were clobbering the eax register without
+						notifying the compiler. After hours of looking through the 
+						initialization of the page directory and table, we decided to 
+						read the guide to inline assembly, thus revealing the problem.
+						
+6. 
+SYMPTOM:
+TIME SPENT:
+SOLUTION:
+
+

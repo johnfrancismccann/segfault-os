@@ -15,8 +15,20 @@
 
 /*
  * init_paging
- *
- *
+ *	DESCRIPTION: initialize a page directory and page table so 
+ *               that the first 4MB (not including the first 4KB) of 
+ *               virtual memory is directly mapped to physical 
+ *							 memory and broken into 1024 4 KB pages. the 
+ *							 second 4 MB of virtual memory is also directly
+ *               mapped to physical memory, but is broken into 
+ *               into one 4 MB page.
+ *	INPUTS: none
+ *	OUTPUTS: none
+ * 	RETURN VALUE: none
+ *	SIDE EFFECTS: the first 8 MB of virtual memory(not including the 
+ *                first 4 KB) are present within physical memory and 
+ *                mapped directly to physical memory. the rest of memory 
+ *                is not present within physical memory.
  */
 extern void init_paging();
 
