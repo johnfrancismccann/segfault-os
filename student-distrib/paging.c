@@ -76,7 +76,6 @@ void init_paging()
 		
 	/* enable paging by changing control register values */	
 	enable_paging();
-	
 }
 
 
