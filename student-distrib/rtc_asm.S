@@ -18,7 +18,6 @@ rtc_wrapper:
     #  Save all registers except %eflags, %cs, %eip, %ss, %esp,
     #  which the CPU control unit automatically saves and restores.
     # 
-    # pusha
     cld
     pushl %es
     pushl %ds
@@ -39,5 +38,4 @@ rtc_wrapper:
     popl  %eax
     popl  %ds
     popl  %es
-    # popa
-    ret
+    iret
