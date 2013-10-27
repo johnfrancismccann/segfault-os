@@ -28,3 +28,16 @@ SOLUTION:   The provided makefile compiles .S and .c files into separate
             rtc.S to rtc_asm.S and adding a new header file, rtc_asm.h, 
             we were able to link the assemly and c files to compile into
             one big, happy OS kernel.
+			
+4:
+SYMPTOM:    Keyboard interrupt wasn't processing
+TIME SPENT:	1 hour
+SOLUTION:   There was an issue caused by the set_interrupt_gate function
+			in setup_idt.c, which is called by init_kbd upon input from
+			the keyboard (a key being pressed). It turns out that instead
+			of sending the KERNEL_CS to the IDT, we were sending the USER_CS.
+
+5:
+SYMPTOM:    
+TIME SPENT:	
+SOLUTION:   
