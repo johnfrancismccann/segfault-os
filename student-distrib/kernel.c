@@ -170,7 +170,7 @@ entry (unsigned long magic, unsigned long addr)
 
 	init_kbd();
 
-	// init_rtc();
+	//init_rtc();
 
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
