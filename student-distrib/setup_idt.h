@@ -33,14 +33,16 @@
  *  255:
  */
 
-#ifndef SETUPIDT
-#define SETUPIDT
+#ifndef _SETUPIDT_H
+#define _SETUPIDT_H
+
+#include "types.h"
 
 #define QUAD_SIZE 8
 
 //only externally accessable functions are to setup main exceptions
 //and to set interrupt handlers.
- 
+
 void init_idt();
 
 void set_interrupt_gate(uint8_t entry_num, void* function);
