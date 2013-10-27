@@ -47,14 +47,12 @@ void init_rtc()
     //Set bit 6 of register B on RTC to enable periodic interrupts
     outb(RTC_PORT + 1, prev_b_val | 0x40);
 	//Set handler function; in this case, the assembly wrapper
-	set_interrupt_gate(RTC_IDT_NUM, rtc_wrapper);
-	//Unmask RTC interrupts
+	set_interrupt_gate(RTC_IDT_NUM, rtc_wrapper);	//Unmask RTC interrupts
 	enable_irq(RTC_IRQ_NUM);
     //Unmask PIC chain IRQ if chain needs enabled
     #if PIC_CHAIN_ENABLE
     enable_irq(PIC_CHAIN_IRQ);
-    #endif
-	//Restore flags
+    #endif	//Restore flags
 	restore_flags(flags);
 }
 

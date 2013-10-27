@@ -140,13 +140,13 @@ void set_interrupt_gate(uint8_t entry_num, void* function)
     //Handler addr [31:16]
     outdata[7] = (((uint32_t)function & 0xFF000000) >> 24);
     outdata[6] = (((uint32_t)function & 0x00FF0000) >> 16);
-    //P=0b1, DPL=0b00 (user), D=0b1 (32-bit)
+    //P=0b1, DPL=0b00 (kernel), D=0b1 (32-bit)
     outdata[5] = 0x8E; //0b10001110
     //Reserved (0x0)
     outdata[4] = 0x0;
     //Segment = kernel code
-    outdata[3] = ((USER_CS >> 8) & 0xFF);
-    outdata[2] = USER_CS & 0xFF;
+    outdata[3] = ((KERNEL_CS >> 8) & 0xFF);
+    outdata[2] = KERNEL_CS & 0xFF;
     //Handler addr [15:0]
     outdata[1] = (((uint32_t)function & 0x0000FF00) >> 8);
     outdata[0] = (uint32_t)function & 0xFF;
