@@ -39,11 +39,14 @@ void init_kbd()
  */
 void kbd_handle()
 {
-    //printf("Chris is the best\n");
-    int scancode;
+	//int kbd_map[256] = {};
 
-    scancode = inb(KBD_PORT);
-    putc(scancode);
+    //printf("Chris is the best\n");
+    //int scancode;
+	clear();
+    //scancode = inb(KBD_PORT);
+    //printf("%d ", kbd_map[scancode]);
+    //putc(scancode);
 
     //test_interrupts();
     send_eoi(KBD_IRQ_NUM);
