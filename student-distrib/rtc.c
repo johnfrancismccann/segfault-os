@@ -12,6 +12,7 @@
 #include "setup_idt.h"
 #include "i8259.h"
 #include "lib.h"
+#include "idt_functions.h"
 
 /*
  * init_rtc()
@@ -26,6 +27,7 @@
 void init_rtc()
 {
 	uint32_t flags;
+    // uint8_t idt_num = RTC_IDT_NUM;
 	uint8_t  prev_b_val;
     //Block interrupts and save flags
 	cli_and_save(flags);
@@ -34,17 +36,26 @@ void init_rtc()
     //if RTC IRQ is 8:15.
 	disable_irq(RTC_IRQ_NUM);
     disable_irq(PIC_CHAIN_IRQ);
+
+    // outb(RTC_PORT, 0x0A);
+    // outb(RTC_PORT + 1, 0x27);
+    // outb(RTC_PORT, 0x0B);
+    // prev_b_val = inb(RTC_PORT + 1);
+    // printf("%x\t%x\n", prev_b_val, prev_b_val | 0x40);
+    // outb(RTC_PORT + 1, prev_b_val | 0x40);
+
+
     //select status register A of RTC
-    outb(RTC_PORT, 0x8A);
+    outb(RTC_PORT, 0x0A);
     //disable NMI
     outb(RTC_PORT + 1, 0x20);
     //select register B of RTC
-    outb(RTC_PORT, 0x8B);
+    outb(RTC_PORT, 0x0B);
     //save current value of register B of RTC
     prev_b_val = inb(RTC_PORT + 1);
     //re-select register B of RTC
-    outb(RTC_PORT, 0x8B);
-    //Set bit 6 of register B on RTC to enable periodic interrupts
+    outb(RTC_PORT, 0x0B);
+    // Set bit 6 of register B on RTC to enable periodic interrupts
     outb(RTC_PORT + 1, prev_b_val | 0x40);
 	//Set handler function; in this case, the assembly wrapper
 	set_interrupt_gate(RTC_IDT_NUM, rtc_wrapper);	//Unmask RTC interrupts
@@ -68,6 +79,10 @@ void init_rtc()
  */
 void rtc_idt_handle()
 {
+    // clear();
     test_interrupts();
+    //Clear inerrupt info from RTC to allow future interrupts.
+    // outb(RTC_PORT, 0x0C);
+    // inb(RTC_PORT + 1);
     send_eoi(RTC_IRQ_NUM);
 }

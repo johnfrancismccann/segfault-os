@@ -10,6 +10,6 @@
 #ifndef _RTC_ASM_H
 #define _RTC_ASM_H
 
-extern void rtc_wrapper();
+void rtc_wrapper();
 
 #endif

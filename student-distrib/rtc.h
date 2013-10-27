@@ -11,10 +11,10 @@
 #define _RTC_H
 
 //The RTC is IRQ_8.  In IDT, IRQs are entries 32:47
-#define RTC_IRQ_NUM 8
-#define RTC_IDT_NUM 40
+#define RTC_IRQ_NUM 0x8
+#define RTC_IDT_NUM 0x28
 
-#define PIC_CHAIN_IRQ 2
+#define PIC_CHAIN_IRQ 0x2
 #define PIC_CHAIN_ENABLE 1
 
 #define RTC_PORT 0x70

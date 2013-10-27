@@ -27,11 +27,6 @@ continue:
 
 	# Load the GDT
 	lgdt gdt_pseudo_desc 
-	
-    #MOVL %cr0, %ecx
-    #MOVW  $1, %cx
-    #LMSW %cx
-    #MOVL %ecx, %cr0
 
 	# Load CS with the new descriptor value
 	ljmp    $KERNEL_CS, $keep_going
