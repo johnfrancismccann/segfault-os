@@ -21,6 +21,13 @@ typedef unsigned short uint16_t;
 typedef char int8_t;
 typedef unsigned char uint8_t;
 
+typedef struct
+{
+    uint32_t* file_name;
+    uint32_t ftype;
+	uint32_t index_node;
+} dentry_t ;
+
 #endif /* ASM */
 
 #endif /* _TYPES_H */
