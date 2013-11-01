@@ -12,6 +12,7 @@
 #include "paging.h"
 #include "rtc_asm.h"
 #include "keyboard.h"
+#include "fs.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -158,19 +159,12 @@ entry (unsigned long magic, unsigned long addr)
 	 * PIC, any other initialization stuff... */
 	init_idt();
 
-#if 0 /* replace 0 with 1 to test paging */
-	unsigned int address;
-	//address = NULL;			
-	
-	char x;
-	/* dereferences all present locations in memory */
-	for(address = 4096; address < 0x800000; address++)
-		x = *((char*)address);
-#endif /* TEST PAGING */
-
 	init_kbd();
 
 	init_rtc();
+	
+	dentry_t dentry;
+	read_dentry_by_name((const uint8_t*)"frame1.txt", &dentry);
 
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
