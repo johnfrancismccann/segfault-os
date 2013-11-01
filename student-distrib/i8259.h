@@ -39,4 +39,9 @@ void disable_irq(uint32_t irq_num);
 /* Send end-of-interrupt signal for the specified IRQ */
 void send_eoi(uint32_t irq_num);
 
+
+/* cli with save and flag restore interrupt equivalents */
+void block_hw_interrupts(uint8_t* slave_backup, uint8_t* master_backup);
+void restore_hw_interrupts(uint8_t* slave_backup, uint8_t* master_backup);
+
 #endif /* _I8259_H */
