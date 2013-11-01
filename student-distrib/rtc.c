@@ -72,7 +72,7 @@ void init_rtc()
 void rtc_idt_handle()
 {
     // clear();
-    test_interrupts();
+    //test_interrupts();
     //Clear inerrupt info from RTC to allow future interrupts.
     send_eoi(RTC_IRQ_NUM);
     // send_eoi(PIC_CHAIN_IRQ);
