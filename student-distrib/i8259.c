@@ -10,6 +10,7 @@
 uint8_t master_mask; /* IRQs 0-7 */
 uint8_t slave_mask;  /* IRQs 8-15 */
 
+
 /* Initialize the 8259 PIC */
 void
 i8259_init(void)
@@ -114,3 +115,62 @@ send_eoi(uint32_t irq_num)
     }
 }
 
+/* block_hw_interrupts:
+ *   DESCRIPTION: Masks all HW interrupts and saves for the case of
+ *                restoring HW interrupts.  Like cli with save flags.
+ *   INPUTS: slave_backup:  pointer to location where mask can be saved
+ *                          for slave PIC.  On NULL, doesn't save.
+ *           master_backup: pointer to location where mask can be saved
+ *                          for master PIC.  On NULL, doesn't save.
+ *   OUTPUTS: Outputs to pointers in INPUTS.
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Masks all IRQs on both PICs and saves masks before
+ *                 changing the masks.
+ */
+
+void block_hw_interrupts(uint8_t* slave_backup, uint8_t* master_backup)
+{
+    if(slave_backup != NULL)    //Only run if not NULL.
+                                //NOTE: change to access check eventually
+    {
+        *slave_backup = slave_mask; //Save previous Mask
+    }
+    slave_mask = 0xFF;          //Set new mask
+    outb(0xFF, SLAVE_8259_PORT + 1);    //Mask Slave Interrupts
+
+    if(master_backup != NULL)    //Only run if not NULL.
+                                 //NOTE: change to access check eventually
+    {
+        *master_backup = master_mask; //Save previous Mask
+    }
+    master_mask = 0xFF;           //Set new mask
+    outb(0xFF, MASTER_8259_PORT + 1);    //Mask Master Interrupts
+}
+
+ /* restore_hw_interrupts:
+ *   DESCRIPTION: Restores HW interrupt masks saved by block_hw_interrupts.
+ *                Like restore flags function.
+ *   INPUTS: slave_backup:  pointer to location where slave PIC mask is
+ *                          saved.  On NULL, slave in not restored.
+ *           master_backup: pointer to location where master PIC mask is
+ *                          saved.  On NULL, master is not restored.
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: May mask or unmask IRQs on both PICs.
+ */
+void restore_hw_interrupts(uint8_t* slave_backup, uint8_t* master_backup)
+{
+    if(slave_backup != NULL)    //Only run if not NULL.
+                                //NOTE: change to access check eventually
+    {
+        slave_mask = *slave_backup; //Restore Mask
+        outb(slave_mask, SLAVE_8259_PORT + 1);    //Mask Slave Interrupts
+    }
+    
+    if(master_backup != NULL)    //Only run if not NULL.
+                                 //NOTE: change to access check eventually
+    {
+        master_mask = *master_backup; //Restore Mask
+        outb(master_mask, MASTER_8259_PORT + 1);    //Mask Master Interrupts
+    }
+}
