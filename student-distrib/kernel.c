@@ -164,7 +164,12 @@ entry (unsigned long magic, unsigned long addr)
 	init_rtc();
 	
 	dentry_t dentry;
+
 	read_dentry_by_name((const uint8_t*)"frame1.txt", &dentry);
+
+	uint32_t index_den = 1;
+	
+//  read_dentry_by_index(index_den, &dentry);
 
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
