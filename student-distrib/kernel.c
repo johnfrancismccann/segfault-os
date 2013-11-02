@@ -170,17 +170,17 @@ entry (unsigned long magic, unsigned long addr)
 	
 #if 0 //set to 1 if wanna test read_dentry_by_index	
 	dentry_t dentry;
-	uint32_t index_den = 1;	
+	uint32_t index_den = 0x19;	
     read_dentry_by_index(index_den, &dentry);
 #endif
 	
 #if 0 //set to 1 if wanna test read_data
-    uint32_t _inode = 0;
-	uint32_t _offset = 1;
-	uint8_t  _buf[10];
-	uint32_t _length = 2;
+  uint32_t _inode = 0x19;
+	uint32_t _offset = 10;
+	uint8_t  _buf[7000];
+	uint32_t _length = 7000;
 	
-    read_data(_inode, _offset, &_buf, _length);
+  read_data(_inode, _offset, _buf, _length);
 #endif
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
