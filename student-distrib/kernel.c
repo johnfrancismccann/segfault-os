@@ -162,20 +162,31 @@ entry (unsigned long magic, unsigned long addr)
 	init_kbd();
 
 	init_rtc();
-	
+
+#if 0 //set to 1 if wanna test read_dentry_by_name
 	dentry_t dentry;
-
 	read_dentry_by_name((const uint8_t*)"frame1.txt", &dentry);
-
-	uint32_t index_den = 1;
+#endif
 	
-//  read_dentry_by_index(index_den, &dentry);
-
+#if 0 //set to 1 if wanna test read_dentry_by_index	
+	dentry_t dentry;
+	uint32_t index_den = 1;	
+    read_dentry_by_index(index_den, &dentry);
+#endif
+	
+#if 0 //set to 1 if wanna test read_data
+    uint32_t _inode = 0;
+	uint32_t _offset = 1;
+	uint8_t  _buf[10];
+	uint32_t _length = 2;
+	
+    read_data(_inode, _offset, &_buf, _length);
+#endif
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
-	printf("Enabling Interrupts\n");
+	printf("Enabling Interrupt\n");
 
 	sti();
 

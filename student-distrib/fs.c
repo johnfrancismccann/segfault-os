@@ -9,11 +9,19 @@
 #define FL_NAME_OFF		0
 #define FL_TYPE_OFF		32
 #define FL_INODE_OFF	36
+#define FL_READ_MASK    0xFF000000
 
+#define INODE_OFF		0x1000 //because each block is 64kb
 
-#define TYPE_USER 0
-#define TYPE_DIR 1
-#define TYPE_REG 2
+#define TYPE_USER       0
+#define TYPE_DIR        1
+#define TYPE_REG        2
+
+#define BLOCK_BYTE_NUM   4
+#define DATA_BLOCK_START 1
+#define MAX_FNAME_LENGTH 32
+#define FILE_EMPTY       0
+#define BIT_PER_BYTE     8
 
 //dentry_t defined in types.h
 
@@ -41,7 +49,7 @@ int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry){
 	if(!fname_size)
 		/* the name of a file can't be a null string. return failure */
 		return -1;
-	if(fname_size > 32)
+	if(fname_size > MAX_FNAME_LENGTH)
 		/* the maximum size of a file name is 32 characters. return failue */
 		return -1;
 	
@@ -95,7 +103,7 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t * dentry){
 	if(!fname_size)
 		/* the name of a file can't be a null string. return failure */
 		return -1;
-	if(fname_size > 32)
+	if(fname_size > MAX_FNAME_LENGTH)
 		/* the maximum size of a file name is 32 characters. return failue */
 		return -1;
 	
@@ -124,8 +132,8 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t * dentry){
  * read_data
  *   DESCRIPTION: read up to "length" bytes starting from position offset in the file 
  *                with inode number "inode"
- *   INPUTS: unit32_t inode, 
- *           unit32_t offset, 
+ *   INPUTS: unit32_t inode,  ---inode # of the file read
+ *           unit32_t offset, ---starting place in the file
  *			 unit8_t * buf, 
  *			 unit length
  *   OUTPUTS: contents in buf
@@ -134,5 +142,44 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t * dentry){
  *   SIDE EFFECTS: modify buf							 
  */
 int32_t read_data (uint32_t inode, uint32_t offset, uint8_t * buf, uint32_t length){
-    return 0;
+
+    /* variable declarations */
+	uint8_t* file_sys;
+	uint8_t* file_start;
+    uint32_t file_length;
+	
+	uint32_t i;
+	uint32_t j;
+	
+	/* get file system location */
+	file_sys = (uint8_t*)FS_LOC;
+	
+	/*The start of the file, which points to "length in B" field*/
+	file_start = file_sys + INODE_OFF + inode * INODE_OFF;
+	
+	/*to check how many bytes of data we can read*/
+	file_length = *((uint32_t*)file_start);
+	
+	/*return 0 if reach end*/
+	if ((file_length*BLOCK_BYTE_NUM) < offset)
+	    return 0;
+	
+	/*That means we will reach the end before reading the (length)th byte*/
+	//IMPORTANT: I assume offset 0 means the beginning. The return value may need modification
+	if ((file_length*BLOCK_BYTE_NUM) < (offset+length)){
+        for (i = 0; i < (file_length*BLOCK_BYTE_NUM - offset); i++){
+		    for (j = 0; j < BLOCK_BYTE_NUM; j++){
+  	            buf[i*BLOCK_BYTE_NUM + j] = (*((uint32_t*)(file_start + DATA_BLOCK_START + i))) * (FL_READ_MASK >> (BIT_PER_BYTE*j));
+			}
+	    }
+	    return (file_length*BLOCK_BYTE_NUM - offset);
+	}
+	
+	//then this is the normal reading, no out-of-range check;
+    for (i = 0; i < length; i++){
+	    for (j = 0; j < BLOCK_BYTE_NUM; j++){
+  	        buf[i*BLOCK_BYTE_NUM + j] = (*((uint32_t*)(file_start + DATA_BLOCK_START + i))) * (FL_READ_MASK >> (BIT_PER_BYTE*j));
+	    }
+	}	
+    return length;
 }
