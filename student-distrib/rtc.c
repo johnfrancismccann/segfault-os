@@ -14,6 +14,9 @@
 #include "lib.h"
 #include "idt_functions.h"
 
+//Flag indicating an interrupt has occured
+uint8_t interrupt_flag;
+
 /*
  * init_rtc()
  *   DESCRIPTION: Registers the rtc interrupt handler in the IDT
@@ -31,6 +34,8 @@ void init_rtc()
 	uint8_t  prev_b_val;
     //Block interrupts and save flags
 	cli_and_save(flags);
+    //Set interrupt flag to 0 indicating no interrupts
+    interrupt_flag = 0;
 	//Mask RTC interrupts during initialization.
     //Must mask RTC IRQ and possibly the chain IRQ
     //if RTC IRQ is 8:15.
@@ -41,7 +46,7 @@ void init_rtc()
     //select status register A of RTC
     outb(0x8A, RTC_PORT);
     //Set Frequency
-    outb(0x21, RTC_PORT + 1);
+    outb(0x2F, RTC_PORT + 1);
     //select register B of RTC
     outb(0x8B, RTC_PORT);
     //save current value of register B of RTC
@@ -71,13 +76,103 @@ void init_rtc()
  */
 void rtc_idt_handle()
 {
-    // clear();
-    //test_interrupts();
-    //Clear inerrupt info from RTC to allow future interrupts.
+    // test_interrupts();
+    //Set flag to indicate a new interrupt
+    interrupt_flag |= 1;
     send_eoi(RTC_IRQ_NUM);
-    // send_eoi(PIC_CHAIN_IRQ);
     //Register C on RTC must be read to re-enable interrupts
     //on IRQ_8.  See OS Dev Wiki.
     outb(0x0C, RTC_PORT);
     inb(RTC_PORT + 1);
+}
+
+
+/*
+ * rtc_open()
+ *   DESCRIPTION:
+ *   INPUTS: 
+ *   OUTPUTS: 
+ *   RETURN VALUE: 
+ *   SIDE EFFECTS: 
+ */
+int rtc_open()
+{
+    return 0;
+}
+
+
+/*
+ * rtc_read()
+ *   DESCRIPTION:  Returns 0 after interrupt from RTC.
+ *   INPUTS: None
+ *   OUTPUTS: None
+ *   RETURN VALUE: 0 after interrupt from RTC 
+ *   SIDE EFFECTS: None
+ */
+int rtc_read()
+{
+    //reset interrupt_flag to wait for interrupt
+    interrupt_flag &= 0;
+    //wait for interrupt
+    while(!interrupt_flag);
+    //return after interrupt
+    return 0;
+}
+
+
+/*
+ * rtc_write()
+ *   DESCRIPTION:
+ *   INPUTS: 
+ *   OUTPUTS: 
+ *   RETURN VALUE: 
+ *   SIDE EFFECTS: 
+ */
+int rtc_write(uint32_t freq)
+{
+    uint8_t rate = 0;
+    uint32_t flags;
+    //Don't set if outside valid frequency range
+    if(freq > MAXFREQ || freq < MINFREQ)
+        return -1;
+    //Only set for valid powers of 2
+    else if((freq - 1) & freq)
+        return -1;
+    else
+    {
+        /* Find log_2 of frequency to feed to the RTC. */
+        while(freq >>= 1)
+            rate ++;
+        /* There is no 2^1 available, so compensate by making
+         * 2^2 the first value */
+        rate--;
+        /* rate initially has log_2(frequency), but RTC
+         * expects a shift amount.  This means a small log_2
+         * value cooresponds to a large shift */
+        rate = 0xF - rate;
+
+        //block interrupts during frequency set
+        cli_and_save(flags);
+        //Initiate writing to RTC register A
+        outb(0x8A, RTC_PORT);
+        //Write new frequency to RTC
+        outb(0x20 | rate, RTC_PORT + 1);
+        //re-enable interrupts if they were enabled before
+        restore_flags(flags);
+        return 0;
+    }
+}
+
+
+/*
+ * rtc_close()
+ *   DESCRIPTION:
+ *   INPUTS: 
+ *   OUTPUTS: 
+ *   RETURN VALUE: 
+ *   SIDE EFFECTS: 
+ */
+int rtc_close()
+{
+    return 0;
 }
