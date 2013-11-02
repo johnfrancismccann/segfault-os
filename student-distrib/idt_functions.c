@@ -11,11 +11,11 @@
 /*
  *
  */
-void do_idt_div_error()
+void do_idt_div_error(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("DIV BY 0 ERROR!\n");
+	clear();
+	printf("DIV BY 0 ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -23,11 +23,11 @@ void do_idt_div_error()
 /*
  *
  */
-void do_idt_debug()
+void do_idt_debug(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("DEBUG ERROR!\n");
+	clear();
+	printf("DEBUG ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -35,11 +35,11 @@ void do_idt_debug()
 /*
  *
  */
-void do_idt_nmi()
+void do_idt_nmi(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("NMI ERROR!\n");
+	clear();
+	printf("NMI ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -47,11 +47,11 @@ void do_idt_nmi()
 /*
  *
  */
-void do_idt_breakpoint()
+void do_idt_breakpoint(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("BREAKPOINT ERROR!\n");
+	clear();
+	printf("BREAKPOINT ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -59,11 +59,11 @@ void do_idt_breakpoint()
 /*
  *
  */
-void do_idt_overflow()
+void do_idt_overflow(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("OVERFLOW ERROR!\n");
+	clear();
+	printf("OVERFLOW ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -71,11 +71,11 @@ void do_idt_overflow()
 /*
  *
  */
-void do_idt_bound()
+void do_idt_bound(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("BOUND ERROR!\n");
+	clear();
+	printf("BOUND ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -83,11 +83,11 @@ void do_idt_bound()
 /*
  *
  */
-void do_idt_invalid_op()
+void do_idt_invalid_op(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("INVALID OPCODE ERROR!\n");
+	clear();
+	printf("INVALID OPCODE ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -95,11 +95,11 @@ void do_idt_invalid_op()
 /*
  *
  */
-void do_idt_device_not_available()
+void do_idt_device_not_available(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("DEVICE NOT AVAILABLE ERROR!\n");
+	clear();
+	printf("DEVICE NOT AVAILABLE ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -107,11 +107,11 @@ void do_idt_device_not_available()
 /*
  *
  */
-void do_idt_double_fault()
+void do_idt_double_fault(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("DOUBLE FAULT ERROR!\n");
+	clear();
+	printf("DOUBLE FAULT ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -119,11 +119,11 @@ void do_idt_double_fault()
 /*
  *
  */
-void do_idt_coprocessor_segment_overrun()
+void do_idt_coprocessor_segment_overrun(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("SEGMENT OVERRUN ERROR!\n");
+	clear();
+	printf("SEGMENT OVERRUN ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -131,11 +131,11 @@ void do_idt_coprocessor_segment_overrun()
 /*
  *
  */
-void do_idt_invalid_TSS()
+void do_idt_invalid_TSS(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("INVALID TSS ERROR!\n");
+	clear();
+	printf("INVALID TSS ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -143,11 +143,11 @@ void do_idt_invalid_TSS()
 /*
  *
  */
-void do_idt_segment_not_present()
+void do_idt_segment_not_present(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("SEGMENT NOT PRESENT ERROR!\n");
+	clear();
+	printf("SEGMENT NOT PRESENT ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -155,11 +155,11 @@ void do_idt_segment_not_present()
 /*
  *
  */
-void do_idt_stack_segment()
+void do_idt_stack_segment(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("STACK SEGMENT ERROR!\n");
+	clear();
+	printf("STACK SEGMENT ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -167,11 +167,11 @@ void do_idt_stack_segment()
 /*
  *
  */
-void do_idt_general_protection()
+void do_idt_general_protection(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("GENERAL PROTECTION ERROR!\n");
+	clear();
+	printf("GENERAL PROTECTION ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -179,11 +179,11 @@ void do_idt_general_protection()
 /*
  *
  */
-void do_idt_page_fault()
+void do_idt_page_fault(uint32_t error_code_a, uint32_t error_code_b)
 {
 	cli();
-	// clear();
-	printf("PAGE FAULT ERROR!\n");
+	clear();
+	printf("PAGE FAULT ERROR!\nERROR CODE 1: %x\nERROR CODE 2: %x\n", error_code_b, error_code_a);
 	while(1);
 }
 
@@ -191,11 +191,11 @@ void do_idt_page_fault()
 /*
  *
  */
-void do_idt_coprocessor_error()
+void do_idt_coprocessor_error(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("COPROCESSOR ERROR!\n");
+	clear();
+	printf("COPROCESSOR ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -203,11 +203,11 @@ void do_idt_coprocessor_error()
 /*
  *
  */
-void do_idt_alignment_check()
+void do_idt_alignment_check(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("ALIGNMENT CHECK ERROR!\n");
+	clear();
+	printf("ALIGNMENT CHECK ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
 
@@ -215,10 +215,10 @@ void do_idt_alignment_check()
 /*
  *
  */
-void do_idt_system_call()
+void do_idt_system_call(uint32_t error_code)
 {
 	cli();
-	// clear();
-	printf("SYSTEM CALL ERROR!\n");
+	clear();
+	printf("SYSTEM CALL ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
