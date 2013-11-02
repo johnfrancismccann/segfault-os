@@ -1,10 +1,9 @@
 #include "fs.h"
 #include "lib.h"
 
-#define MAX_FNAME_LENGTH 32
-
 #define FS_LOC				0x40D000
 #define FS_BT_BLK_OFF	0
+#define DIR_ENTRY_START 64 //FS_BT_BLK_OFF + DIR_ENTRY_START gives the start location of the first entry of dentry
 #define DIR_ENTRY_SZ 	64
 
 #define FL_NAME_OFF		0
@@ -30,19 +29,6 @@
  *   SIDE EFFECTS: modify dentry							 
  */
 int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry){
-
-#if 0
-    //assume dentry has already been allocated
-    //file name should be less or equal than 32, if *fname is longer
-    //we'll just copy as long as we can	
-	
-	//copy name first
-    strncpy(dentry->file_name, fname, MAX_FNAME_LENGTH);		
-	//copy type
-	dentry->ftype = TYPE_REG;//just a test
-	//copy inode#
-	//dentry->index_node = //inode;
-#endif
 
 	/* variable declarations */
 	uint32_t fname_size;
@@ -93,7 +79,44 @@ int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry){
  *   SIDE EFFECTS: modify dentry							 
  */
 int32_t read_dentry_by_index (uint32_t index, dentry_t * dentry){
-    return 0;
+
+	/* variable declarations */
+	uint32_t fname_size;
+	uint8_t* file_sys;
+	uint32_t num_dir_ent;
+	uint32_t i;
+
+	/* get file system location */
+	//do this first because an index was passed in
+	file_sys = (uint8_t*)FS_LOC;
+	
+	/* get the size of the file, and perform checks */
+	fname_size = strlen((int8_t*)(file_sys + FS_BT_BLK_OFF + DIR_ENTRY_START + FL_NAME_OFF));
+	if(!fname_size)
+		/* the name of a file can't be a null string. return failure */
+		return -1;
+	if(fname_size > 32)
+		/* the maximum size of a file name is 32 characters. return failue */
+		return -1;
+	
+	/* get number of entries in directory */
+	num_dir_ent = *((uint32_t*)(file_sys+FS_BT_BLK_OFF));
+	
+	for(i=1; i<num_dir_ent; i++) {
+		/* check if fname matches with iterated directory entry filename */
+		if(!strncmp((int8_t*)(file_sys + FS_BT_BLK_OFF + DIR_ENTRY_START + FL_NAME_OFF), 
+								((int8_t*)(file_sys+i*DIR_ENTRY_SZ+FL_NAME_OFF)), 
+								fname_size)) {
+			/* fill directory entry */
+			dentry->file_name = (uint32_t*)(file_sys + FS_BT_BLK_OFF + DIR_ENTRY_START + FL_NAME_OFF);
+			dentry->ftype = *((uint32_t*)(file_sys + i*DIR_ENTRY_SZ + FL_TYPE_OFF));
+			dentry->index_node = *((uint32_t*)(file_sys + i*DIR_ENTRY_SZ + FL_INODE_OFF));
+			/* return success */
+			return 0;
+		}
+	}
+	/* file name does not match any files. return failure */	
+  return -1;
 }
 
 
