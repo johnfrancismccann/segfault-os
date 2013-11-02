@@ -37,8 +37,8 @@
 #include "x86_desc.h"
 #include "setup_idt.h"
 #include "idt_functions.h"
+#include "idt_functions_asm.h"
 #include "lib.h"
-//#include "idt_stubs.S"
 
 /*
  * write_to_idt
@@ -166,22 +166,22 @@ void set_interrupt_gate(uint8_t entry_num, void* function)
  */
 void init_idt()
 {
-    set_trap_gate(0, do_idt_div_error);
-    set_trap_gate(1, do_idt_debug);
-    set_trap_gate(2, do_idt_nmi);
-    set_system_gate(3, do_idt_breakpoint);
-    set_system_gate(4, do_idt_overflow);
-    set_system_gate(5, do_idt_bound);
-    set_trap_gate(6, do_idt_invalid_op);
-    set_trap_gate(7, do_idt_device_not_available);
-    set_trap_gate(8, do_idt_double_fault);
-    set_trap_gate(9, do_idt_coprocessor_segment_overrun);
-    set_trap_gate(10, do_idt_invalid_TSS);
-    set_trap_gate(11, do_idt_segment_not_present);
-    set_trap_gate(12, do_idt_stack_segment);
-    set_trap_gate(13, do_idt_general_protection);
-    set_trap_gate(14, do_idt_page_fault);
-    set_trap_gate(16, do_idt_coprocessor_error);
-    set_trap_gate(17, do_idt_alignment_check);
-    set_system_gate(0x80, do_idt_system_call);
+    set_trap_gate(0, idt_div_error);
+    set_trap_gate(1, idt_debug);
+    set_trap_gate(2, idt_nmi);
+    set_system_gate(3, idt_breakpoint);
+    set_system_gate(4, idt_overflow);
+    set_system_gate(5, idt_bound);
+    set_trap_gate(6, idt_invalid_op);
+    set_trap_gate(7, idt_device_not_available);
+    set_trap_gate(8, idt_double_fault);
+    set_trap_gate(9, idt_coprocessor_segment_overrun);
+    set_trap_gate(10, idt_invalid_TSS);
+    set_trap_gate(11, idt_segment_not_present);
+    set_trap_gate(12, idt_stack_segment);
+    set_trap_gate(13, idt_general_protection);
+    set_trap_gate(14, idt_page_fault);
+    set_trap_gate(16, idt_coprocessor_error);
+    set_trap_gate(17, idt_alignment_check);
+    set_system_gate(0x80, idt_system_call);
 }

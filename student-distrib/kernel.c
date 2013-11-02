@@ -18,6 +18,15 @@
 /* Check if the bit BIT in FLAGS is set. */
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
 
+
+/* Test enables */
+#define TEST_RDENTRY_NAME 0     //Set to 1 to test read_dentry_by_name
+#define TEST_RDENTRY_INDEX 0    //Set to 1 to test read_dentry_by_index
+#define TEST_RDATA 0            //Set to 1 to test read_data
+#define TEST_RWRTC 0            //Set to 1 to test rtc read/write
+#define TEST_DIV0 0             //Set to 1 to test divide by 0 exception
+#define TEST_PAGEF 1            //Set to 1 to test page fault exception
+
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
 void
@@ -163,18 +172,18 @@ entry (unsigned long magic, unsigned long addr)
 
 	init_rtc();
 
-#if 0 //set to 1 if wanna test read_dentry_by_name
+#if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
 	dentry_t dentry;
 	read_dentry_by_name((const uint8_t*)"frame1.txt", &dentry);
 #endif
 	
-#if 0 //set to 1 if wanna test read_dentry_by_index	
+#if TEST_RDENTRY_INDEX //set to 1 if wanna test read_dentry_by_index	
 	dentry_t dentry;
 	uint32_t index_den = 0x19;	
     read_dentry_by_index(index_den, &dentry);
 #endif
 	
-#if 0 //set to 1 if wanna test read_data
+#if TEST_RDATA //set to 1 if wanna test read_data
   uint32_t _inode = 0x19;
 	uint32_t _offset = 10;
 	uint8_t  _buf[7000];
@@ -190,7 +199,7 @@ entry (unsigned long magic, unsigned long addr)
 
 	sti();
 
-#if 0 //set to 1 to test rtc read/write
+#if TEST_RWRTC //set to 1 to test rtc read/write
 /* Attempts to set various frequencies for RTC interrupts
  * and then does read loops to print to screen. */
     uint8_t tester = 0;
@@ -237,6 +246,16 @@ entry (unsigned long magic, unsigned long addr)
             printf("%d\t", tester);
         }
     }
+#endif
+
+#if TEST_DIV0 //set to 1 to test divide by zero exception
+    int i = 5;
+    i /= 0;
+#endif
+
+#if TEST_PAGEF //set to 1 to test page fault exception
+    int* i = NULL;
+    *i = 5;
 #endif
 
 	/* Execute the first program (`shell') ... */
