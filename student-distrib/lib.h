@@ -5,6 +5,11 @@
 #ifndef _LIB_H
 #define _LIB_H
 
+//moved these definitions from lib.c
+#define VIDEO 0xB8000
+#define NUM_COLS 80
+#define NUM_ROWS 25
+
 #include "types.h"
 
 int32_t printf(int8_t *format, ...);

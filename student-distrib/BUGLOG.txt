@@ -33,21 +33,21 @@ SOLUTION:   The provided makefile compiles .S and .c files into separate
 SYMPTOM:    Keyboard interrupt wasn't processing
 TIME SPENT:	1 hour
 SOLUTION:   There was an issue caused by the set_interrupt_gate function
-			in setup_idt.c, which is called by init_kbd upon input from
-			the keyboard (a key being pressed). It turns out that instead
-			of sending the KERNEL_CS to the IDT, we were sending the USER_CS.
+		in setup_idt.c, which is called by init_kbd upon input from
+		the keyboard (a key being pressed). It turns out that instead
+		of sending the KERNEL_CS to the IDT, we were sending the USER_CS.
 
 5:
 SYMPTOM:	Attempt to enable paging crashes kernel 
 TIME SPENT:	8 hours
 SOLUTION:   When the enable_paging function was called from init_paging 
-			which is called from kernel.c, the kernel crashes and causes
-			the processor to reload the booloader. Within the 
-			enable_paging function, inline assembly code is executed. 
-			The problem was that we were clobbering the eax register without
-			notifying the compiler. After hours of looking through the 
-			initialization of the page directory and table, we decided to 
-			read the guide to inline assembly, thus revealing the problem.
+		which is called from kernel.c, the kernel crashes and causes
+		the processor to reload the booloader. Within the 
+		enable_paging function, inline assembly code is executed. 
+		The problem was that we were clobbering the eax register without
+		notifying the compiler. After hours of looking through the 
+		initialization of the page directory and table, we decided to 
+		read the guide to inline assembly, thus revealing the problem.
 
 6. 
 SYMPTOM:    RTC interrupt was not functional
@@ -60,6 +60,12 @@ SOLUTION:   To send the EOI for a slave PIC IRQ, the EOI signal must be
 
 
 7. 
-SYMPTOM:
-TIME SPENT:
-SOLUTION:
+SYMPTOM:    Page fault occurs in terminal driver after holding down backspace
+            key and typing a letter (which appears in the middle of the screen)
+TIME SPENT: 1 hour
+SOLUTION:   The program was unconditionally decrementing the buffer index
+            upon a backspace. Therefore, if there were no elements left in the
+            buffer, the buffer index would become -1 and so this would be an
+            illegal access on the buffer, resulting in a page fault.
+
+            
