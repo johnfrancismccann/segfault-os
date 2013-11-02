@@ -190,9 +190,54 @@ entry (unsigned long magic, unsigned long addr)
 
 	sti();
 
-	// int i = 5;
-	// int j = 0;
-	// i /= j;
+#if 0 //set to 1 to test rtc read/write
+/* Attempts to set various frequencies for RTC interrupts
+ * and then does read loops to print to screen. */
+    uint8_t tester = 0;
+    uint32_t power_two = 1;
+    clear();
+    if(rtc_write(0) == -1) //attempt to set frequency of 0Hz
+        printf("\tRTC 0Hz FAIL\n");
+    else
+    {
+        printf("\tRTC 0Hz SUCCESS\n");
+        for(tester = 0; tester < 10; tester ++)
+        {
+            rtc_read();
+            printf("%d\t", tester);
+        }
+    }
+    /* 1 should fail, 2-1024 should succeed, 2048-8192 should fail.
+     * For each success, 10 interrupts will be processed,
+     * for each failure, the failure will be acknowledged.
+     */
+    for(power_two = 1; power_two < 16384; power_two <<= 1)
+    {
+        if(rtc_write(power_two) == -1) //attempt to set frequency
+            printf("\n\tRTC %dHz FAIL\n", power_two);
+        else
+        {
+            printf("\n\tRTC %dHz SUCCESS\n", power_two);
+            for(tester = 0; tester < 10; tester ++)
+            {
+                rtc_read();
+                printf("%d  ", tester);
+            }
+        }
+    }
+    // Check non power of two; should fail.
+    if(rtc_write(100) == -1) //attempt to set frequency of 100Hz
+        printf("\n\tRTC 100Hz FAIL\n");
+    else
+    {
+        printf("\n\tRTC 100Hz SUCCESS\n");
+        for(tester = 0; tester < 10; tester ++)
+        {
+            rtc_read();
+            printf("%d\t", tester);
+        }
+    }
+#endif
 
 	/* Execute the first program (`shell') ... */
 
