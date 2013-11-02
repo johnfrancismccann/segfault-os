@@ -5,8 +5,7 @@
 #include "types.h"
 /*
  * File System:
- *	I don't know WTF How FS works now
- *  Yet I suppose we need a new file for that system
+ *
  */
  
  
