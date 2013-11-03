@@ -29,12 +29,12 @@ void init_rtc();
 
 void rtc_idt_handle();
 
-int rtc_open();
+int32_t rtc_open();
 
-int rtc_read();
+int32_t rtc_read(int32_t* buffer, int32_t nbytes);
 
-int rtc_write(uint32_t freq);
+int32_t rtc_write(void* buffer, int32_t nbytes);
 
-int rtc_close();
+int32_t rtc_close();
 
 #endif
