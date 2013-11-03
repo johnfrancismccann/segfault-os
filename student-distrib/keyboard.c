@@ -197,5 +197,8 @@ void kbd_handle()
             *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';   
         }
         print_idx -= NUM_COLS;
+        for(i = 0; i < 25; i++) { //update array of previous locations for newlines
+            prev_loc[i] -= NUM_COLS;
+        }
     }
  }
