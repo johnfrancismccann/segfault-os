@@ -7,9 +7,12 @@
 #include "fs.h"
 #include "rtc.h"
 #include "keyboard.h"
+#include "terminal.h"
 
 #define TEST_RDENTRY_NAME 	0    //Set to 1 to test read_dentry_by_name
-#define TEST_RDENTRY_INDEX 	1    //Set to 1 to test read_dentry_by_index
+#define TEST_RDENTRY_INDEX 	0    //Set to 1 to test read_dentry_by_index
+#define TEST_RDATA 			0 	 //Set to 1 to test read_data
+#define TEST_RDENTRY_INDEX 	0    //Set to 1 to test read_dentry_by_index
 #define TEST_RDATA          0 	 //Set to 1 to test read_data
 
 void test_rdentry_name();
@@ -31,6 +34,31 @@ void test_fs()
     test_rdata();
 #endif
 
+}
+
+/*
+ * test_terminal_read:
+ *     DESCRIPTION: Tests terminal_read function
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: None
+ */
+void test_terminal_read()
+{
+    int8_t ptr[128]; //pointer to copy char buffer from keyboard to user space
+    int copied_bytes;
+
+    term_open();
+
+    //read first command
+    copied_bytes = term_read((void*) ptr);
+    //printf("bytes copied %d", copied_bytes);
+    puts(ptr);
+
+    //read second command
+    copied_bytes = term_read((void*) ptr);
+    puts(ptr);
 }
 
 /*

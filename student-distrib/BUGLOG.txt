@@ -114,9 +114,12 @@ SOLUTION:   First of all we're loading a static address (0x040D000), which becom
             We solve this problem by comparing the name of modules loaded 
             (to see if it equals to "filesys_img"), and load that address as the beginning.
 13.
-SYMPTOM:    
+SYMPTOM:    Page fault on a term_read
 TIME SPENT: 1 hour <-This cannot be true XD
-SOLUTION:   
+SOLUTION:   I declared the pointer for the term_read for copy the character buffer from the keyboard
+            as a void*, which was incorrect since it does not reserve enough space in memory for an
+            entire buffer. Therefore, declaring an arrray of 128 elements (the maximum size of the
+            character buffer) got rid of the page fault.
             
 14.
 SYMPTOM:    
