@@ -21,7 +21,7 @@
 
 
 /* Test enables */
-#define TEST_TERM_READ 1 		//Set to 1 to test term_read
+#define TEST_TERM_READ 0 		//Set to 1 to test term_read
 #define TEST_TERM_WRITE 0 		//Set to 1 to test term_write
 #define TEST_RDENTRY_NAME 0     //Set to 1 to test read_dentry_by_name
 #define TEST_RDENTRY_INDEX 0    //Set to 1 to test read_dentry_by_index
