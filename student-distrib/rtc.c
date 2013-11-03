@@ -122,11 +122,13 @@ int rtc_read()
 
 /*
  * rtc_write()
- *   DESCRIPTION:
- *   INPUTS: 
- *   OUTPUTS: 
- *   RETURN VALUE: 
- *   SIDE EFFECTS: 
+ *   DESCRIPTION: Changes the interrupt frequency of the RTC.
+ *   INPUTS: freq:  Desired frequency (in Hz).  RTC only supports
+ *                  2,4,8,16,32,64,128,256,512,1024.  Other values
+ *                  blocked.
+ *   OUTPUTS: None
+ *   RETURN VALUE: returns 1 on success, -1 on failure
+ *   SIDE EFFECTS: May change RTC interrupt frequency
  */
 int rtc_write(uint32_t freq)
 {
@@ -159,7 +161,8 @@ int rtc_write(uint32_t freq)
         outb(0x20 | rate, RTC_PORT + 1);
         //re-enable interrupts if they were enabled before
         restore_flags(flags);
-        return 0;
+        //Indicate successful write
+        return 1;
     }
 }
 
