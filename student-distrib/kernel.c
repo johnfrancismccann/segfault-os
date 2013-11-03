@@ -13,6 +13,7 @@
 #include "keyboard.h"
 #include "fs.h"
 #include "tests.h"
+#include "terminal.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -171,6 +172,11 @@ entry (unsigned long magic, unsigned long addr)
 	init_kbd();
 
 	init_rtc();
+
+	//========TESTING TERMINAL DRIVER==============
+	// void* buffer;
+	// char* read_buffer = get_read_buf();
+	// term_read(read_buffer, buffer, 10);
 	
 #if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
     test_rdentry_name();
@@ -191,6 +197,10 @@ entry (unsigned long magic, unsigned long addr)
 	printf("Enabling Interrupt\n");
 
 	sti();
+
+#if 0
+
+#endif
 
 #if TEST_RWRTC //set to 1 to test rtc read/write
     test_rwrtc();
