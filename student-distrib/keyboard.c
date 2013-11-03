@@ -108,13 +108,14 @@ void kbd_handle()
                 send_eoi(KBD_IRQ_NUM);
                 return;
             }
-            if(buf_idx-- > 0) { //make sure not accessing empty buffer, decrement buf_idx since deleted char
-                switch(read_buf[buf_idx]) {
+            if(buf_idx > 0) { //make sure not accessing empty buffer, decrement buf_idx since deleted char
+                switch(read_buf[--buf_idx]) {
                     case TAB_ASC: //for backspacing after tab
                         print_idx -= TAB_LEN;
                         break;
                     case ENT_ASC: //for backspacing after new line
                         print_idx = prev_loc[--prev_idx];
+                        prev_loc[prev_idx] = 0;
                         break;
                     default: //for backspacing regular characters
                         *(uint8_t *)(video_mem + (--print_idx << 1)) = ' '; //delete character and move print index back 1 char
@@ -197,8 +198,10 @@ void kbd_handle()
             *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';   
         }
         print_idx -= NUM_COLS;
-        for(i = 0; i < 25; i++) { //update array of previous locations for newlines
-            prev_loc[i] -= NUM_COLS;
+        for(i = 1; i < 25; i++) { //update array of previous locations for newlines
+            prev_loc[i-1] = prev_loc[i]; //scrolling down 1 line means don't need 1st previous location
+            prev_loc[i-1] -= NUM_COLS;
         }
+        prev_idx--;
     }
  }
