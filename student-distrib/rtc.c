@@ -193,7 +193,7 @@ int32_t rtc_write(void* buffer, int32_t nbytes)
  */
 int32_t rtc_close()
 {
-    int32_t frequency;
+    int32_t frequency = 2;
     if(am_i_open_yet == YES)
         rtc_write(&frequency, 1);
     return 0;
