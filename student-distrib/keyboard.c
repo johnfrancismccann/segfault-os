@@ -39,7 +39,7 @@ static const char KBD_MAP[256] =
  static int ctrl_flag; //flag to indicate if control key currently pressed or not (1 is yes, 0 is no)
  static int shift_flag; //indicates if shift is pressed or not
  static int caps_lock; //indicates if caps lock is enabled/disabled
- static int prev_loc[25]; //gives location before hitting enter
+ static int prev_loc[NUM_ROWS]; //gives location before hitting enter
  static int prev_idx; //index of previous location
 
 /*
@@ -80,6 +80,7 @@ void kbd_handle()
 {
     uint8_t scancode;
     scancode = inb(KBD_PORT); //get key press
+    int16_t i;
 
     if(print_idx == 0) {
         clear();
@@ -104,9 +105,42 @@ void kbd_handle()
             caps_lock ^= 1; //invert value of caps lock
             break;
         case B_SPACE:
-            if(print_idx == 0) { //can't backspace if at first location of video memory
-                send_eoi(KBD_IRQ_NUM);
-                return;
+            if(print_idx == 0) 
+            { //can't backspace if at first location of video memory and buffer empty
+                if(buf_idx == 0)
+                {   
+                    send_eoi(KBD_IRQ_NUM);
+                    return;
+                }
+                //Scroll up to reveal previous command
+                else
+                {
+                    // Remove last entry (a new line '\n')
+                    buf_idx--;
+                    int num_to_print = 1;
+                    //find how many characters make up the next block of characters
+                    while((read_buf[buf_idx - num_to_print] != ENT_ASC) && (buf_idx - num_to_print >= 0))
+                    {
+                        num_to_print ++;
+                    }
+                    //write new line(s) at top of screen
+                    print_idx = num_to_print - 1;
+                    //set cursor position again
+                    update_cursor(print_idx);
+                    //copy all characters for created line(s)
+                    for(i = num_to_print; i > 0; i--)
+                    {
+                        *(uint8_t *)(video_mem + ((num_to_print - i) << 1)) = read_buf[buf_idx - i + 1];
+                    }
+                    //set end of line positions
+                    prev_loc[1] = num_to_print % NUM_COLS;
+                    prev_loc[0] = num_to_print - prev_loc[1];
+                    //ensure cursor has space character
+                    *(uint8_t *)(video_mem + (print_idx << 1)) = ' ';
+                    //all done
+                    send_eoi(KBD_IRQ_NUM);
+                    return;
+                }
             }
             if(buf_idx > 0) { //make sure not accessing empty buffer, decrement buf_idx since deleted char
                 switch(read_buf[--buf_idx]) {
