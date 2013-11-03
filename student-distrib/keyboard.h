@@ -18,10 +18,15 @@
 #define VGA_LOW 0x3D4 //low register of VGA port
 #define VGA_HIGH 0x3D5 //high register of VGA port
 #define CAP_OFFSET 0x20 //offset between lower case and upper case ASCII value
+#define TAB_LEN 5 //set tab length to 5 spaces
 
-/* keys */
-#define CTRL_PRS 0x1D //scancode left/right control press
-#define CTRL_RLS 0x9D //scancode of left/right control release
+/* ASCII values */
+#define TAB_ASC 0x09 //tab key
+#define ENT_ASC 0x0A //enter key
+
+/* scancodes */
+#define CTRL_PRS 0x1D //left/right control press
+#define CTRL_RLS 0x9D //left/right control release
 #define L_KEY 0x26 //'L' pressed
 #define B_SPACE 0x0E //backspace pressed
 #define TAB 0x0F //tab pressed
@@ -31,7 +36,6 @@
 #define LSHIFT_RLS 0xAA //left shift released
 #define RSHIFT_RLS 0xB6 //right shift released
 #define CAPS 0x3A //caps lock pressed
-#define ENTER_PRS 0x1C //enter button pressed
 
 void init_kbd();
 
