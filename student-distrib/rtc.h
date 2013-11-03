@@ -25,7 +25,8 @@
 #define MINFREQ 2
 #define BASEFREQ 32768
 
-void init_rtc();
+#define NO 0
+#define YES 1
 
 void rtc_idt_handle();
 
