@@ -172,7 +172,7 @@ entry (unsigned long magic, unsigned long addr)
 
 	init_rtc();
 	
-#if 1 //set to 1 if wanna test read_dentry_by_name
+#if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
     clear();
     printf("testing read_dentry_by_name\n");
 
@@ -185,7 +185,7 @@ entry (unsigned long magic, unsigned long addr)
 	printf("length: %d\n", dentry.length);	
 #endif
 	
-#if 1 //set to 1 if wanna test read_dentry_by_index	
+#if TEST_RDENTRY_INDEX //set to 1 if wanna test read_dentry_by_index	
     printf("testing read_dentry_by_index\n");
 
 	dentry_t _dentry;
@@ -198,7 +198,7 @@ entry (unsigned long magic, unsigned long addr)
 	printf("length: %d\n", _dentry.length);	
 #endif
 	
-#if 1 //set to 1 if wanna test read_data
+#if TEST_RDATA //set to 1 if wanna test read_data
     printf("testing read_data\n");
 	
     uint32_t _inode = dentry.index_node; //0x19;
