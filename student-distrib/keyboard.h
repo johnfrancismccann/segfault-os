@@ -13,7 +13,7 @@
 //Keyboard is IRQ 1, IDT number 33, port 0x60
 #define KBD_IRQ_NUM 1
 #define KBD_IDT_NUM 33
-#define KBD_PORT 	0x60
+#define KBD_PORT    0x60
 
 #define VGA_LOW 0x3D4 //low register of VGA port
 #define VGA_HIGH 0x3D5 //high register of VGA port
