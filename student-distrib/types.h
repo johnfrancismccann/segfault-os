@@ -23,10 +23,9 @@ typedef unsigned char uint8_t;
 
 typedef struct
 {
-    uint8_t* file_name;
+    uint8_t file_name[32];
     uint32_t ftype;
     uint32_t index_node;
-    uint32_t length;
 } dentry_t ;
 
 #endif /* ASM */
