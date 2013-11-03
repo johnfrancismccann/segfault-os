@@ -25,7 +25,7 @@
 #define TEST_RDATA 0            //Set to 1 to test read_data
 #define TEST_RWRTC 0            //Set to 1 to test rtc read/write
 #define TEST_DIV0 0             //Set to 1 to test divide by 0 exception
-#define TEST_PAGEF 1            //Set to 1 to test page fault exception
+#define TEST_PAGEF 0            //Set to 1 to test page fault exception
 
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
