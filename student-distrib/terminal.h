@@ -1,12 +1,18 @@
 /*
- *  The terminal files CONTINUE THIS
+ *  The terminal files allow the terminal to read and write to/from user/kernel space.
  */
 
 #ifndef _TERMINAL_H
 #define _TERMINAL_H
 
-void term_read(char* read_buffer, char* buf, unsigned long n);
+#include "types.h"
 
-void term_write(char* buf, unsigned long n);
+int32_t term_open();
+
+int32_t term_close();
+
+int32_t term_read(void* buf);
+
+void term_write(void* buf, int32_t n);
 
 #endif

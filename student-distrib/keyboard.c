@@ -51,6 +51,7 @@ static const char KBD_MAP_SHIFT[256] =
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //0xFF
 
 static char read_buf[128]; //buffer to store characters typed in from user
+static uint8_t scancode; //make this with file scope so can check for enter in get_read_buf (for term_read)
 static char* video_mem = (char *)VIDEO;
 static int buf_idx; //index for storing characters in buffer
 static int print_idx; //index for printing characters to screen (video memory offset)
@@ -59,8 +60,6 @@ static int shift_flag; //indicates if shift is pressed or not
 static int caps_lock; //indicates if caps lock is enabled/disabled
 static int prev_loc[NUM_ROWS]; //gives location before hitting enter
 static int prev_idx; //index of previous location
-
-static char* get_read_buf() {return read_buf;}
 
 /*
  * init_kbd()
@@ -98,7 +97,6 @@ void init_kbd()
  */
 void kbd_handle()
 {
-    uint8_t scancode;
     scancode = inb(KBD_PORT); //get key press
     int16_t i;
 
@@ -195,8 +193,7 @@ void kbd_handle()
     /* clear screen */
     if (ctrl_flag == 1 && scancode == L_KEY) { //ctrl+L
         clear();
-        buf_idx = 0;
-        read_buf[0] = '\0'; //clear buffer
+        clear_read_buf();
         print_idx = 0; //reset print location to top left corner
         update_cursor(0);
         send_eoi(KBD_IRQ_NUM);
@@ -272,4 +269,35 @@ void kbd_handle()
         }
         prev_idx--;
     }
+ }
+
+ /*
+  * get_read_buf()
+  *   DESCRIPTION: give newline-terminated buffer to terminal
+  *   INPUTS: pointer to copy character buffer typed in to
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: none
+  */
+int32_t get_read_buf(void* ptr) {
+    while(buf_idx == 0); //wait until buffer non-empty
+    while(scancode != ENTER); //wait until enter key is pressed
+    //while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
+    cli(); //make sure not to interrupt memcpy
+    memcpy(ptr, (void*) read_buf, buf_idx+1);
+    sti();
+    return buf_idx+1;
+}
+
+ /*
+  * clear_read_buf()
+  *   DESCRIPTION: clear the read buffer
+  *   INPUTS: none
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: none
+  */
+void clear_read_buf() {
+    buf_idx = 0; //reset buffer index
+    read_buf[0] = '\0'; //clear buffer
  }
