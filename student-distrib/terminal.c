@@ -19,9 +19,7 @@
  *   SIDE EFFECTS: none
  */
 int32_t term_open() {
-	
 	return 0; //indicates successful open
-
 }
 
 /*
@@ -33,9 +31,8 @@ int32_t term_open() {
  *   SIDE EFFECTS: none
  */
 int32_t term_close() {
-	
+	clear_read_buf();
 	return 0; //indicates successful close
-
 }
 
 /*
