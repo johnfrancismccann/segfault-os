@@ -77,4 +77,43 @@ SOLUTION:   The source of this error was that after hitting enter and creating a
             logic was implemented so that after hitting enter, backspacing takes the
             user back to the previous cursor location, not the space immediately to
             the left of the cursor.
+
+9. 
+SYMPTOM:    When characters scroll off screen, their character positions become
+            unavailable.
+TIME SPENT: 1 hour
+SOLUTION:   Implemented reverse scrolling (scrolling up) to recover characters that
+            had already moved off screen when scrolling down. This led to bugs 10
+            and 11 (see below).
+            
+10.
+SYMPTOM:    Tab characters were not displaying correctly when scrolling upwards and
+            characters not being deleted when backspacing.
+TIME SPENT: 1 hour
+SOLUTION:   Added special cases when handling tab characters (both typing and 
+            deleting). Kept both a counter of characters to print to screen as well
+            as a counter of ASCII codes of characters in buffer.
+            
+11.
+SYMPTOM:    First character on screen (top left corner) was not displaying when
+            scrolling upwards.
+TIME SPENT: 1 hour
+SOLUTION:   Loop to print characters back to screen had an incorrect condition
+            which led to the loop not reaching the very first location in video
+            memory. Correcting the condition removed the off-by-1 error.
+
+12.
+SYMPTOM:    
+TIME SPENT: 1 hour
+SOLUTION:   
+      
+13.
+SYMPTOM:    
+TIME SPENT: 1 hour
+SOLUTION:   
+            
+14.
+SYMPTOM:    
+TIME SPENT: 1 hour
+SOLUTION:   
             
