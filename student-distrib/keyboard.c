@@ -281,10 +281,11 @@ void kbd_handle()
 int32_t get_read_buf(void* ptr) {
     int32_t tmp_idx; //store number of bytes to be copied to prevent interrupts from changing it
     while(buf_idx == 0); //wait until buffer non-empty
-    while(scancode != ENTER || read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
-    //while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
+    //while(scancode != ENTER || read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
+    while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
+    //while(scancode != ENTER);
     cli(); //make sure not to interrupt memcpy
-    tmp_idx = buf_idx;
+    tmp_idx = buf_idx+1;
     memcpy(ptr, (void*) read_buf, tmp_idx);
     sti();
     return tmp_idx;
