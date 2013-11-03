@@ -16,6 +16,7 @@
 
 //Flag indicating an interrupt has occured
 uint8_t interrupt_flag;
+uint8_t am_i_open_yet = NO;
 
 /*
  * init_rtc()
@@ -60,6 +61,8 @@ void init_rtc()
 	//Unmask RTC interrupts
 	enable_irq(RTC_IRQ_NUM);
     enable_irq(PIC_CHAIN_IRQ);
+    //Mark as initialized
+    am_i_open_yet = YES;
 	//Restore flags
 	restore_flags(flags);
 }
@@ -89,7 +92,7 @@ void rtc_idt_handle()
 
 /*
  * rtc_open()
- *   DESCRIPTION:
+ *   DESCRIPTION: Runs init_rtc() if not already done.
  *   INPUTS: 
  *   OUTPUTS: 
  *   RETURN VALUE: 
@@ -97,6 +100,8 @@ void rtc_idt_handle()
  */
 int32_t rtc_open()
 {
+    if(am_i_open_yet == NO)
+        init_rtc();
     return 0;
 }
 
@@ -179,13 +184,17 @@ int32_t rtc_write(void* buffer, int32_t nbytes)
 
 /*
  * rtc_close()
- *   DESCRIPTION:
- *   INPUTS: 
- *   OUTPUTS: 
- *   RETURN VALUE: 
- *   SIDE EFFECTS: 
+ *   DESCRIPTION: Doesn't really do anything, but will reset frequency
+ *                to 2Hz if it wasn't there already.
+ *   INPUTS: None
+ *   OUTPUTS: None
+ *   RETURN VALUE: Always returns 0; 
+ *   SIDE EFFECTS: May change frequency to 2Hz.
  */
 int32_t rtc_close()
 {
+    int32_t frequency;
+    if(am_i_open_yet == YES)
+        rtc_write(&frequency, 1);
     return 0;
 }
