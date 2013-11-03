@@ -9,7 +9,12 @@
 #include "keyboard.h"
 
 /*
- *
+ * test_rdentry_name:
+ *     DESCRIPTION: Tests file system read dentry by name
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: None
  */
 void test_rdentry_name()
 {
@@ -26,7 +31,12 @@ void test_rdentry_name()
 }
 
 /*
- *
+ * test_rdentry_index:
+ *     DESCRIPTION: Tests file system read dentry by index
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: None
  */
 void test_rdentry_index()
 {
@@ -43,7 +53,12 @@ void test_rdentry_index()
 }
 
 /*
- *
+ * test_rdata:
+ *     DESCRIPTION: Tests file system read data
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: None
  */
 void test_rdata()
 {
@@ -69,7 +84,12 @@ void test_rdata()
 }
 
 /*
- *
+ * test_rwrtc:
+ *     DESCRIPTION: Tests RTC read and write functions
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: Changes RTC interrupt frequency
  */
 void test_rwrtc()
 {
@@ -122,7 +142,12 @@ void test_rwrtc()
 }
 
 /*
- *
+ * test_div0:
+ *     DESCRIPTION: Tests divide by 0 exception
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: Raises divide by 0 exception
  */
 void test_div0()
 {
@@ -131,7 +156,12 @@ void test_div0()
 }
 
 /*
- *
+ * test_pagef:
+ *     DESCRIPTION: Tests page fault exception
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: Raises page fault exception
  */
 void test_pagef()
 {
