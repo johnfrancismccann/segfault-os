@@ -37,6 +37,8 @@
 #define RSHIFT_RLS 0xB6 //right shift released
 #define CAPS 0x3A //caps lock pressed
 
+#include "types.h"
+
 void init_kbd();
 
 void kbd_handle();
@@ -44,5 +46,9 @@ void kbd_handle();
 void update_cursor(int index);
 
 void check_scroll(int print_index);
+
+int32_t get_read_buf(void* buf);
+
+void clear_read_buf();
 
 #endif
