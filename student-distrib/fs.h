@@ -9,6 +9,9 @@
  */
  
  
+//void set_fs_loc(const uint32_t fs_loc);
+void set_fs_loc(const uint8_t* base_mods, uint32_t num_mods);
+ 
  
 /*
  * read_dentry_by_name
