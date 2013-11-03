@@ -113,7 +113,7 @@ SOLUTION:   First of all we're loading a static address (0x040D000), which becom
             Finally we figured out that we should not use a static address.
             We solve this problem by comparing the name of modules loaded 
             (to see if it equals to "filesys_img"), and load that address as the beginning.
-            
+
 13.
 SYMPTOM:    Page fault on a term_read
 TIME SPENT: 1 hour
@@ -124,6 +124,6 @@ SOLUTION:   I declared the pointer for the term_read for copy the character buff
             
 14.
 SYMPTOM:    
-TIME SPENT: 1 hour
+TIME SPENT:
 SOLUTION:   
             

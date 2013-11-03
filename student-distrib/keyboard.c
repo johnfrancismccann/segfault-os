@@ -280,11 +280,8 @@ void kbd_handle()
   */
 int32_t get_read_buf(void* ptr) {
     int32_t tmp_idx; //store number of bytes to be copied to prevent interrupts from changing it
-    printf("in get_read_buf ");
     while(buf_idx == 0); //wait until buffer non-empty
-    printf("buffer non-empty ");
     while(scancode != ENTER || read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
-    printf("enter key pressed \n");
     //while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
     tmp_idx = buf_idx;
@@ -319,9 +316,7 @@ void clear_read_buf() {
 int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     int i; //loop iterator
     char* buf = (char*) wrt_buf;
-    //printf("in print_write_buf ");
     if(buf[0] == '\0') return 0;
-    //printf("buf[0] %c ", buf[0]);
     for(i = 0; i < bytes; i++) {
         switch(buf[i]) {
             case TAB_ASC:
@@ -336,7 +331,6 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
         }
         check_scroll(print_idx);
     }
-    //print_idx += NUM_COLS - (print_idx % NUM_COLS); //put cursor on new line for more user input
     check_scroll(print_idx);
     update_cursor(print_idx);
     return bytes;
