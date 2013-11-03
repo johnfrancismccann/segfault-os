@@ -13,7 +13,6 @@
 #include "keyboard.h"
 #include "fs.h"
 #include "tests.h"
-#include "terminal.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -21,6 +20,17 @@
 
 
 /* Test enables */
+#define TEST_TERMINAL_READ 0 	//Set to 1 to test terminal_read
+#define TEST_RDENTRY_NAME 0     //Set to 1 to test read_dentry_by_name
+#define TEST_RDENTRY_INDEX 0    //Set to 1 to test read_dentry_by_index
+#define TEST_RDATA 	0           //Set to 1 to test read_data
+#define TEST_RWRTC 	0           //Set to 1 to test rtc read/write
+#define TEST_DIV0 	0           //Set to 1 to test divide by 0 exception
+#define TEST_PAGEF 	0           //Set to 1 to test page fault exception
+#define TEST_FS		0			//Set to 1 to test filesystem
+#define TEST_RWRTC 	0           //Set to 1 to test rtc read/write
+#define TEST_DIV0 	0           //Set to 1 to test divide by 0 exception
+#define TEST_PAGEF 	0           //Set to 1 to test page fault exception
 #define TEST_FS	    0            //Set to 1 to test filesystem
 #define TEST_RWRTC 	0            //Set to 1 to test rtc read/write
 #define TEST_DIV0 	0            //Set to 1 to test divide by 0 exception
@@ -186,6 +196,11 @@ entry (unsigned long magic, unsigned long addr)
     printf("Enabling Interrupt\n");
 
     sti();
+
+
+#if TEST_TERMINAL_READ //set to 1 if wanna test read_dentry_by_name
+	test_terminal_read();
+#endif
 
 #if TEST_FS
     test_fs();
