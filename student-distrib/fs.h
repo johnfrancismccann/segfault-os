@@ -9,7 +9,16 @@
  */
  
  
-//void set_fs_loc(const uint32_t fs_loc);
+/*
+ * set_fs_loc
+ * DESCRIPTION: set file_sys_loc to the location of the file system 
+ * INPUTS: base_mods-- pointer to modules structures
+ *         num_mods-- the number of modules pointed to by base_mods
+ * OUTPUS: none
+ * RETURN VALUE: none
+ * SIDE_EFFECTS: fs.c scope variable file_sys_loc set to location of 
+ *               file system
+ */
 void set_fs_loc(const uint8_t* base_mods, uint32_t num_mods);
  
  
