@@ -208,7 +208,8 @@ void test_rwrtc()
 void test_div0()
 {
     int i = 5;
-    i /= 0;
+    int j = 0
+    i /= j;
 }
 
 /*
