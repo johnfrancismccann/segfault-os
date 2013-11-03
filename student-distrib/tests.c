@@ -53,6 +53,11 @@ void test_terminal_read()
     puts(ptr);
 
     // while(1) {
+    // copied_bytes = term_read((void*) ptr);
+    // term_write(ptr, copied_bytes);
+    // }
+
+    // while(1) {
     //     copied_bytes = term_read((void*) ptr);
     //     puts(ptr);
     // }
