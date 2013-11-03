@@ -21,26 +21,26 @@ uint8_t am_i_open_yet = NO;
 /*
  * init_rtc()
  *   DESCRIPTION: Registers the rtc interrupt handler in the IDT
- *				  and enables the hardware interrupt on the PIC.
+ *                and enables the hardware interrupt on the PIC.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: Updates IDT entry for RTC and modifies mask vector
- *				   on PIC.
+ *                 on PIC.
  */
 void init_rtc()
 {
-	uint32_t flags;
+    uint32_t flags;
     uint8_t idt_num = RTC_IDT_NUM;
-	uint8_t  prev_b_val;
+    uint8_t  prev_b_val;
     //Block interrupts and save flags
-	cli_and_save(flags);
+    cli_and_save(flags);
     //Set interrupt flag to 0 indicating no interrupts
     interrupt_flag = 0;
-	//Mask RTC interrupts during initialization.
+    //Mask RTC interrupts during initialization.
     //Must mask RTC IRQ and possibly the chain IRQ
     //if RTC IRQ is 8:15.
-	disable_irq(RTC_IRQ_NUM);
+    disable_irq(RTC_IRQ_NUM);
     disable_irq(PIC_CHAIN_IRQ);
 
 
@@ -56,15 +56,15 @@ void init_rtc()
     outb(0x8B, RTC_PORT);
     // Set bit 6 of register B on RTC to enable periodic interrupts
     outb(prev_b_val | 0x40, RTC_PORT + 1);
-	// Set handler function; in this case, the assembly wrapper
-	set_interrupt_gate(idt_num, rtc_wrapper);
-	//Unmask RTC interrupts
-	enable_irq(RTC_IRQ_NUM);
+    // Set handler function; in this case, the assembly wrapper
+    set_interrupt_gate(idt_num, rtc_wrapper);
+    //Unmask RTC interrupts
+    enable_irq(RTC_IRQ_NUM);
     enable_irq(PIC_CHAIN_IRQ);
     //Mark as initialized
     am_i_open_yet = YES;
-	//Restore flags
-	restore_flags(flags);
+    //Restore flags
+    restore_flags(flags);
 }
 
 
