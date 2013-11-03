@@ -51,4 +51,6 @@ int32_t get_read_buf(void* buf);
 
 void clear_read_buf();
 
+int32_t print_write_buf(const void* wrt_buf, int32_t bytes);
+
 #endif
