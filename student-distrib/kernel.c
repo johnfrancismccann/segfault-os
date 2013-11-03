@@ -10,9 +10,9 @@
 #include "setup_idt.h"
 #include "rtc.h"
 #include "paging.h"
-#include "rtc_asm.h"
 #include "keyboard.h"
 #include "fs.h"
+#include "tests.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -173,50 +173,17 @@ entry (unsigned long magic, unsigned long addr)
 	init_rtc();
 	
 #if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
-    clear();
-    printf("testing read_dentry_by_name\n");
-
-	dentry_t dentry;
-	read_dentry_by_name((const uint8_t*)"ls", &dentry);
-	
-	printf("file_name: %s\n", dentry.file_name);
-	printf("ftype: %d\n", dentry.ftype);
-	printf("index_node: %d\n", dentry.index_node);
-	printf("length: %d\n", dentry.length);	
+    test_rdentry_name();
 #endif
 	
 #if TEST_RDENTRY_INDEX //set to 1 if wanna test read_dentry_by_index	
-    printf("testing read_dentry_by_index\n");
-
-	dentry_t _dentry;
-	uint32_t index_den = 12;	
-    read_dentry_by_index(index_den, &_dentry);
-	
-	printf("file_name: %s\n", _dentry.file_name);
-	printf("ftype: %d\n", _dentry.ftype);
-	printf("index_node: %d\n", _dentry.index_node);	
-	printf("length: %d\n", _dentry.length);	
+    test_rdentry_index();
 #endif
 	
 #if TEST_RDATA //set to 1 if wanna test read_data
-    printf("testing read_data\n");
-	
-    uint32_t _inode = dentry.index_node; //0x19;
-	uint32_t _offset = 0;
-	uint8_t  _buf[7000];
-	uint32_t _length = dentry.length;
-	
-	uint32_t it;
-	int32_t ret_val;
-	
-    ret_val = read_data(_inode, _offset, _buf, _length);
-	
-	printf("ret value is %d\n", ret_val);
-
-	for(it = 0; it < _length; it++){
-        printf("%c", _buf[it]);
-	}
+    test_rdata();
 #endif
+
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
@@ -226,62 +193,15 @@ entry (unsigned long magic, unsigned long addr)
 	sti();
 
 #if TEST_RWRTC //set to 1 to test rtc read/write
-/* Attempts to set various frequencies for RTC interrupts
- * and then does read loops to print to screen. */
-    uint8_t tester = 0;
-    uint32_t power_two = 1;
-    clear();
-    if(rtc_write(0) == -1) //attempt to set frequency of 0Hz
-        printf("\tRTC 0Hz FAIL\n");
-    else
-    {
-        printf("\tRTC 0Hz SUCCESS\n");
-        for(tester = 0; tester < 10; tester ++)
-        {
-            rtc_read();
-            printf("%d\t", tester);
-        }
-    }
-    /* 1 should fail, 2-1024 should succeed, 2048-8192 should fail.
-     * For each success, 10 interrupts will be processed,
-     * for each failure, the failure will be acknowledged.
-     */
-    for(power_two = 1; power_two < 16384; power_two <<= 1)
-    {
-        if(rtc_write(power_two) == -1) //attempt to set frequency
-            printf("\n\tRTC %dHz FAIL\n", power_two);
-        else
-        {
-            printf("\n\tRTC %dHz SUCCESS\n", power_two);
-            for(tester = 0; tester < 10; tester ++)
-            {
-                rtc_read();
-                printf("%d  ", tester);
-            }
-        }
-    }
-    // Check non power of two; should fail.
-    if(rtc_write(100) == -1) //attempt to set frequency of 100Hz
-        printf("\n\tRTC 100Hz FAIL\n");
-    else
-    {
-        printf("\n\tRTC 100Hz SUCCESS\n");
-        for(tester = 0; tester < 10; tester ++)
-        {
-            rtc_read();
-            printf("%d\t", tester);
-        }
-    }
+    test_rwrtc();
 #endif
 
 #if TEST_DIV0 //set to 1 to test divide by zero exception
-    int i = 5;
-    i /= 0;
+    test_div0();
 #endif
 
 #if TEST_PAGEF //set to 1 to test page fault exception
-    int* i = NULL;
-    *i = 5;
+    test_pagef();
 #endif
 
 	/* Execute the first program (`shell') ... */
