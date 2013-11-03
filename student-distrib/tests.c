@@ -9,19 +9,25 @@
 #include "keyboard.h"
 #include "terminal.h"
 
-#define TEST_RDENTRY_NAME 	0    //Set to 1 to test read_dentry_by_name
-#define TEST_RDENTRY_INDEX 	0    //Set to 1 to test read_dentry_by_index
-#define TEST_RDATA 			0 	 //Set to 1 to test read_data
-#define TEST_RDENTRY_INDEX 	0    //Set to 1 to test read_dentry_by_index
-#define TEST_RDATA          0 	 //Set to 1 to test read_data
+#define TEST_RDENTRY_NAME 	0 
+#define TEST_RDENTRY_INDEX 	0   
+#define TEST_RDATA 					1 	 
 
 void test_rdentry_name();
 void test_rdentry_index();
 void test_rdata();
 
+/* test_fs:
+ *		DESCRIPTION: tests file system
+ *			INPUTS: None
+ *			OUTPUTS: None
+ *			RETURN VALUE: None
+ *			SIDE EFFECTS: None
+ */
 void test_fs()
 {
-
+		clear();
+		
 #if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
     test_rdentry_name();
 #endif
@@ -100,16 +106,29 @@ void test_terminal_write()
  */
 void test_rdentry_name()
 {
-    clear();
-    printf("testing read_dentry_by_name\n");
-
-    dentry_t dentry;
-    read_dentry_by_name((const uint8_t*)"ls", &dentry);
-    
-    printf("file_name: %s\n", dentry.file_name);
-    printf("ftype: %d\n", dentry.ftype);
-    printf("index_node: %d\n", dentry.index_node);
-    //printf("length: %d\n", dentry.length);
+		uint8_t *filename;
+    int32_t ret_val;
+		dentry_t dentry;
+		
+		/* set filename */
+		filename = (uint8_t*) "grep";
+		/* print header */
+    printf("testing read_dentry_by_name for file: %s\n", filename);
+		
+		/* fill directory entry for specified file  */
+    ret_val = read_dentry_by_name(filename, &dentry);
+		/* check return value */
+		if(!ret_val) {
+		/* print directory entry information */
+			printf("file_name: %s\n", dentry.file_name);
+			printf("ftype: %d\n", dentry.ftype);
+			printf("index_node: %d\n", dentry.index_node);
+		}
+		else if(ret_val == -1)
+			printf("reading dentry failed\n");
+		
+		printf("\n");
+		
 }
 
 /*
@@ -122,18 +141,31 @@ void test_rdentry_name()
  */
 void test_rdentry_index()
 {
-		clear();
-    printf("testing read_dentry_by_index\n");
-
     dentry_t _dentry;
-    uint32_t index_den = 0x19;    
-    read_dentry_by_index(index_den, &_dentry);
-    
-    printf("file_name: %s\n", _dentry.file_name);
-    printf("ftype: %d\n", _dentry.ftype);
-    printf("index_node: %d\n", _dentry.index_node);
-    //printf("length: %d\n", _dentry.length);
+		uint32_t index_dentry;
+		int32_t ret_val;
+		
+		index_dentry = 0; 
+		/* print header */
+    printf("testing read_dentry_by_index for index: %u\n", index_dentry);
+
+		/* fill directory entry for specified index */
+    ret_val = read_dentry_by_index(index_dentry, &_dentry);
+    /* check return value */
+		if(!ret_val) {
+			/* print direcotry entry information */
+			printf("file_name: %s\n", _dentry.file_name);
+			printf("ftype: %d\n", _dentry.ftype);
+			printf("index_node: %d\n", _dentry.index_node);
+		}
+		else if(ret_val == -1) 
+			printf("Reading dentry by index failed\n");
+		
+		printf("\n");
 }
+
+#define TEST_TEXT 1
+#define TEST_NON_TEXT 0
 
 /*
  * test_rdata:
@@ -145,26 +177,42 @@ void test_rdentry_index()
  */
 void test_rdata()
 {
-		clear();
-    printf("testing read_data\n");
+		uint8_t* filename;
+		uint32_t _length = 187;
+		uint8_t _buf[_length];
+		uint32_t _inode;
+		uint32_t i;
+		uint32_t bytes_read;
+	
+		/* set filename to read */
+		filename = (uint8_t*) "frame0.txt";
+		/* print header */
+    printf("Testing read_data for file %s\n", filename);		
     
+		/* fill directory entry of specified file */
     dentry_t dentry;
-    uint32_t _inode = dentry.index_node; //0x19;
-    uint32_t _offset = 0;
-    uint8_t  _buf[7000];
-    uint32_t _length = dentry.length;
+		read_dentry_by_name(filename, &dentry);
+		
+		/* initialize arguments for read_data */
+    _inode = dentry.index_node;
     
-    uint32_t it;
-    int32_t ret_val;
-    
-    ret_val = read_data(_inode, _offset, _buf, _length);
-    
-    printf("ret value is %d\n", ret_val);
-
-    for(it = 0; it < _length; it++)
-    {
-        printf("%c", _buf[it]);
+		/* fill buffer with data from file */
+    bytes_read = read_data(_inode, 0, _buf, _length);
+		 
+#if TEST_TEXT
+    for(i = 0; i < _length; i++) {
+        printf("%c", _buf[i]);
     }
+#endif
+    
+#if TEST_NON_TEXT
+		for(i = 0; i < _length; i++) {
+        printf("%x", _buf[i]);
+    }
+#endif
+		
+		printf("\n");
+		printf("Bytes read: %u ", bytes_read);
 }
 
 /*
