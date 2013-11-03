@@ -21,7 +21,7 @@
 
 
 /* Test enables */
-#define TEST_FS			0						 //Set to 1 to test filesystem
+#define TEST_FS	    0            //Set to 1 to test filesystem
 #define TEST_RWRTC 	0            //Set to 1 to test rtc read/write
 #define TEST_DIV0 	0            //Set to 1 to test divide by 0 exception
 #define TEST_PAGEF 	0            //Set to 1 to test page fault exception
@@ -187,12 +187,8 @@ entry (unsigned long magic, unsigned long addr)
 
     sti();
 
-#if 0
-
-#endif
-
 #if TEST_FS
-		test_fs();
+    test_fs();
 #endif
 
 #if TEST_RWRTC //set to 1 to test rtc read/write
