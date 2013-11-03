@@ -9,8 +9,8 @@
 #include "keyboard.h"
 
 #define TEST_RDENTRY_NAME 	0    //Set to 1 to test read_dentry_by_name
-#define TEST_RDENTRY_INDEX 	1   //Set to 1 to test read_dentry_by_index
-#define TEST_RDATA 					0 	 //Set to 1 to test read_data
+#define TEST_RDENTRY_INDEX 	1    //Set to 1 to test read_dentry_by_index
+#define TEST_RDATA          0 	 //Set to 1 to test read_data
 
 void test_rdentry_name();
 void test_rdentry_index();
