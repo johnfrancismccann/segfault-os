@@ -21,33 +21,33 @@ SOLUTION:   When initializing the PIC, we failed to mask the interrupts
 
 3:
 SYMPTOM:    rtc.S doesn't compile with rtc.c
-TIME SPENT:	2 hours
+TIME SPENT: 2 hours
 SOLUTION:   The provided makefile compiles .S and .c files into separate
             .o files, which causes the linker to think that functions are
             either undefined or defined multiple times.  By changing
             rtc.S to rtc_asm.S and adding a new header file, rtc_asm.h, 
             we were able to link the assemly and c files to compile into
             one big, happy OS kernel.
-			
+
 4:
 SYMPTOM:    Keyboard interrupt wasn't processing
-TIME SPENT:	1 hour
+TIME SPENT: 1 hour
 SOLUTION:   There was an issue caused by the set_interrupt_gate function
-		in setup_idt.c, which is called by init_kbd upon input from
-		the keyboard (a key being pressed). It turns out that instead
-		of sending the KERNEL_CS to the IDT, we were sending the USER_CS.
+            in setup_idt.c, which is called by init_kbd upon input from
+            the keyboard (a key being pressed). It turns out that instead
+            of sending the KERNEL_CS to the IDT, we were sending the USER_CS.
 
 5:
-SYMPTOM:	Attempt to enable paging crashes kernel 
-TIME SPENT:	8 hours
+SYMPTOM:    Attempt to enable paging crashes kernel 
+TIME SPENT: 8 hours
 SOLUTION:   When the enable_paging function was called from init_paging 
-		which is called from kernel.c, the kernel crashes and causes
-		the processor to reload the booloader. Within the 
-		enable_paging function, inline assembly code is executed. 
-		The problem was that we were clobbering the eax register without
-		notifying the compiler. After hours of looking through the 
-		initialization of the page directory and table, we decided to 
-		read the guide to inline assembly, thus revealing the problem.
+            which is called from kernel.c, the kernel crashes and causes
+            the processor to reload the booloader. Within the 
+            enable_paging function, inline assembly code is executed. 
+            The problem was that we were clobbering the eax register without
+            notifying the compiler. After hours of looking through the 
+            initialization of the page directory and table, we decided to 
+            read the guide to inline assembly, thus revealing the problem.
 
 6. 
 SYMPTOM:    RTC interrupt was not functional
@@ -107,12 +107,12 @@ SYMPTOM:    Keep loading wrong address as the start of file system
 TIME SPENT: 4 hour
 SOLUTION:   First of all we're loading a static address (0x040D000), which become
             invalid when we restart the machine, switch machine, or EVEN add 
-			one extra line of code in our program. The worse thing is that when 
-			we test the code this afternoon, nothing is wrong, but things start to 
-			mess up when we merge code from other group members (Since we're adding tons of code)
+            one extra line of code in our program. The worse thing is that when 
+            we test the code this afternoon, nothing is wrong, but things start to 
+            mess up when we merge code from other group members (Since we're adding tons of code)
             Finally we figured out that we should not use a static address.
-			We solve this problem by comparing the name of modules loaded 
-			(to see if it equals to "filesys_img"), and load that address as the beginning.
+            We solve this problem by comparing the name of modules loaded 
+            (to see if it equals to "filesys_img"), and load that address as the beginning.
 13.
 SYMPTOM:    
 TIME SPENT: 1 hour <-This cannot be true XD
