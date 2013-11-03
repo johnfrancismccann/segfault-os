@@ -42,6 +42,8 @@ static const char KBD_MAP[256] =
  static int prev_loc[NUM_ROWS]; //gives location before hitting enter
  static int prev_idx; //index of previous location
 
+static char get_read_buf() {return read_buf;}
+
 /*
  * init_kbd()
  *   DESCRIPTION: Allows keyboard presses to interrupt kernel
@@ -115,29 +117,40 @@ void kbd_handle()
                 //Scroll up to reveal previous command
                 else
                 {
-                    // Remove last entry (a new line '\n')
-                    buf_idx--;
-                    int num_to_print = 1;
+                    // Remove last entry (a new line '\n') and set to endline
+                    read_buf[--buf_idx] = '\0';
+                    int num_to_print = 0;
+                    int char_to_print = 0;
+
                     //find how many characters make up the next block of characters
-                    while((read_buf[buf_idx - num_to_print] != ENT_ASC) && (buf_idx - num_to_print >= 0))
+                    while((read_buf[buf_idx - num_to_print] != ENT_ASC) && ((buf_idx - num_to_print) > 0) && (char_to_print < (NUM_COLS*NUM_ROWS)))
                     {
-                        num_to_print ++;
+                        num_to_print++;
+                        if (read_buf[buf_idx - num_to_print] == TAB_ASC) {
+                            char_to_print += TAB_LEN; //increase number of chars to print by tab length
+                        }
+                        else {
+                            char_to_print++; //increment for regular characters
+                        }
                     }
                     //write new line(s) at top of screen
-                    print_idx = num_to_print - 1;
-                    //set cursor position again
-                    update_cursor(print_idx);
+                    print_idx = 0;
                     //copy all characters for created line(s)
-                    for(i = num_to_print; i > 0; i--)
+                    for(i = 0; i < num_to_print; i++)                               
                     {
-                        *(uint8_t *)(video_mem + ((num_to_print - i) << 1)) = read_buf[buf_idx - i + 1];
+                        switch(read_buf[buf_idx - num_to_print + i]) {
+                            case TAB_ASC:
+                                print_idx += TAB_LEN; //add 5 spaces/tab
+                                break;
+                            case ENT_ASC:
+                                break;
+                            default: //for regular characters (only increment print index)
+                                *(uint8_t *)(video_mem + (print_idx << 1)) = read_buf[buf_idx - num_to_print + i]; // "<< 1" because each character is 2 bytes
+                                print_idx++;
+                        }
+                        //*(uint8_t *)(video_mem + ((num_to_print - i) << 1)) = read_buf[buf_idx - i + 1];
                     }
-                    //set end of line positions
-                    prev_loc[1] = num_to_print % NUM_COLS;
-                    prev_loc[0] = num_to_print - prev_loc[1];
-                    //ensure cursor has space character
-                    *(uint8_t *)(video_mem + (print_idx << 1)) = ' ';
-                    //all done
+                    update_cursor(print_idx);
                     send_eoi(KBD_IRQ_NUM);
                     return;
                 }
