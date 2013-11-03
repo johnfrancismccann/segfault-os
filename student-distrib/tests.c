@@ -8,6 +8,31 @@
 #include "rtc.h"
 #include "keyboard.h"
 
+#define TEST_RDENTRY_NAME 	0    //Set to 1 to test read_dentry_by_name
+#define TEST_RDENTRY_INDEX 	1   //Set to 1 to test read_dentry_by_index
+#define TEST_RDATA 					0 	 //Set to 1 to test read_data
+
+void test_rdentry_name();
+void test_rdentry_index();
+void test_rdata();
+
+void test_fs()
+{
+
+#if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
+    test_rdentry_name();
+#endif
+	
+#if TEST_RDENTRY_INDEX //set to 1 if wanna test read_dentry_by_index	
+    test_rdentry_index();
+#endif
+	
+#if TEST_RDATA //set to 1 if wanna test read_data
+    test_rdata();
+#endif
+
+}
+
 /*
  * test_rdentry_name:
  *     DESCRIPTION: Tests file system read dentry by name
@@ -27,7 +52,7 @@ void test_rdentry_name()
     printf("file_name: %s\n", dentry.file_name);
     printf("ftype: %d\n", dentry.ftype);
     printf("index_node: %d\n", dentry.index_node);
-    printf("length: %d\n", dentry.length);
+    //printf("length: %d\n", dentry.length);
 }
 
 /*
@@ -40,16 +65,17 @@ void test_rdentry_name()
  */
 void test_rdentry_index()
 {
+		clear();
     printf("testing read_dentry_by_index\n");
 
     dentry_t _dentry;
-    uint32_t index_den = 12;    
+    uint32_t index_den = 0x19;    
     read_dentry_by_index(index_den, &_dentry);
     
     printf("file_name: %s\n", _dentry.file_name);
     printf("ftype: %d\n", _dentry.ftype);
     printf("index_node: %d\n", _dentry.index_node);
-    printf("length: %d\n", _dentry.length);
+    //printf("length: %d\n", _dentry.length);
 }
 
 /*
@@ -62,6 +88,7 @@ void test_rdentry_index()
  */
 void test_rdata()
 {
+		clear();
     printf("testing read_data\n");
     
     dentry_t dentry;
