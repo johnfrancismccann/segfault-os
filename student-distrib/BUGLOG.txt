@@ -103,13 +103,19 @@ SOLUTION:   Loop to print characters back to screen had an incorrect condition
             memory. Correcting the condition removed the off-by-1 error.
 
 12.
-SYMPTOM:    
-TIME SPENT: 1 hour
-SOLUTION:   
-      
+SYMPTOM:    Keep loading wrong address as the start of file system
+TIME SPENT: 4 hour
+SOLUTION:   First of all we're loading a static address (0x040D000), which become
+            invalid when we restart the machine, switch machine, or EVEN add 
+			one extra line of code in our program. The worse thing is that when 
+			we test the code this afternoon, nothing is wrong, but things start to 
+			mess up when we merge code from other group members (Since we're adding tons of code)
+            Finally we figured out that we should not use a static address.
+			We solve this problem by comparing the name of modules loaded 
+			(to see if it equals to "filesys_img"), and load that address as the beginning.
 13.
 SYMPTOM:    
-TIME SPENT: 1 hour
+TIME SPENT: 1 hour <-This cannot be true XD
 SOLUTION:   
             
 14.
