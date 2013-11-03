@@ -171,25 +171,51 @@ entry (unsigned long magic, unsigned long addr)
 	init_kbd();
 
 	init_rtc();
+	
+#if 1 //set to 1 if wanna test read_dentry_by_name
+    clear();
+    printf("testing read_dentry_by_name\n");
 
-#if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
 	dentry_t dentry;
-	read_dentry_by_name((const uint8_t*)"frame1.txt", &dentry);
+	read_dentry_by_name((const uint8_t*)"ls", &dentry);
+	
+	printf("file_name: %s\n", dentry.file_name);
+	printf("ftype: %d\n", dentry.ftype);
+	printf("index_node: %d\n", dentry.index_node);
+	printf("length: %d\n", dentry.length);	
 #endif
 	
-#if TEST_RDENTRY_INDEX //set to 1 if wanna test read_dentry_by_index	
-	dentry_t dentry;
-	uint32_t index_den = 0x19;	
-    read_dentry_by_index(index_den, &dentry);
+#if 1 //set to 1 if wanna test read_dentry_by_index	
+    printf("testing read_dentry_by_index\n");
+
+	dentry_t _dentry;
+	uint32_t index_den = 12;	
+    read_dentry_by_index(index_den, &_dentry);
+	
+	printf("file_name: %s\n", _dentry.file_name);
+	printf("ftype: %d\n", _dentry.ftype);
+	printf("index_node: %d\n", _dentry.index_node);	
+	printf("length: %d\n", _dentry.length);	
 #endif
 	
-#if TEST_RDATA //set to 1 if wanna test read_data
-  uint32_t _inode = 0x19;
-	uint32_t _offset = 10;
+#if 1 //set to 1 if wanna test read_data
+    printf("testing read_data\n");
+	
+    uint32_t _inode = dentry.index_node; //0x19;
+	uint32_t _offset = 0;
 	uint8_t  _buf[7000];
-	uint32_t _length = 7000;
+	uint32_t _length = dentry.length;
 	
-  read_data(_inode, _offset, _buf, _length);
+	uint32_t it;
+	int32_t ret_val;
+	
+    ret_val = read_data(_inode, _offset, _buf, _length);
+	
+	printf("ret value is %d\n", ret_val);
+
+	for(it = 0; it < _length; it++){
+        printf("%c", _buf[it]);
+	}
 #endif
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your

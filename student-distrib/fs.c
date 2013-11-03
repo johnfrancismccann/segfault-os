@@ -32,6 +32,9 @@
 
 //dentry_t defined in types.h
 
+void read_directly(){
+    
+}
 /*
  * read_dentry_by_name
  *   DESCRIPTION: fills in the dentry_t block passed with file name, file type,
@@ -50,6 +53,9 @@ int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry){
 	uint32_t num_dir_ent;
 	uint32_t i;
 	
+	if (*((int8_t*)fname) == ".")
+	    read_directly();
+		
 	/* get the size of the file, and perform checks */
 	fname_size = strlen((int8_t*)fname);
 	if(!fname_size)
@@ -70,9 +76,10 @@ int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry){
 								((int8_t*)(file_sys+i*DIR_ENTRY_SZ+FL_NAME_OFF)), 
 								fname_size)) {
 			/* fill directory entry */
-			dentry->file_name = (uint32_t*)fname;
+			dentry->file_name = (uint8_t*)fname;
 			dentry->ftype = *((uint32_t*)(file_sys + i*DIR_ENTRY_SZ + FL_TYPE_OFF));
 			dentry->index_node = *((uint32_t*)(file_sys + i*DIR_ENTRY_SZ + FL_INODE_OFF));
+			dentry->length = *((uint32_t*)(file_sys + BLK_SZ + (dentry->index_node) * BLK_SZ));
 			/* return success */
 			return 0;
 		}   
@@ -116,6 +123,7 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t * dentry){
 			dentry->file_name = (uint32_t*)(file_sys+i*DIR_ENTRY_SZ+FL_NAME_OFF);
 			dentry->ftype = *((uint32_t*)(file_sys+i*DIR_ENTRY_SZ+FL_TYPE_OFF));
 			dentry->index_node = index;
+			dentry->length = *((uint32_t*)(file_sys + BLK_SZ + (dentry->index_node) * BLK_SZ));
 			/* return success */
 			return 0;
 		}
@@ -181,7 +189,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t * buf, uint32_t leng
 				cpy_sz = bytes_left;
 			else
 				cpy_sz = BLK_SZ;
-				
+
 			/* get data block index relative to first data block */	
 			data_block_ind = *((uint32_t*)(inode_loc+IN_FIRST_DB_OFF
 																		+data_block_ind*IN_DB_IND_SZ));
@@ -193,9 +201,6 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t * buf, uint32_t leng
 			/* update bytes_left, bytes_read */
 			bytes_left = (uint32_t)(bytes_left-cpy_sz);
 			bytes_read += cpy_sz;
-	
 	}
     return bytes_read;
 }
-
-
