@@ -58,7 +58,6 @@ SOLUTION:   To send the EOI for a slave PIC IRQ, the EOI signal must be
             did not re-enable any interrupts, leading to only one occurence
             of the interrupt.
 
-
 7. 
 SYMPTOM:    Page fault occurs in terminal driver after holding down backspace
             key and typing a letter (which appears in the middle of the screen)
@@ -68,4 +67,14 @@ SOLUTION:   The program was unconditionally decrementing the buffer index
             buffer, the buffer index would become -1 and so this would be an
             illegal access on the buffer, resulting in a page fault.
 
+8. 
+SYMPTOM:    Even after character buffer is full, backspacing allows more characters
+            to be typed to screen and stored in buffer.
+TIME SPENT: 1 hour
+SOLUTION:   The source of this error was that after hitting enter and creating a new
+            line, the user is able to backspace and clear the buffer so that more
+            characters can be typed in and stored in the buffer. To solve this, 
+            logic was implemented so that after hitting enter, backspacing takes the
+            user back to the previous cursor location, not the space immediately to
+            the left of the cursor.
             
