@@ -11,6 +11,7 @@
 #include "rtc.h"
 #include "paging.h"
 #include "keyboard.h"
+#include "terminal.h"
 #include "fs.h"
 #include "tests.h"
 
@@ -20,21 +21,15 @@
 
 
 /* Test enables */
-#define TEST_TERMINAL_READ 0 	//Set to 1 to test terminal_read
+#define TEST_TERM_READ 0 		//Set to 1 to test term_read
+#define TEST_TERM_WRITE 0 		//Set to 1 to test term_write
 #define TEST_RDENTRY_NAME 0     //Set to 1 to test read_dentry_by_name
 #define TEST_RDENTRY_INDEX 0    //Set to 1 to test read_dentry_by_index
 #define TEST_RDATA 	0           //Set to 1 to test read_data
-#define TEST_RWRTC 	0           //Set to 1 to test rtc read/write
 #define TEST_DIV0 	0           //Set to 1 to test divide by 0 exception
 #define TEST_PAGEF 	0           //Set to 1 to test page fault exception
 #define TEST_FS		0			//Set to 1 to test filesystem
 #define TEST_RWRTC 	0           //Set to 1 to test rtc read/write
-#define TEST_DIV0 	0           //Set to 1 to test divide by 0 exception
-#define TEST_PAGEF 	0           //Set to 1 to test page fault exception
-#define TEST_FS	    0            //Set to 1 to test filesystem
-#define TEST_RWRTC 	0            //Set to 1 to test rtc read/write
-#define TEST_DIV0 	0            //Set to 1 to test divide by 0 exception
-#define TEST_PAGEF 	0            //Set to 1 to test page fault exception
 
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
@@ -180,14 +175,10 @@ entry (unsigned long magic, unsigned long addr)
     init_kbd();
 
     rtc_open();
+
+    term_open();
 	
 	set_fs_loc((uint8_t*)(mbi->mods_addr), mbi->mods_count);
-
-    //========TESTING TERMINAL DRIVER==============
-    // void* buffer;
-    // char* read_buffer = get_read_buf();
-    // term_read(read_buffer, buffer, 10);
-    
 
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
@@ -198,8 +189,12 @@ entry (unsigned long magic, unsigned long addr)
     sti();
 
 
-#if TEST_TERMINAL_READ //set to 1 if wanna test read_dentry_by_name
+#if TEST_TERM_READ //set to 1 if wanna test term_read
 	test_terminal_read();
+#endif
+
+#if TEST_TERM_WRITE //set to 1 if wanna test term_write
+	test_terminal_write();
 #endif
 
 #if TEST_FS

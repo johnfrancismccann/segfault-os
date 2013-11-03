@@ -11,8 +11,8 @@ int32_t term_open();
 
 int32_t term_close();
 
-int32_t term_read(void* buf);
+int32_t term_read(void* read_ptr);
 
-void term_write(void* buf, int32_t n);
+int32_t term_write(const void* wrt_ptr, int32_t nbytes);
 
 #endif
