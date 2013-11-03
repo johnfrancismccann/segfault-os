@@ -98,14 +98,14 @@ void test_rwrtc()
     uint8_t tester = 0;
     uint32_t power_two = 1;
     clear();
-    if(rtc_write(0) == -1) //attempt to set frequency of 0Hz
-        printf("\tRTC 0Hz FAIL\n");
+    if(rtc_write(&tester, 1) == -1) //attempt to set frequency of 0Hz
+        printf("\tRTC 0Hz FAIL");
     else
     {
         printf("\tRTC 0Hz SUCCESS\n");
         for(tester = 0; tester < 10; tester ++)
         {
-            rtc_read();
+            rtc_read(NULL, 0);
             printf("%d\t", tester);
         }
     }
@@ -115,27 +115,28 @@ void test_rwrtc()
      */
     for(power_two = 1; power_two < 16384; power_two <<= 1)
     {
-        if(rtc_write(power_two) == -1) //attempt to set frequency
-            printf("\n\tRTC %dHz FAIL\n", power_two);
+        if(rtc_write(&power_two, 1) == -1) //attempt to set frequency
+            printf("\n\tRTC %dHz FAIL", power_two);
         else
         {
             printf("\n\tRTC %dHz SUCCESS\n", power_two);
             for(tester = 0; tester < 10; tester ++)
             {
-                rtc_read();
+                rtc_read(NULL, 0);
                 printf("%d  ", tester);
             }
         }
     }
+    tester = 100;
     // Check non power of two; should fail.
-    if(rtc_write(100) == -1) //attempt to set frequency of 100Hz
-        printf("\n\tRTC 100Hz FAIL\n");
+    if(rtc_write(&tester, 1) == -1) //attempt to set frequency of 100Hz
+        printf("\n\tRTC 100Hz FAIL");
     else
     {
         printf("\n\tRTC 100Hz SUCCESS\n");
         for(tester = 0; tester < 10; tester ++)
         {
-            rtc_read();
+            rtc_read(NULL, 0);
             printf("%d\t", tester);
         }
     }
