@@ -318,6 +318,7 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     if(buf[0] == '\0') return 0;
     for(i = 0; i < bytes; i++) {
         switch(buf[i]) {
+            case '\0': break;
             case TAB_ASC:
                 print_idx += TAB_LEN; //add 5 spaces/tab
                 break;
@@ -330,7 +331,6 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
         }
         check_scroll(print_idx);
     }
-    check_scroll(print_idx);
     update_cursor(print_idx);
     return bytes;
  }
