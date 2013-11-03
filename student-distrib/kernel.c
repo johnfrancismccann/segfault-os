@@ -21,12 +21,10 @@
 
 
 /* Test enables */
-#define TEST_RDENTRY_NAME 0     //Set to 1 to test read_dentry_by_name
-#define TEST_RDENTRY_INDEX 0    //Set to 1 to test read_dentry_by_index
-#define TEST_RDATA 0            //Set to 1 to test read_data
-#define TEST_RWRTC 0            //Set to 1 to test rtc read/write
-#define TEST_DIV0 0             //Set to 1 to test divide by 0 exception
-#define TEST_PAGEF 0            //Set to 1 to test page fault exception
+#define TEST_FS			0						 //Set to 1 to test filesystem
+#define TEST_RWRTC 	0            //Set to 1 to test rtc read/write
+#define TEST_DIV0 	0            //Set to 1 to test divide by 0 exception
+#define TEST_PAGEF 	0            //Set to 1 to test page fault exception
 
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
@@ -172,23 +170,14 @@ entry (unsigned long magic, unsigned long addr)
     init_kbd();
 
     rtc_open();
+	
+	set_fs_loc((uint8_t*)(mbi->mods_addr), mbi->mods_count);
 
     //========TESTING TERMINAL DRIVER==============
     // void* buffer;
     // char* read_buffer = get_read_buf();
     // term_read(read_buffer, buffer, 10);
     
-#if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
-    test_rdentry_name();
-#endif
-    
-#if TEST_RDENTRY_INDEX //set to 1 if wanna test read_dentry_by_index
-    test_rdentry_index();
-#endif
-    
-#if TEST_RDATA //set to 1 if wanna test read_data
-    test_rdata();
-#endif
 
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
@@ -200,6 +189,10 @@ entry (unsigned long magic, unsigned long addr)
 
 #if 0
 
+#endif
+
+#if TEST_FS
+		test_fs();
 #endif
 
 #if TEST_RWRTC //set to 1 to test rtc read/write
