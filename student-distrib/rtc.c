@@ -95,7 +95,7 @@ void rtc_idt_handle()
  *   RETURN VALUE: 
  *   SIDE EFFECTS: 
  */
-int rtc_open()
+int32_t rtc_open()
 {
     return 0;
 }
@@ -104,12 +104,14 @@ int rtc_open()
 /*
  * rtc_read()
  *   DESCRIPTION:  Returns 0 after interrupt from RTC.
- *   INPUTS: None
+ *   INPUTS: **Not Used**
+ *           buffer: place where output would go
+ *           nbytes: number of bytes requested
  *   OUTPUTS: None
  *   RETURN VALUE: 0 after interrupt from RTC 
  *   SIDE EFFECTS: None
  */
-int rtc_read()
+int32_t rtc_read(int32_t* buffer, int32_t nbytes)
 {
     //reset interrupt_flag to wait for interrupt
     interrupt_flag &= 0;
@@ -123,17 +125,25 @@ int rtc_read()
 /*
  * rtc_write()
  *   DESCRIPTION: Changes the interrupt frequency of the RTC.
- *   INPUTS: freq:  Desired frequency (in Hz).  RTC only supports
- *                  2,4,8,16,32,64,128,256,512,1024.  Other values
- *                  blocked.
+ *   INPUTS: buffer:  Desired frequency (in Hz).  RTC only supports
+ *                    2,4,8,16,32,64,128,256,512,1024.  Other values
+ *                    blocked.  Passed as pointer to value.
+ *           nbytes:  Number of bytes to write to RTC.  Only one
+ *                    byte allowed, otherwise write fails.
  *   OUTPUTS: None
  *   RETURN VALUE: returns 1 on success, -1 on failure
  *   SIDE EFFECTS: May change RTC interrupt frequency
  */
-int rtc_write(uint32_t freq)
+int32_t rtc_write(void* buffer, int32_t nbytes)
 {
     uint8_t rate = 0;
     uint32_t flags;
+    if(buffer == NULL)
+        return -1;
+    int32_t freq = *((int32_t*) buffer);
+    //Error if more or less than 1 byte is requested to write
+    if(nbytes != 1)
+        return -1;
     //Don't set if outside valid frequency range
     if(freq > MAXFREQ || freq < MINFREQ)
         return -1;
@@ -175,7 +185,7 @@ int rtc_write(uint32_t freq)
  *   RETURN VALUE: 
  *   SIDE EFFECTS: 
  */
-int rtc_close()
+int32_t rtc_close()
 {
     return 0;
 }
