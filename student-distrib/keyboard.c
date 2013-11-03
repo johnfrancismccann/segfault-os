@@ -53,8 +53,8 @@ static const char KBD_MAP_SHIFT[256] =
 static char read_buf[128]; //buffer to store characters typed in from user
 static uint8_t scancode; //make this with file scope so can check for enter in get_read_buf (for term_read)
 static char* video_mem = (char *)VIDEO;
-static int buf_idx; //index for storing characters in buffer
-static int print_idx; //index for printing characters to screen (video memory offset)
+static uint16_t buf_idx; //index for storing characters in buffer
+static uint16_t print_idx; //index for printing characters to screen (video memory offset)
 static int ctrl_flag; //flag to indicate if control key currently pressed or not (1 is yes, 0 is no)
 static int shift_flag; //indicates if shift is pressed or not
 static int caps_lock; //indicates if caps lock is enabled/disabled
@@ -133,7 +133,7 @@ void kbd_handle()
                 //Scroll up to reveal previous command
                 else
                 {
-                    // Remove last entry (a new line '\n') and set to endline
+                    //Remove last entry (a new line '\n') and set to endline
                     read_buf[--buf_idx] = '\0';
                     int num_to_print = 0;
                     int char_to_print = 0;
@@ -164,7 +164,6 @@ void kbd_handle()
                                 *(uint8_t *)(video_mem + (print_idx << 1)) = read_buf[buf_idx - num_to_print + i]; // "<< 1" because each character is 2 bytes
                                 print_idx++;
                         }
-                        //*(uint8_t *)(video_mem + ((num_to_print - i) << 1)) = read_buf[buf_idx - i + 1];
                     }
                     update_cursor(print_idx);
                     send_eoi(KBD_IRQ_NUM);
@@ -205,7 +204,7 @@ void kbd_handle()
         if(buf_idx < 127) { //don't take any more characters if the buffer is full
             int capital = 0; //should be capital letter if 1
             if((caps_lock == 1) ^ (shift_flag == 1)){capital = 1;} //set capital flag
-            if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z')  //====NOTE: have only accounted for capitalizing letters, not symbols===
+            if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z')
                 read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET; //add character to buffer (accounting for case) and increment index
             else if(capital == 1)
                 read_buf[buf_idx++] = KBD_MAP_SHIFT[scancode]; //add character to buffer (accounting for case) and increment index
@@ -248,7 +247,7 @@ void kbd_handle()
  /*
   * check_scroll(int tmp_index)
   *   DESCRIPTION: checks if have passed lower screen boundary and scrolls down one line if have
-  *   INPUTS: none
+  *   INPUTS: index of next location for character to be printed
   *   OUTPUTS: none
   *   RETURN VALUE: none
   *   SIDE EFFECTS: video memory shifted up 1 row (through copying)
@@ -275,18 +274,23 @@ void kbd_handle()
   * get_read_buf()
   *   DESCRIPTION: give newline-terminated buffer to terminal
   *   INPUTS: pointer to copy character buffer typed in to
-  *   OUTPUTS: none
+  *   OUTPUTS: number of bytes input from keyboard
   *   RETURN VALUE: none
   *   SIDE EFFECTS: none
   */
 int32_t get_read_buf(void* ptr) {
+    int32_t tmp_idx; //store number of bytes to be copied to prevent interrupts from changing it
+    printf("in get_read_buf ");
     while(buf_idx == 0); //wait until buffer non-empty
-    while(scancode != ENTER); //wait until enter key is pressed
+    printf("buffer non-empty ");
+    while(scancode != ENTER || read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
+    printf("enter key pressed \n");
     //while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
-    memcpy(ptr, (void*) read_buf, buf_idx+1);
+    tmp_idx = buf_idx;
+    memcpy(ptr, (void*) read_buf, tmp_idx);
     sti();
-    return buf_idx+1;
+    return tmp_idx;
 }
 
  /*
@@ -298,6 +302,42 @@ int32_t get_read_buf(void* ptr) {
   *   SIDE EFFECTS: none
   */
 void clear_read_buf() {
+    cli(); //make sure not writing to buffer while clearing it
     buf_idx = 0; //reset buffer index
     read_buf[0] = '\0'; //clear buffer
+    sti();
+ }
+
+ /*
+  * print_write_buf(const void* wrt_buf)
+  *   DESCRIPTION: print a buffer to the screen at location given by cursor
+  *   INPUTS: pointer to buffer to be written
+  *   OUTPUTS: number of bytes written to terminal
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: none
+  */
+int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
+    int i; //loop iterator
+    char* buf = (char*) wrt_buf;
+    //printf("in print_write_buf ");
+    if(buf[0] == '\0') return 0;
+    //printf("buf[0] %c ", buf[0]);
+    for(i = 0; i < bytes; i++) {
+        switch(buf[i]) {
+            case TAB_ASC:
+                print_idx += TAB_LEN; //add 5 spaces/tab
+                break;
+            case ENT_ASC:
+                print_idx += NUM_COLS - (print_idx % NUM_COLS);
+                break;
+            default: //for regular characters (only increment print index)
+                *(uint8_t *)(video_mem + (print_idx << 1)) = buf[i]; // "<< 1" because each character is 2 bytes
+                print_idx++;
+        }
+        check_scroll(print_idx);
+    }
+    //print_idx += NUM_COLS - (print_idx % NUM_COLS); //put cursor on new line for more user input
+    check_scroll(print_idx);
+    update_cursor(print_idx);
+    return bytes;
  }

@@ -49,17 +49,41 @@ void test_terminal_read()
     int8_t ptr[128]; //pointer to copy char buffer from keyboard to user space
     int copied_bytes;
 
-    term_open();
+    // //read first command
+    // copied_bytes = term_read((void*) ptr);
+    // //printf("bytes copied %d\n", copied_bytes);
+    // puts(ptr);
 
-    //read first command
-    copied_bytes = term_read((void*) ptr);
-    //printf("bytes copied %d", copied_bytes);
-    puts(ptr);
-
-    //read second command
-    copied_bytes = term_read((void*) ptr);
-    puts(ptr);
+    while(1) {
+        copied_bytes = term_read((void*) ptr);
+        puts(ptr);
+    }
 }
+
+/*
+ * test_terminal_write:
+ *     DESCRIPTION: Tests terminal_write function
+ *     INPUTS: None
+ *     OUTPUTS: None
+ *     RETURN VALUE: None
+ *     SIDE EFFECTS: None
+ */
+void test_terminal_write()
+{
+    char ptr = 0;
+    //ptr[] = "hellogsa;lka;lkjgdalhellogsa;lka;lkjgdalkjgdagdsa;lkjgdahellogsa;lka;lkjgdalkjgdagdsa;lkjgdakjgdagdsa;lkjgda";
+    int copied_bytes;
+
+    clear();
+
+    while(1) {
+        ptr++;
+        copied_bytes = term_write((const void*) (&ptr), 1);
+    }
+    //copied_bytes = term_write((const void*) ptr, 100);
+    printf("bytes copied %d\n", copied_bytes);
+}
+
 
 /*
  * test_rdentry_name:
@@ -208,7 +232,7 @@ void test_rwrtc()
 void test_div0()
 {
     int i = 5;
-    int j = 0
+    int j = 0;
     i /= j;
 }
 
