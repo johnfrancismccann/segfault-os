@@ -9,6 +9,17 @@
  */
  
  
+int32_t fs_open_file(const uint8_t* filename);
+int32_t fs_read_file(void* buf, int32_t nbytes);
+int32_t fs_write_file(void* buf, int32_t  nbytes);
+int32_t fs_close_file();
+
+int32_t fs_open_dir(const uint8_t* filename);
+int32_t fs_read_dir(void* buf, int32_t nbytes);
+int32_t fs_write_dir(void* buf, int32_t  nbytes);
+int32_t fs_close_dir();  
+ 
+ 
 /*
  * set_fs_loc
  * DESCRIPTION: set file_sys_loc to the location of the file system 

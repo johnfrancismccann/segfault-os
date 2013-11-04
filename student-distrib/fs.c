@@ -3,8 +3,19 @@
 #include "multiboot.h"
 
 #define MAX_FNAME_LENGTH 32
+/* filesystem file, directory states */
+#define FS_FILE_OPEN			1
+#define FS_FILE_CLOSED		0
+#define FS_DIR_OPEN				1
+#define FS_DIR_CLOSED			0
 
 static uint8_t* file_sys_loc;
+static uint8_t	fs_file_state = FS_FILE_CLOSED;
+static uint32_t fs_file_inode;
+static uint32_t fs_file_offset;
+
+//static uint8_t	fs_dir_state	 = FS_DIR_CLOSED;
+
 /* filesystem parameters */
 #define FS_BT_IND					0
 #define FS_INOD_IND				1
@@ -33,6 +44,142 @@ static uint8_t* file_sys_loc;
 #define TYPE_USER 0
 #define TYPE_DIR 1
 #define TYPE_REG 2
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ *
+ *
+ *
+ * 
+ */ 
+ 
+int32_t fs_open_file(const uint8_t* filename)
+{
+	dentry_t dentry;
+	int32_t search_res;
+	
+	/* check if file is already opened */
+	if(fs_file_state == FS_FILE_OPEN)
+		return -1;
+	/* if not opened, set file as opened, offset to 0 */
+	fs_file_state = FS_FILE_OPEN;
+	fs_file_offset = 0;
+	
+	/* try finding inode number of passed file */
+	search_res = read_dentry_by_name(filename, &dentry);
+	
+	if(!search_res)
+		/* set inode number if found */
+		fs_file_inode = dentry.index_node;
+	else if(search_res == -1)
+		/* return failure if not found */
+		return -1;
+
+	return -1;
+}
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ *
+ *
+ *
+ * 
+ */ 
+int32_t fs_read_file(void* buf, int32_t nbytes)
+{
+	int32_t bytes_read;
+
+	if(fs_file_state != FS_FILE_OPEN)
+		return -1;
+	
+	/* check that instructed number of bytes to read is nonnegative */
+	if(nbytes < 0)
+		return -1;
+	
+	/* read bytes from file */
+	bytes_read = read_data(fs_file_inode, fs_file_offset, buf, (uint32_t)nbytes);
+	/* update offset if reading didn't fail */
+	if(bytes_read != -1)
+		fs_file_offset += bytes_read; 
+	
+	return bytes_read;
+
+}
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ *
+ *
+ *
+ * 
+ */ 
+int32_t fs_write_file(void* buf, int32_t  nbytes)
+{
+	/* the filesystem is read only. return failure */
+	return -1;
+}
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ *
+ *
+ *
+ * 
+ */
+int32_t fs_close_file() 
+{
+	/* files must have been opened to be closed */
+	if(fs_file_state != FS_FILE_OPEN)
+		return -1;
+	/* mark file as closed */
+	fs_file_state = FS_FILE_CLOSED;
+	return 0;
+}
+
+int32_t fs_open_dir(const uint8_t* filename)
+{
+	return -1;
+
+}
+
+int32_t fs_read_dir(void* buf, int32_t nbytes)
+{
+	return -1;
+
+}
+
+int32_t fs_write_dir(void* buf, int32_t  nbytes)
+{
+	/* the filesystem is read only. return failure */
+	return -1;
+}
+
+int32_t fs_close_dir()
+{
+	return -1;
+
+}
+
 
 /*
  * set_fs_loc
@@ -93,6 +240,10 @@ int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry) {
 	uint32_t num_dir_ent;
 	uint32_t i;
 			
+	/* check input paramaters */		
+	if(fname == NULL || dentry == NULL)
+		return -1;
+			
 	/* get the size of the filename, and perform checks */
 	fname_size = strlen((int8_t*)fname);
 	if(!fname_size)
@@ -148,6 +299,10 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t * dentry){
 	uint32_t i;
 	uint8_t *dir_ent_loc;
 	uint32_t file_type;
+	
+	/* check dentry */
+	if(dentry == NULL)
+		return -1;
 	
 	/* get number of inodes */
 	num_inodes = ((uint32_t*)(file_sys_loc+FS_BT_IND*FS_BLK_SZ))[BT_NUM_INOD_IND];
@@ -206,6 +361,10 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t * buf, uint32_t leng
 	uint32_t db_ind;
 	uint16_t data_block_off;
 	uint16_t cpy_sz;
+	
+	/* check input buffer */
+	if(buf == NULL)
+		return -1;
 	
 	/* get location of statistics entry in boot block */
 	stat_loc = (uint32_t*)(file_sys_loc+FS_BT_IND*FS_BLK_SZ);
