@@ -235,7 +235,7 @@ strrev(int8_t* s)
 	return s;
 }
 
-/* String length */
+/* String length non including '\0' */
 uint32_t
 strlen(const int8_t* s)
 {
