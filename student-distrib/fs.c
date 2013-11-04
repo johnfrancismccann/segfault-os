@@ -284,7 +284,11 @@ int32_t fs_close_dir()
  * SIDE_EFFECTS: fs.c scope variable file_sys_loc set to location of 
  *               file system
  */
-void set_fs_loc(const uint8_t* base_mods, uint32_t num_mods) {
+int32_t set_fs_loc(const uint8_t* base_mods, uint32_t num_mods) {
+
+	/* return failure if invalid modules pointer argument */
+	if(base_mods == NULL)
+		return -1;
 
 	uint32_t i;
 	module_t module;
@@ -295,9 +299,11 @@ void set_fs_loc(const uint8_t* base_mods, uint32_t num_mods) {
 		/* check if module is the filesystem */
 		if(!strncmp("/filesys_img", (int8_t*)(module.string), 12)) {
 			file_sys_loc = (uint8_t*)(module.mod_start);
-			return;
+			return 0;
 		}
 	}
+	/* return failure if filesystem is not found */
+	return -1;
 }
 
 /*
