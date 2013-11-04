@@ -7,6 +7,9 @@
 
 #include "types.h"
 
+#define NO 0
+#define YES 1
+
 int32_t term_open();
 
 int32_t term_close();
