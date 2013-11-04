@@ -164,8 +164,8 @@ void test_rdentry_index()
 		printf("\n");
 }
 
-#define TEST_TEXT 1
-#define TEST_NON_TEXT 0
+#define TEST_TEXT 0
+#define TEST_NON_TEXT 1
 
 /*
  * test_rdata:
@@ -178,14 +178,14 @@ void test_rdentry_index()
 void test_rdata()
 {
 		uint8_t* filename;
-		uint32_t _length = 187;
+		uint32_t _length = 100;
 		uint8_t _buf[_length];
 		uint32_t _inode;
 		uint32_t i;
 		uint32_t bytes_read;
 	
 		/* set filename to read */
-		filename = (uint8_t*) "frame0.txt";
+		filename = (uint8_t*) "hello";
 		/* print header */
     printf("Testing read_data for file %s\n", filename);		
     
@@ -207,8 +207,13 @@ void test_rdata()
     
 #if TEST_NON_TEXT
 		for(i = 0; i < _length; i++) {
-        printf("%x", _buf[i]);
+        printf("%x ", _buf[i]);
+				/* start printing at next line after 20 characters */
+				if(!(i%20) && i > 0)
+					printf("\n");
     }
+
+		
 #endif
 		
 		printf("\n");
