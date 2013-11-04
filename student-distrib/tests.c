@@ -78,6 +78,7 @@ void test_terminal_write()
 #else
 	#define PRINT_SET_SZ		400
 #endif
+#define PRINT_SET_ROW		16
 /*filesystem test functions */
 void test_rd_txt_fl();
 void test_rd_lrg_fl();
@@ -90,7 +91,7 @@ void print_hex_lines(uint8_t* buf, uint32_t n_bytes);
  *			INPUTS: None
  *			OUTPUTS: None
  *			RETURN VALUE: None
- *			SIDE EFFECTS: None
+ *			SIDE EFFECTS: filesystem test is printed to screen.
  */
 void test_fs()
 {
@@ -116,13 +117,14 @@ void test_fs()
 
 
 /*
- *
- *
- * 
- *
- * 
- *
- */ 
+ * test_rd_txt_fl
+ * DESCRIPTION: test reading of text file from fs.
+ *              use for small files
+ * INPUTS: none
+ * OUTPUTS: none
+ * RETURN_VALUE: none
+ * SIDE_EFFECTS: text file is printed to screen. 
+ */
 void test_rd_txt_fl()
 {
 
@@ -147,13 +149,18 @@ void test_rd_txt_fl()
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
- */ 
+ * test_rd_lrg_fl
+ * DESCRIPTION: test reading of large file. large file can be 
+ *              txt or non-txt file depending on whether 
+ *              TST_FS_R_NON_TXT_FILE is set to 1 or 0
+ * INPUTS: none
+ * OUTPUTS: none
+ * RETURN_VALUE: none
+ * SIDE_EFFECTS: beginning and ending contents of a large 
+ *               file are written to the screen. if a non-txt
+ *               file is being tested, hex characters are ouput.
+ *               otherwise, ascii characters are output
+ */
 void test_rd_lrg_fl()
 {
 	uint8_t* filename;
@@ -211,20 +218,23 @@ void test_rd_lrg_fl()
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
- */ 
+ * print_hex_lines
+ * DESCRIPTION: print rows of PRINT_SET_ROW characters to screen in 
+ *              hexadecimal format.  
+ * INPUTS: buf--buffer containing charcters to print
+ *         n_bytes--number of characters in buf
+ * OUTPUTS: none
+ * RETURN_VALUE: none
+ * SIDE_EFFECTS: characters passed in buffer are printed to screen,
+ *               formatted in hexadecimal
+ */
 void print_hex_lines(uint8_t* buf, uint32_t n_bytes)
 {
 	uint32_t i;
 	/* iterate through bytes */
 	for(i=0; i<n_bytes; i++) {	
-		/* print 16 characters per display line */
-		if( !(i%16) && i>0)
+		/* print PRINT_SET_ROW characters per display line */
+		if( !(i%PRINT_SET_ROW) && i>0)
 			printf("\n");	
 		/* print hex characters to compare with hex dump */
 		printf("%x ", buf[i]);
@@ -232,11 +242,13 @@ void print_hex_lines(uint8_t* buf, uint32_t n_bytes)
 }
 
 /*
- *
- *
- * 
- *
- * 
+ * test_rd_dir
+ * DESCRIPTION: test reading of directory. because the filesystem is flat,
+ *              only the pwd, ".", can be read 
+ * INPUTS: none
+ * OUTPUTS: none
+ * RETURN_VALUE: none
+ * SIDE_EFFECTS: directory contents are read and printed to screen
  *
  */
 void test_rd_dir()
@@ -265,19 +277,21 @@ void test_rd_dir()
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
- */ 
+ * test_other
+ * DESCRIPTION: test any desired behavior 
+ * INPUTS: none
+ * OUTPUTS: none
+ * RETURN_VALUE: none
+ * SIDE_EFFECTS: desired test is performed. the return value of the
+ *               test is also printed
+ */
 void test_other()
 {
 	int32_t ret_val;
 	
 	/* begin tests */
-	ret_val = fs_close_file();
+	//ret_val = fs_close_file();
+	ret_val = fs_open_file((uint8_t*)"frame0.tx");
 	/* end tests */
 	
 	/* print results */
