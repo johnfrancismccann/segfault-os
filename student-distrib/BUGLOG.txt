@@ -109,47 +109,55 @@ SOLUTION:   First of all we're loading a static address (0x040D000), which becom
             invalid when we restart the machine, switch machine, or EVEN add 
             one extra line of code in our program. The worse thing is that when 
             we test the code this afternoon, nothing is wrong, but things start to 
-            mess up when we merge code from other group members (Since we're adding tons of code)
-            Finally we figured out that we should not use a static address.
-            We solve this problem by comparing the name of modules loaded 
-            (to see if it equals to "filesys_img"), and load that address as the beginning.
+            mess up when we merge code from other group members (Since we're
+            adding tons of code) Finally we figured out that we should not use a
+            static address.  We solve this problem by comparing the name of modules
+            loaded (to see if it equals to "filesys_img"), and load that address
+            as the beginning.
 
 13.
 SYMPTOM:    Page fault on a term_read
 TIME SPENT: 1 hour
-SOLUTION:   I declared the pointer for the term_read for copy the character buffer from the keyboard
-            as a void*, which was incorrect since it does not reserve enough space in memory for an
-            entire buffer. Therefore, declaring an arrray of 128 elements (the maximum size of the
-            character buffer) got rid of the page fault.
+SOLUTION:   I declared the pointer for the term_read for copy the character buffer
+            from the keyboard as a void*, which was incorrect since it does not
+            reserve enough space in memory for an entire buffer. Therefore, declaring
+            an arrray of 128 elements (the maximum size of the character buffer) got
+            rid of the page fault.
             
 14.
-SYMPTOM:    When testing the read_dentry_by_index function for index 0, the dentry struct was filled 
-            so that the filename was "." Because inodes are ignored for directories, this is obviously
-						incorrect behavior.
+SYMPTOM:    When testing the read_dentry_by_index function for index 0, the dentry
+            struct was filled so that the filename was "." Because inodes are ignored
+            for directories, this is obviouslyincorrect behavior.
 TIME SPENT: 30 minutes
-SOLUTION:   The source of the problem was that in iterating through the directory 
-						entries, looking for a matching indoe, the entry was not discarded if the file was not a
-						regular type. Changing this solved the problem, and filled the dentry struct with a filename 
-						of "frame0.txt", a valid file type for an inode.
+SOLUTION:   The source of the problem was that in iterating through the directory
+            entries, looking for a matching indoe, the entry was not discarded if
+            the file was not a regular type. Changing this solved the problem, and
+            filled the dentry struct with a filename of "frame0.txt", a valid
+            file type for an inode.
 
 15.
-SYMPTOM:    When some team members committed code implementing rtc, terminal driver functionality, a 
-            text file could no longer be read and printed to the screen correctly.
+SYMPTOM:    When some team members committed code implementing rtc, terminal driver
+            functionality, a text file could no longer be read and printed to the
+            screen correctly.
 TIME SPENT: 1 hour
-SOLUTION:   In modifying the rtc, terminal the module was loaded at a different location in memory. 
-						Operations previously performed on the filesystem were done using a hard coded filesystem 
-						location. Dynamically setting a filescope variable to indicate the location of the filesystem 
-						solved this problem.
+SOLUTION:   In modifying the rtc, terminal the module was loaded at a different
+            location in memory.  Operations previously performed on the filesystem
+            were done using a hard coded filesystem location. Dynamically setting a
+            filescope variable to indicate the location of the filesystem solved this
+            problem.
             
 16.
-SYMPTON:		It appeared as if the last bytes in a non-text file, grep, were read incorrectly beacause they 
-						appeared not to match with the end of the grep file in the filesystem hex dump
+SYMPTON:    It appeared as if the last bytes in a non-text file, grep, were read
+            incorrectly beacause they appeared not to match with the end of the grep
+            file in the filesystem hex dump
 TIME SPENT: 2 hours
-SOLUTION: 	It was forgotten that grep is larger than one filesystem block and thus the end of the file will 
-						not appear near the beginning of the file in the filesystem hex dump. The end of the file is located
-						in a different filesystem block and, thus, a completely different location in the hex dump. When this
-						was considered, the last bytes in grep were actually being read correctly
-					
+SOLUTION:   It was forgotten that grep is larger than one filesystem block and thus
+            the end of the file will not appear near the beginning of the file in the
+            filesystem hex dump. The end of the file is located in a different
+            filesystem block and, thus, a completely different location in the hex
+            dump.  When this was considered, the last bytes in grep were actually
+            being read correctly.
+
 17.
 SYMPTON:
 TIME SPENT:
