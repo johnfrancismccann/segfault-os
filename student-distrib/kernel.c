@@ -175,7 +175,7 @@ entry (unsigned long magic, unsigned long addr)
 
     term_open();
 	
-	set_fs_loc((uint8_t*)(mbi->mods_addr), mbi->mods_count);
+		set_fs_loc((uint8_t*)(mbi->mods_addr), mbi->mods_count);
 
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your

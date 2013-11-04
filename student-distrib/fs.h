@@ -20,7 +20,7 @@ int32_t fs_write_dir(void* buf, int32_t  nbytes);
 
 int32_t fs_close_dir();  
  
-void set_fs_loc(const uint8_t* base_mods, uint32_t num_mods);
+int32_t set_fs_loc(const uint8_t* base_mods, uint32_t num_mods);
  
 int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry);
 
