@@ -280,7 +280,7 @@ int32_t fs_close_dir()
  * INPUTS: base_mods-- pointer to modules structures
  *         num_mods-- the number of modules pointed to by base_mods
  * OUTPUS: none
- * RETURN VALUE: none
+ * RETURN VALUE: 0 on successful set. -1 on failure
  * SIDE_EFFECTS: fs.c scope variable file_sys_loc set to location of 
  *               file system
  */
