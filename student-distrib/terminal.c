@@ -10,6 +10,8 @@
 #include "lib.h"
 #include "types.h"
 
+uint8_t is_terminal_open = NO;
+
 /*
  * term_open()
  *   DESCRIPTION: Initialize terminal
@@ -19,6 +21,8 @@
  *   SIDE EFFECTS: none
  */
 int32_t term_open() {
+	if(is_terminal_open == YES) return -1; //make sure terminal closed before opening
+	is_terminal_open = YES;
 	return 0; //indicates successful open
 }
 
@@ -31,6 +35,8 @@ int32_t term_open() {
  *   SIDE EFFECTS: none
  */
 int32_t term_close() {
+	if(is_terminal_open == NO) return -1; //make sure terminal open before closing
+	is_terminal_open = NO;
 	clear_read_buf();
 	return 0; //indicates successful close
 }
@@ -43,7 +49,9 @@ int32_t term_close() {
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
  */
-int32_t term_read(void* read_ptr) {	
+int32_t term_read(void* read_ptr) {
+	if(is_terminal_open == NO) return -1;
+	if(read_ptr == NULL) return -1;
 	int bytes_copied;
 
 	bytes_copied = get_read_buf(read_ptr);
@@ -62,6 +70,8 @@ int32_t term_read(void* read_ptr) {
  *   SIDE EFFECTS: none
  */
 int32_t term_write(const void* wrt_ptr, int32_t nbytes) {
+	if(is_terminal_open == NO) return -1;
+	if(wrt_ptr == NULL) return -1;
 	int32_t bytes_copied;
 	cli(); //disable interrupts so input printed cleanly
 	bytes_copied = print_write_buf(wrt_ptr, nbytes);

@@ -25,7 +25,7 @@
 #define TEST_TERM_WRITE 0 		//Set to 1 to test term_write
 #define TEST_DIV0 	0           //Set to 1 to test divide by 0 exception
 #define TEST_PAGEF 	0           //Set to 1 to test page fault exception
-#define TEST_FS			0			//Set to 1 to test filesystem
+#define TEST_FS		0			//Set to 1 to test filesystem
 #define TEST_RWRTC 	0           //Set to 1 to test rtc read/write
 
 /* Check if MAGIC is valid and print the Multiboot information structure
@@ -209,6 +209,8 @@ entry (unsigned long magic, unsigned long addr)
 #if TEST_PAGEF //set to 1 to test page fault exception
     test_pagef();
 #endif
+
+    term_close();
 
     /* Execute the first program (`shell') ... */
 

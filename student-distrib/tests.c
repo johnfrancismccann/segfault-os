@@ -22,18 +22,18 @@ void test_terminal_read()
     int8_t ptr[128]; //pointer to copy char buffer from keyboard to user space
     int copied_bytes;
 
-    copied_bytes = term_read((void*) ptr);
-    puts(ptr);
+    // copied_bytes = term_read((void*) ptr);
+    // puts(ptr);
 
     // while(1) {
     // copied_bytes = term_read((void*) ptr);
     // term_write(ptr, copied_bytes);
     // }
 
-    // while(1) {
-    //     copied_bytes = term_read((void*) ptr);
-    //     puts(ptr);
-    // }
+    while(1) {
+        copied_bytes = term_read((void*) ptr);
+        puts(ptr);
+    }
 }
 
 /*
