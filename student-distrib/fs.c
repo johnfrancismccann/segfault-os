@@ -45,11 +45,15 @@ static uint8_t* file_sys_loc;
 #define TYPE_REG 2
 
 /*
- *
- *
  * 
+ * DESCRIPTION:
+ * INPUTS:
  *
- * 
+ *
+ * OUTPUTS:
+ *
+ * RETURN_VALUE:
+ * SIDE_EFFECTS:
  *
  */ 
 int32_t fs_open_file(const uint8_t* filename)
@@ -87,12 +91,13 @@ int32_t fs_open_file(const uint8_t* filename)
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
+ * fs_open_dir
+ * DESCRIPTION: opens specified directory from filesystem
+ * INPUTS: filename--name of directory to open
+ * OUTPUTS: none
+ * RETURN_VALUE: 0 on successful open, -1 on failed open
+ * SIDE_EFFECTS: If directory is opened successfully, set
+ *               directory state to open. 
  */
 int32_t fs_open_dir(const uint8_t* filename)
 {
@@ -116,12 +121,15 @@ int32_t fs_open_dir(const uint8_t* filename)
 
 
 /*
- *
- *
- * 
- *
- * 
- *
+ * fs_read_file
+ * DESCRIPTION: reads nbytes from file and places them in buf
+ * INPUTS: buf--buffer to place read bytes
+ *         nbytes--number of bytes to read
+ * OUTPUTS: buf-- buffer to which bytes are placed
+ * RETURN_VALUE: on successful read, return number of bytes read
+ *               on failed read, return -1
+ * SIDE_EFFECTS: buffer parameter is filled with the lesser of nbytes
+ *               and the number of bytes left to read in file
  */
 int32_t fs_read_file(void* buf, int32_t nbytes)
 {
@@ -147,12 +155,14 @@ int32_t fs_read_file(void* buf, int32_t nbytes)
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
+ * fs_read_dir
+ * DESCRIPTION: reads next directory entry
+ * INPUTS: buf--buffer to place next directory entry
+ *				 nbytes--number of bytes to read for each directory entry
+ * OUTPUTS: buf--buffer to which directory entry is written
+ * RETURN_VALUE: if last entry isn't reached, return length of directory entry
+ *               if last entry is reached, return 0, return -1 on failure
+ * SIDE_EFFECTS: buf is filled with the next directory entry
  */
 int32_t fs_read_dir(void* buf, int32_t nbytes)
 {
@@ -196,12 +206,13 @@ int32_t fs_read_dir(void* buf, int32_t nbytes)
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
+ * fs_write_file
+ * DESCRIPTION: Filesystem is read-only. doesn't do anything
+ * INPUTS: buf--buffer from which bytes are read to write
+ *         nbytes--number of bytes to write
+ * OUTPUTS: none
+ * RETURN_VALUE: always -1 for failure
+ * SIDE_EFFECTS: none
  */
 int32_t fs_write_file(void* buf, int32_t  nbytes)
 {
@@ -210,12 +221,13 @@ int32_t fs_write_file(void* buf, int32_t  nbytes)
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
+ * fs_write_dir
+ * DESCRIPTION: Filesystem is read-only. doesn't do anything
+ * INPUTS: buf--buffer from which bytes are read to write
+ *         nbytes--number of bytes to write
+ * OUTPUTS: none
+ * RETURN_VALUE: always -1 for failure
+ * SIDE_EFFECTS: none
  */
 int32_t fs_write_dir(void* buf, int32_t  nbytes)
 {
@@ -224,12 +236,13 @@ int32_t fs_write_dir(void* buf, int32_t  nbytes)
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
+ * fs_close_file
+ * DESCRIPTION: close current file if file is opened
+ * INPUTS: none
+ * OUTPUTS: none
+ * RETURN_VALUE: 0 on successful close, -1 on failed close
+ * SIDE_EFFECTS: state of the filesystem's file is changed to 
+ *               closed if a file is already opened
  */
 int32_t fs_close_file() 
 {
@@ -242,12 +255,13 @@ int32_t fs_close_file()
 }
 
 /*
- *
- *
- * 
- *
- * 
- *
+ * fs_close_dir
+ * DESCRIPTION: close current directory if directory is opened
+ * INPUTS: none
+ * OUTPUTS: none
+ * RETURN_VALUE: 0 on successful close, -1 on failed close
+ * SIDE_EFFECTS: state of filesystem's directory is changed to closed
+ *               if a directory is already opened
  */
 int32_t fs_close_dir()
 {
