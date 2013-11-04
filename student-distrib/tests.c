@@ -9,39 +9,6 @@
 #include "keyboard.h"
 #include "terminal.h"
 
-#define TEST_RDENTRY_NAME 	0 
-#define TEST_RDENTRY_INDEX 	0   
-#define TEST_RDATA 					1 	 
-
-void test_rdentry_name();
-void test_rdentry_index();
-void test_rdata();
-
-/* test_fs:
- *		DESCRIPTION: tests file system
- *			INPUTS: None
- *			OUTPUTS: None
- *			RETURN VALUE: None
- *			SIDE EFFECTS: None
- */
-void test_fs()
-{
-		clear();
-		
-#if TEST_RDENTRY_NAME //set to 1 if wanna test read_dentry_by_name
-    test_rdentry_name();
-#endif
-	
-#if TEST_RDENTRY_INDEX //set to 1 if wanna test read_dentry_by_index	
-    test_rdentry_index();
-#endif
-	
-#if TEST_RDATA //set to 1 if wanna test read_data
-    test_rdata();
-#endif
-
-}
-
 /*
  * test_terminal_read:
  *     DESCRIPTION: Tests terminal_read function
@@ -95,129 +62,226 @@ void test_terminal_write()
     printf("bytes copied %d\n", copied_bytes);
 }
 
+/* filesystem test macros */
+#define TST_FS_R_TXT						0
+#define TST_FS_R_LRG_FILE				0
+#define TST_FS_R_NON_TXT_FILE 	0
+#define TST_FS_R_DIR						0
+#define TST_FS_OTHER						0
+/* test paramters */
+#define NUM_TERM_CHARS 	2000
+#define MAX_FILE_SZ			10000
+#define MX_DIR_ENTRY_SZ 33
+/* for large files, type determines print set size */
+#if TST_FS_R_NON_TXT_FILE
+	#define PRINT_SET_SZ		64
+#else
+	#define PRINT_SET_SZ		400
+#endif
+/*filesystem test functions */
+void test_rd_txt_fl();
+void test_rd_lrg_fl();
+void test_rd_dir();
+void test_other();
+void print_hex_lines(uint8_t* buf, uint32_t n_bytes);
 
-/*
- * test_rdentry_name:
- *     DESCRIPTION: Tests file system read dentry by name
- *     INPUTS: None
- *     OUTPUTS: None
- *     RETURN VALUE: None
- *     SIDE EFFECTS: None
+/* test_fs:
+ *		DESCRIPTION: tests component of file system specified by macros
+ *			INPUTS: None
+ *			OUTPUTS: None
+ *			RETURN VALUE: None
+ *			SIDE EFFECTS: None
  */
-void test_rdentry_name()
+void test_fs()
 {
-		uint8_t *filename;
-    int32_t ret_val;
-		dentry_t dentry;
+		clear();
 		
-		/* set filename */
-		filename = (uint8_t*) "grep";
-		/* print header */
-    printf("testing read_dentry_by_name for file: %s\n", filename);
+#if TST_FS_R_TXT
+	test_rd_txt_fl();
+#endif /* read text file */
 		
-		/* fill directory entry for specified file  */
-    ret_val = read_dentry_by_name(filename, &dentry);
-		/* check return value */
-		if(!ret_val) {
-		/* print directory entry information */
-			printf("file_name: %s\n", dentry.file_name);
-			printf("ftype: %d\n", dentry.ftype);
-			printf("index_node: %d\n", dentry.index_node);
-		}
-		else if(ret_val == -1)
-			printf("reading dentry failed\n");
+#if TST_FS_R_LRG_FILE
+	test_rd_lrg_fl();
+#endif /*  read large file. could be non text file */
+
+#if TST_FS_R_DIR
+	test_rd_dir();
+#endif /* read directory */
 		
-		printf("\n");
-		
+#if TST_FS_OTHER
+	test_other();
+#endif /* test anything written in test_other */
+
 }
 
-/*
- * test_rdentry_index:
- *     DESCRIPTION: Tests file system read dentry by index
- *     INPUTS: None
- *     OUTPUTS: None
- *     RETURN VALUE: None
- *     SIDE EFFECTS: None
- */
-void test_rdentry_index()
-{
-    dentry_t _dentry;
-		uint32_t index_dentry;
-		int32_t ret_val;
-		
-		index_dentry = 0; 
-		/* print header */
-    printf("testing read_dentry_by_index for index: %u\n", index_dentry);
-
-		/* fill directory entry for specified index */
-    ret_val = read_dentry_by_index(index_dentry, &_dentry);
-    /* check return value */
-		if(!ret_val) {
-			/* print direcotry entry information */
-			printf("file_name: %s\n", _dentry.file_name);
-			printf("ftype: %d\n", _dentry.ftype);
-			printf("index_node: %d\n", _dentry.index_node);
-		}
-		else if(ret_val == -1) 
-			printf("Reading dentry by index failed\n");
-		
-		printf("\n");
-}
-
-#define TEST_TEXT 0
-#define TEST_NON_TEXT 1
 
 /*
- * test_rdata:
- *     DESCRIPTION: Tests file system read data
- *     INPUTS: None
- *     OUTPUTS: None
- *     RETURN VALUE: None
- *     SIDE EFFECTS: None
- */
-void test_rdata()
+ *
+ *
+ * 
+ *
+ * 
+ *
+ */ 
+void test_rd_txt_fl()
 {
-		uint8_t* filename;
-		uint32_t _length = 100;
-		uint8_t _buf[_length];
-		uint32_t _inode;
-		uint32_t i;
-		uint32_t bytes_read;
+
+	uint8_t* filename;
+	int32_t _length = NUM_TERM_CHARS;
+	uint8_t _buf[_length];
+	int32_t bytes_read;
 	
-		/* set filename to read */
-		filename = (uint8_t*) "hello";
-		/* print header */
-    printf("Testing read_data for file %s\n", filename);		
-    
-		/* fill directory entry of specified file */
-    dentry_t dentry;
-		read_dentry_by_name(filename, &dentry);
-		
-		/* initialize arguments for read_data */
-    _inode = dentry.index_node;
-    
-		/* fill buffer with data from file */
-    bytes_read = read_data(_inode, 0, _buf, _length);
-		 
-#if TEST_TEXT
-    for(i = 0; i < _length; i++) {
-        printf("%c", _buf[i]);
-    }
-#endif
-    
-#if TEST_NON_TEXT
-		for(i = 0; i < _length; i++) {
-        printf("%x ", _buf[i]);
-				/* start printing at next line after 20 characters */
-				if(!(i%20) && i > 0)
-					printf("\n");
-    }
+	/* set filename to read */
+	filename = (uint8_t*) "frame1.txt";
+	/* print header */
+  printf("Testing reading of text file: %s\n", filename);	
 
-		
-#endif
-		
-		printf("\n");
-		printf("Bytes read: %u ", bytes_read);
+	/* open and read file */
+	fs_open_file(filename);  
+	bytes_read = fs_read_file(_buf, _length);
+	fs_close_file(filename);
+   
+	/* print file */
+	printf("%d bytes read. File contents:\n\n", bytes_read);
+	printf("%s", _buf);
+}
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ */ 
+void test_rd_lrg_fl()
+{
+	uint8_t* filename;
+	int32_t _length = MAX_FILE_SZ;
+	uint8_t _buf[_length];
+	int32_t bytes_read;
+	int32_t tot_bytes_read;
+	
+/* set filename to either text or non-text file */
+#if TST_FS_R_NON_TXT_FILE
+	filename = (uint8_t*) "grep";
+	//filename = (uint8_t*) "ls";
+#else
+	filename = (uint8_t*) "verylargetxtwithverylongname.tx";
+	//filename = (uint8_t*) "frame0.txt";
+#endif /* R_NON_TEXT_FILE */
+
+	/* print header */
+  printf("Testing reading of large file: %s\n", filename);	
+
+	/* open file and read first set of bytes */
+	fs_open_file(filename);  
+	tot_bytes_read = bytes_read = fs_read_file(_buf, PRINT_SET_SZ);
+	/* print first set of bytes */
+	printf("First %d bytes read. Contents:\n", bytes_read);
+	
+/* print hex characters if non-text file, else, print ascii characters */
+#if TST_FS_R_NON_TXT_FILE
+	print_hex_lines(_buf, bytes_read);
+#else
+	_buf[bytes_read] = '\0';
+	printf("%s", _buf);
+#endif /* TST_FS_R_NON_TXT_FILE */
+
+	/* read until EOF */
+	do {
+		bytes_read = fs_read_file(_buf, PRINT_SET_SZ);
+		tot_bytes_read += bytes_read;
+	} while(bytes_read == PRINT_SET_SZ);
+	
+	fs_close_file();
+	/* print last set of bytes */
+	printf("\n\nLast %d bytes read. Contents:\n", bytes_read);
+	
+/* print hex characters if non-text file, else, print ascii characters */
+#if TST_FS_R_NON_TXT_FILE
+	print_hex_lines(_buf, bytes_read);
+#else
+	_buf[bytes_read] = '\0';
+	printf("%s", _buf);
+#endif /* TST_FS_R_NON_TXT_FILE */
+	
+	/* print total bytes read */
+	printf("\n\nTotal bytes read: %d\n", tot_bytes_read);
+}
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ */ 
+void print_hex_lines(uint8_t* buf, uint32_t n_bytes)
+{
+	uint32_t i;
+	/* iterate through bytes */
+	for(i=0; i<n_bytes; i++) {	
+		/* print 16 characters per display line */
+		if( !(i%16) && i>0)
+			printf("\n");	
+		/* print hex characters to compare with hex dump */
+		printf("%x ", buf[i]);
+	}
+}
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ */
+void test_rd_dir()
+{
+	uint8_t* dir_name;
+	uint8_t dir_buf[MX_DIR_ENTRY_SZ];
+	uint32_t dir_entry_sz;
+	uint32_t i;
+	
+	/* set directory name and print header */
+	dir_name = (uint8_t*)".";
+  printf("Testing reading of directory: %s\nDirectories:\n", dir_name);	
+	/* open directory */
+	fs_open_dir(dir_name);
+	i = 0;
+	/* read directories one at a time */
+	while(0 != (dir_entry_sz = fs_read_dir(dir_buf, MX_DIR_ENTRY_SZ))) {
+		/* print each directory entry on one line */
+		dir_buf[dir_entry_sz] = '\0';
+		printf("%s\n", dir_buf);
+		i++;
+	}
+	/* print number of directories and close the directory */
+	printf("\nDirectory entries read: %u\n", i);
+	fs_close_dir();
+}
+
+/*
+ *
+ *
+ * 
+ *
+ * 
+ *
+ */ 
+void test_other()
+{
+	int32_t ret_val;
+	
+	/* begin tests */
+	ret_val = fs_close_file();
+	/* end tests */
+	
+	/* print results */
+	printf("Return value: %d\n", ret_val);
 }
 
 /*
