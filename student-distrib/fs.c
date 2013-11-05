@@ -45,16 +45,13 @@ static uint8_t* file_sys_loc;
 #define TYPE_REG 2
 
 /*
- * 
- * DESCRIPTION:
- * INPUTS:
- *
- *
- * OUTPUTS:
- *
- * RETURN_VALUE:
- * SIDE_EFFECTS:
- *
+ * fs_open_file
+ * DESCRIPTION: opens specified file from filesystem
+ * INPUTS: filename--name of file to open
+ * OUTPUTS: none
+ * RETURN_VALUE: 0 on successful open, -1 on failed open
+ * SIDE_EFFECTS: If file is opened successfully, set file
+ *               state to open
  */ 
 int32_t fs_open_file(const uint8_t* filename)
 {

@@ -63,9 +63,9 @@ void test_terminal_write()
 }
 
 /* filesystem test macros */
-#define TST_FS_R_TXT						0
-#define TST_FS_R_LRG_FILE				0
-#define TST_FS_R_NON_TXT_FILE 	0
+#define TST_FS_R_TXT						1
+#define TST_FS_R_LRG_FILE					0
+#define TST_FS_R_NON_TXT_FILE 				0
 #define TST_FS_R_DIR						0
 #define TST_FS_OTHER						0
 /* test paramters */
@@ -96,6 +96,7 @@ void print_hex_lines(uint8_t* buf, uint32_t n_bytes);
 void test_fs()
 {
 		clear();
+		reset_screen_pos();
 		
 #if TST_FS_R_TXT
 	test_rd_txt_fl();
@@ -313,6 +314,7 @@ void test_rwrtc()
     uint8_t tester = 0;
     uint32_t power_two = 1;
     clear();
+	reset_screen_pos();
     if(rtc_write(&tester, 1) == -1) //attempt to set frequency of 0Hz
         printf("\tRTC 0Hz FAIL");
     else
