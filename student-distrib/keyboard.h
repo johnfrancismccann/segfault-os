@@ -10,8 +10,13 @@
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 
+#ifndef OFF
 #define OFF 0
+#endif
+
+#ifndef ON
 #define ON 1
+#endif
 
 //Keyboard is IRQ 1, IDT number 33, port 0x60
 #define KBD_IRQ_NUM 1
@@ -53,7 +58,7 @@ void update_cursor(int index);
 
 void check_scroll(int print_index);
 
-int32_t get_read_buf(void* buf);
+int32_t get_read_buf(void* buf, int32_t bytes);
 
 void clear_read_buf();
 

@@ -21,7 +21,8 @@
 
 
 /* Test enables */
-#define TEST_TERM_READ 0 		//Set to 1 to test term_read
+#define TEST_HANDIN_CODE 0      //Set to 1 to test the code Sam wrote during mp3.2 handin
+#define TEST_TERM_READ 0		//Set to 1 to test term_read
 #define TEST_TERM_WRITE 0 		//Set to 1 to test term_write
 #define TEST_DIV0 	0           //Set to 1 to test divide by 0 exception
 #define TEST_PAGEF 	0           //Set to 1 to test page fault exception
@@ -185,6 +186,9 @@ entry (unsigned long magic, unsigned long addr)
 
     sti();
 
+#if TEST_HANDIN_CODE //set to 1 if wanna test the code Sam wrote during mp3.2 handin
+    test_handin_code();
+#endif
 
 #if TEST_TERM_READ //set to 1 if wanna test term_read
 	test_terminal_read();

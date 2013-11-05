@@ -9,6 +9,39 @@
 #include "keyboard.h"
 #include "terminal.h"
 
+void test_handin_code()
+{
+    /*clear();
+    reset_screen_pos();
+    char buf[1024];
+    int size;
+    fs_open_file("frame0.txt");
+    size = fs_read_file(buf, 1024);
+    fs_close_file("frame0.txt");
+
+    printf("size: %d\n", size);
+    int i;
+    for (i = 0; i < size; i++)
+        printf("%c", buf[i]);
+
+    asm volatile(".2: hlt; jmp .2;");*/
+    /*clear();
+    int i;
+    for (i = 0; i < 15; i++)
+    {
+        rtc_read(NULL, 0);
+        printf("a\n");
+    }
+    uint8_t freq = 16;
+    rtc_write(&freq, 1);
+    for (i = 0; i < 5; i++)
+    {
+        rtc_read(NULL, 0);
+        printf("b\n");
+    }
+    rtc_close();*/
+}
+
 /*
  * test_terminal_read:
  *     DESCRIPTION: Tests terminal_read function
@@ -21,6 +54,7 @@ void test_terminal_read()
 {
     int8_t ptr[128]; //pointer to copy char buffer from keyboard to user space
     int copied_bytes;
+    int bytes_to_copy;
 
     // copied_bytes = term_read((void*) ptr);
     // puts(ptr);
@@ -30,8 +64,10 @@ void test_terminal_read()
     // term_write(ptr, copied_bytes);
     // }
 
+    bytes_to_copy = 10;
     while(1) {
-        copied_bytes = term_read((void*) ptr);
+        copied_bytes = term_read((void*) ptr, bytes_to_copy);
+        ptr[bytes_to_copy] = '\0'; //make sure to account for string null-termination
         puts(ptr);
     }
 }
