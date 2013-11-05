@@ -201,7 +201,7 @@ void kbd_handle()
 
     /* print to screen and add to buffer */
     if(KBD_MAP[scancode] != 0 && scancode != CTRL_PRS && scancode != B_SPACE && scancode != LSHIFT_PRS && scancode != RSHIFT_PRS && scancode != CAPS) { //only register characters (including enter and tab)
-        if(buf_idx < BUF_SIZE) { //don't take any more characters if the buffer is full
+        if(buf_idx < BUF_SIZE-1) { //don't take any more characters if the buffer is full, "-1" is because final element of buffer is reserved for enter (newline)
             int capital = OFF; //should be capital letter if 1
             if((caps_lock == ON) ^ (shift_flag == ON)){capital = ON;} //set capital flag
             if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z')
@@ -278,14 +278,12 @@ void kbd_handle()
   *   RETURN VALUE: none
   *   SIDE EFFECTS: none
   */
-int32_t get_read_buf(void* ptr) {
-    int32_t tmp_idx; //store number of bytes to be copied to prevent interrupts from changing it
+int32_t get_read_buf(void* ptr, int32_t bytes) {
     while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
-    tmp_idx = buf_idx+1;
-    memcpy(ptr, (void*) read_buf, tmp_idx);
+    memcpy(ptr, (void*) read_buf, bytes);
     sti();
-    return tmp_idx;
+    return bytes;
 }
 
  /*
