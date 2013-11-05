@@ -48,7 +48,7 @@ void test_terminal_write()
 {
     //char ptr = 0;
 
-    char ptr[] = "hellogsa;lka;lkjgdalhellogsa;lka;lkjgdalkjgdagdsa;lkjgdahellogsa;lka;lkjgdalkjgdagdsa;lkjgdakjgdagdsa;lkjgda";
+    char ptr[] = "Hello";
     int copied_bytes;
 
     clear();
@@ -58,7 +58,7 @@ void test_terminal_write()
     //     copied_bytes = term_write((const void*) (&ptr), 1);
     // }
 
-    copied_bytes = term_write((const void*) ptr, 100);
+    copied_bytes = term_write((const void*) ptr, 5);
     printf("bytes copied %d\n", copied_bytes);
 }
 
@@ -69,16 +69,16 @@ void test_terminal_write()
 #define TST_FS_R_DIR						0
 #define TST_FS_OTHER						0
 /* test paramters */
-#define NUM_TERM_CHARS 	2000
+#define NUM_TERM_CHARS 	    2000
 #define MAX_FILE_SZ			10000
-#define MX_DIR_ENTRY_SZ 33
+#define MX_DIR_ENTRY_SZ     33
 /* for large files, type determines print set size */
 #if TST_FS_R_NON_TXT_FILE
 	#define PRINT_SET_SZ		64
 #else
 	#define PRINT_SET_SZ		400
 #endif
-#define PRINT_SET_ROW		16
+#define PRINT_SET_ROW           16
 /*filesystem test functions */
 void test_rd_txt_fl();
 void test_rd_lrg_fl();

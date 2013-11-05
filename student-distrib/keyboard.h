@@ -10,6 +10,9 @@
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 
+#define OFF 0
+#define ON 1
+
 //Keyboard is IRQ 1, IDT number 33, port 0x60
 #define KBD_IRQ_NUM 1
 #define KBD_IDT_NUM 33
@@ -36,6 +39,9 @@
 #define LSHIFT_RLS 0xAA //left shift released
 #define RSHIFT_RLS 0xB6 //right shift released
 #define CAPS 0x3A //caps lock pressed
+
+#define KBD_MAP_SIZE 256
+#define BUF_SIZE 128
 
 #include "types.h"
 

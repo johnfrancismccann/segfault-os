@@ -14,7 +14,7 @@
 #include "lib.h"
 #include "types.h"
 
-static const char KBD_MAP[256] =
+static const char KBD_MAP[KBD_MAP_SIZE] =
 {0x00, 0x1B, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x2D, 0X3D, 0x08, 0x09,  //0x0F
  0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69, 0x6F, 0x70, 0x5B, 0x5D, 0x0A, 0x00, 0x61, 0x73,  //0x1F 0x00 is left control
  0x64, 0x66, 0x67, 0x68, 0x6A, 0x6B, 0x6C, 0x3B, 0x27, 0x60, 0x00, 0x5C, 0x7A, 0x78, 0x63, 0x76,  //0x2F 0x00 is left shift
@@ -32,7 +32,7 @@ static const char KBD_MAP[256] =
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //0xEF
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //0xFF
 
-static const char KBD_MAP_SHIFT[256] =
+static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
 {0x00, 0x1B, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5E, 0x26, 0x2A, 0x28, 0x29, 0x5F, 0X2B, 0x08, 0x09,  //0x0F
  0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69, 0x6F, 0x70, 0x7B, 0x7D, 0x0A, 0x00, 0x61, 0x73,  //0x1F 0x00 is left control
  0x64, 0x66, 0x67, 0x68, 0x6A, 0x6B, 0x6C, 0x3A, 0x22, 0x7E, 0x00, 0x7C, 0x7A, 0x78, 0x63, 0x76,  //0x2F 0x00 is left shift
@@ -50,7 +50,7 @@ static const char KBD_MAP_SHIFT[256] =
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //0xEF
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //0xFF
 
-static char read_buf[128]; //buffer to store characters typed in from user
+static char read_buf[BUF_SIZE]; //buffer to store characters typed in from user
 static uint8_t scancode; //make this with file scope so can check for enter in get_read_buf (for term_read)
 static char* video_mem = (char *)VIDEO;
 static uint16_t buf_idx; //index for storing characters in buffer
@@ -75,9 +75,9 @@ void init_kbd()
     read_buf[buf_idx] = '\0';
     print_idx = 0;
     prev_idx = 0;
-    ctrl_flag = 0; //initialize to control unpressed
-    shift_flag = 0; //init to shift unpressed
-    caps_lock = 0; //init to caps off
+    ctrl_flag = OFF; //initialize to control unpressed
+    shift_flag = OFF; //init to shift unpressed
+    caps_lock = OFF; //init to caps off
 
     update_cursor(0); //initialize cursor to top left corner
 
@@ -106,18 +106,18 @@ void kbd_handle()
 
     switch(scancode) {
         case CTRL_PRS:
-            ctrl_flag = 1; //set control flag
+            ctrl_flag = ON; //set control flag
             break;
         case CTRL_RLS:
-            ctrl_flag = 0; //clear control flag
+            ctrl_flag = OFF; //clear control flag
             break;
         case LSHIFT_PRS:
         case RSHIFT_PRS:
-            shift_flag = 1;
+            shift_flag = ON; //set shift flag
             break;
         case LSHIFT_RLS:
         case RSHIFT_RLS:
-            shift_flag = 0;
+            shift_flag = OFF; //clear shift flag
             break;
         case CAPS:
             caps_lock ^= 1; //invert value of caps lock
@@ -190,7 +190,7 @@ void kbd_handle()
     }
 
     /* clear screen */
-    if (ctrl_flag == 1 && scancode == L_KEY) { //ctrl+L
+    if (ctrl_flag == ON && scancode == L_KEY) { //ctrl+L
         clear();
         clear_read_buf();
         print_idx = 0; //reset print location to top left corner
@@ -201,12 +201,12 @@ void kbd_handle()
 
     /* print to screen and add to buffer */
     if(KBD_MAP[scancode] != 0 && scancode != CTRL_PRS && scancode != B_SPACE && scancode != LSHIFT_PRS && scancode != RSHIFT_PRS && scancode != CAPS) { //only register characters (including enter and tab)
-        if(buf_idx < 127) { //don't take any more characters if the buffer is full
-            int capital = 0; //should be capital letter if 1
-            if((caps_lock == 1) ^ (shift_flag == 1)){capital = 1;} //set capital flag
+        if(buf_idx < BUF_SIZE) { //don't take any more characters if the buffer is full
+            int capital = OFF; //should be capital letter if 1
+            if((caps_lock == ON) ^ (shift_flag == ON)){capital = ON;} //set capital flag
             if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z')
                 read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET; //add character to buffer (accounting for case) and increment index
-            else if(capital == 1)
+            else if(capital == ON)
                 read_buf[buf_idx++] = KBD_MAP_SHIFT[scancode]; //add character to buffer (accounting for case) and increment index
             else
                 read_buf[buf_idx++] = KBD_MAP[scancode]; //add character to buffer (accounting for case) and increment index
@@ -280,7 +280,6 @@ void kbd_handle()
   */
 int32_t get_read_buf(void* ptr) {
     int32_t tmp_idx; //store number of bytes to be copied to prevent interrupts from changing it
-    while(scancode != ENTER); //wait until enter key is pressed
     while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
     tmp_idx = buf_idx+1;

@@ -20,6 +20,9 @@ clear(void)
     }
 }
 
+/* Reset screen position to top left corner of screen
+ * for testing purposes
+ */
 void 
 reset_screen_pos(void)
 {
