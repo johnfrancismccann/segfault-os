@@ -3,6 +3,9 @@
  *  functions called from the IDT and set up in setup_idt.c.
  */
 
+#define ASM 1
+#include "x86_desc.h"
+
 .section .text
 
 .globl idt_div_error, idt_debug, idt_nmi, idt_breakpoint, idt_overflow
@@ -108,6 +111,52 @@ idt_alignment_check:
     call do_idt_alignment_check
     iret
 
+#define SAVE_ALL \
+    pushl %fs;\
+    pushl %es;\
+    pushl %ds;\
+    pushl %edi;\
+    pushl %esi;\
+    pushl %eax;\
+    pushl %edx;\
+    pushl %ecx;\
+    pushl %ebx;
+
+#define RESTORE_ALL \
+    popl %ebx;\
+    popl %ecx;\
+    popl %edx;\
+    popl %eax;\
+    popl %esi;\
+    popl %edi;\
+    popl %ds;\
+    popl %es;\
+    popl %fs;
+
 idt_system_call:
-    call do_idt_system_call
+    #call do_idt_system_call
+# interrupts still need to be disabled
+
+# save, restore registers to prevent leaking to user program. in SAVE_ALL, also
+# prepare arguments on stack for function call
+    SAVE_ALL
+# reference data as kernel data
+    movl $(KERNEL_DS), %ebx
+    movl %ebx, %ds 
+#check requested system call number
+    cmpl    $10, %eax
+    jb      call_syscall  
+# return failure if greater than or equal to number of system calls
+    movl    $-1, %eax
+    jmp     ret_to_user
+
+call_syscall:
+    call *syscall_table(,%eax,4)
+
+    RESTORE_ALL
+# reference data as user data
+    movl $(USER_DS), %ebx
+    #movl %ebx, %ds
+
+ret_to_user:
     iret
