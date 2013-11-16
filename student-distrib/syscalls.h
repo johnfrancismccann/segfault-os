@@ -1,0 +1,10 @@
+int32_t sys_halt(void);
+int32_t sys_execute(void);
+int32_t sys_read(void);
+int32_t sys_write(void);
+int32_t sys_open(void);
+int32_t sys_close(void);
+int32_t sys_getargs(void);
+int32_t sys_vidmap(void);
+int32_t sys_set_handler(void);
+int32_t sys_sigreturn(void);
