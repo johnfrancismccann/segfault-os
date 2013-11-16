@@ -1,7 +1,7 @@
 /* 
- *	The purpose of this file is to set up the initial IDT
- *	created allocated in x86_desc.S.  The basic layout is as
- *	follows:
+ *  The purpose of this file is to set up the initial IDT
+ *  created allocated in x86_desc.S.  The basic layout is as
+ *  follows:
  *
  *  IDT Layout
  *  Source: Table 5-1, IA-32 Reference Manual Vol. 3
