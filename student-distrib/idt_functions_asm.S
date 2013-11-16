@@ -117,7 +117,6 @@ idt_alignment_check:
     pushl %ds;\
     pushl %edi;\
     pushl %esi;\
-    pushl %eax;\
     pushl %edx;\
     pushl %ecx;\
     pushl %ebx;
@@ -126,7 +125,6 @@ idt_alignment_check:
     popl %ebx;\
     popl %ecx;\
     popl %edx;\
-    popl %eax;\
     popl %esi;\
     popl %edi;\
     popl %ds;\
