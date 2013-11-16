@@ -140,9 +140,9 @@ idt_system_call:
 # save, restore registers to prevent leaking to user program. in SAVE_ALL, also
 # prepare arguments on stack for function call
     SAVE_ALL
-# reference data as kernel data
-    movl $(KERNEL_DS), %ebx
-    movl %ebx, %ds 
+# reference data as kernel data ****AUTOMATIC BY IDT****
+    # movl $(KERNEL_DS), %ebx
+    # movl %ebx, %ds 
 #check requested system call number
     cmpl    $10, %eax
     jb      call_syscall  
