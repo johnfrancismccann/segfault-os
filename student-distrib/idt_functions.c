@@ -7,6 +7,7 @@
 #include "lib.h"
 #include "idt_functions.h"
 #include "types.h"
+//#include "syscalls.h"
 
 /*
  *
@@ -222,3 +223,5 @@ void do_idt_system_call(uint32_t error_code)
 	printf("SYSTEM CALL ERROR!\nERROR CODE: %x\n", error_code);
 	while(1);
 }
+
+
