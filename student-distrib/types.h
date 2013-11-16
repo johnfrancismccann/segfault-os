@@ -47,11 +47,11 @@ typedef struct
 #define MAX_OPEN_FILES 8
 typedef struct //pcb_t
 {
-    file_desc_t     file_desc_arr[MAX_OPEN_FILES];
-    uint32_t*       page_dir;
-  struct pcb_t* parent_pcb;
-  uint32_t*         parent_kstack;
-  struct pcb_t* child_pcb;
+  file_desc_t     file_desc_arr[MAX_OPEN_FILES];
+  uint32_t*       page_dir;
+  struct pcb_t*   parent_pcb;
+  uint32_t*       parent_kstack;
+  struct pcb_t*   child_pcb;
 } pcb_t;
 
 #endif /* ASM */

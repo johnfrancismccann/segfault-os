@@ -111,6 +111,7 @@ idt_alignment_check:
     call do_idt_alignment_check
     iret
 
+# saves all registers except eax
 #define SAVE_ALL \
     pushl %fs;\
     pushl %es;\
@@ -121,6 +122,7 @@ idt_alignment_check:
     pushl %ecx;\
     pushl %ebx;
 
+# restores all registers except eax
 #define RESTORE_ALL \
     popl %ebx;\
     popl %ecx;\
