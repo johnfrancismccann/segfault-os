@@ -32,7 +32,7 @@ void test_handin_code()
         rtc_read(NULL, 0);
         printf("a\n");
     }
-    uint8_t freq = 16;
+    uint32_t freq = 16; //fix was to change from uint8_t to uint32_t
     rtc_write(&freq, 1);
     for (i = 0; i < 5; i++)
     {
@@ -347,7 +347,7 @@ void test_rwrtc()
 {
 /* Attempts to set various frequencies for RTC interrupts
  * and then does read loops to print to screen. */
-    uint8_t tester = 0;
+    uint32_t tester = 0;
     uint32_t power_two = 1;
     clear();
     reset_screen_pos();

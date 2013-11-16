@@ -118,6 +118,9 @@ int32_t rtc_open()
  */
 int32_t rtc_read(int32_t* buffer, int32_t nbytes)
 {
+    //Don't wait on unopened RTC
+    if(am_i_open_yet == NO)
+        return -1;
     //reset interrupt_flag to wait for interrupt
     interrupt_flag &= 0;
     //wait for interrupt
@@ -144,6 +147,9 @@ int32_t rtc_write(void* buffer, int32_t nbytes)
     uint8_t rate = 0;
     uint32_t flags;
     if(buffer == NULL)
+        return -1;
+    //Don't set on unopened RTC
+    if(am_i_open_yet == NO)
         return -1;
     int32_t freq = *((int32_t*) buffer);
     //Error if more or less than 1 byte is requested to write
