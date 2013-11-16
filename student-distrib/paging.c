@@ -1,11 +1,6 @@
 #include "paging.h"
 #include "lib.h"
 
-/* page directory memory */
-unsigned int page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
-/* page table for first 4MB of memory */
-unsigned int page_table[PAGE_TABLE_SIZE] __attribute__((aligned(PG_TBL_ALIGN)));
-
 /*
  * enable_paging
  *   DESCRIPTION: enables paging within the processor by utilizing
