@@ -1,5 +1,6 @@
 #include "lib.h"
 #include "types.h"
+#include "fs.h"
 
 #if 0  /*track current process. commented to prevent warnings */
 static pcb_t* current_pcb=NULL;
@@ -80,10 +81,27 @@ int32_t sys_write(void)
 int32_t sys_open(void)
 {
     uint8_t* filename;
+    dentry_t myfiledentry;
     //Load arguments from registers
     //System calls can't use normal c calling convention
     asm("\t movl %%ebx,%0" : "=r"(filename));
     printf("This is the %s call\n",__func__);
+    read_dentry_by_name(filename, &myfiledentry);
+    switch(myfiledentry.ftype)
+    {
+        case 0:
+            printf("RTC file\n");
+            return 0;
+        case 1:
+            printf("Directory file \n");
+            return 0;
+        case 2:
+            printf("Regular file \n");
+            return 0;
+        default:
+            printf("INVALID FILE!\n");
+            return -1;
+    }
     return -1;
 }
 
