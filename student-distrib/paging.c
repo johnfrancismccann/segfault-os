@@ -24,12 +24,10 @@ void enable_paging()
 	asm volatile(
 				/* load address of page directory into CR3 */
 				"movl %0, %%cr3\n\t"
-				
 				/* enable PSE field in CR4 to enable 4MB page accesses  */
 				"movl %%cr4, %%eax\n\t"
 				"orl $0x00000010, %%eax\n\t"
 				"movl %%eax, %%cr4\n\t" 
-
 				/*set paging bit in CR0 to enable paging */
 				"movl %%cr0, %%eax\n\t"
 				"orl $0x80000000, %%eax\n\t"
