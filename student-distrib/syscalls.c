@@ -8,28 +8,38 @@ static pcb_t* current_pcb=NULL;
 /*
  *
  */
-int32_t sys_halt(uint8_t status)
+int32_t sys_halt(void)
 {
-    
-    return 0;
+    uint8_t status;
+    //Load locals from registers
+    asm("\t movb %%bl,%0" : "=r"(status));
+    return -1;
 }
 
 /*
  *
  */
-int32_t sys_execute(const uint8_t* command)
+int32_t sys_execute(void)
 {
-    
-    return 0;
+    uint8_t* command;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0" : "=r"(command));
+    return -1;
 }
 
 /* read, write functions don't do anything until current_pcb is initialized in
    sys_open */
-int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
+int32_t sys_read(void)
 {
-
+    int32_t fd;
+    void* buf;
+    int32_t nbytes;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0 \n"
+        "\t movl %%ecx,%1 \n"
+        "\t movl %%edx,%2" : "=r"(fd), "=r"(buf), "=r"(nbytes));
     printf("This is the read system call\n");
-    return 0;
+    return -1;
 #if 0 /* prevent warnings */
     /* call the read function corresponding to the file type specified by fd */
     return ((syscall_read_t)(current_pcb->file_desc_arr[fd].file_ops_table[1]))
@@ -40,10 +50,17 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
 /*
  *
  */
-int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
+int32_t sys_write(void)
 {
+    int32_t fd;
+    void* buf;
+    int32_t nbytes;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0 \n"
+        "\t movl %%ecx,%1 \n"
+        "\t movl %%edx,%2" : "=r"(fd), "=r"(buf), "=r"(nbytes));
     printf("This is the write system call\n");
-    return 0;
+    return -1;
 #if 0 /* prevent warnings */
     /* call the write function corresponding to the file type specified by fd */
     return ((syscall_write_t)(current_pcb->file_desc_arr[fd].file_ops_table[2]))
@@ -54,44 +71,60 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 /*
  *
  */
-int32_t sys_open(const uint8_t* filename)
+int32_t sys_open(void)
 {
-    return 0;
+    uint8_t* filename;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0" : "=r"(filename));
+    return -1;
 }
 
 /*
  *
  */
-int32_t sys_close(int32_t fd)
+int32_t sys_close(void)
 {
-    
-    return 0;
+    uint32_t fd;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0" : "=r"(fd));
+    return -1;
 }
 
 /*
  *
  */
-int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
+int32_t sys_getargs(void)
 {
-    
-    return 0;   
+    uint8_t* buf;
+    int32_t nbytes;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0\n"
+        "\t movl %%ecx,%1" : "=r"(buf), "=r"(nbytes));
+    return -1;   
 }
 
 /*
  *
  */
-int32_t sys_vidmap(uint8_t** screen_start)
+int32_t sys_vidmap(void)
 {
-    
-        return 0;
+    uint8_t** screen_start;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0" : "=r"(screen_start));
+    return -1;
 }
 
 /*
  *
  */
-int32_t sys_set_handler(int32_t signum, void* handler_address)
+int32_t sys_set_handler(void)
 {
-        return 0;   
+    int32_t signum;
+    void* handler_address;
+    //Load locals from registers
+    asm("\t movl %%ebx,%0\n"
+        "\t movl %%ecx,%1" : "=r"(signum), "=r"(handler_address));
+    return -1;   
 }
 
 /*
@@ -99,6 +132,6 @@ int32_t sys_set_handler(int32_t signum, void* handler_address)
  */
 int32_t sys_sigreturn(void)
 {
-        return 0;   
+    return -1;   
 }
 
