@@ -426,13 +426,20 @@ void test_pagef()
 
 void test_syscall()
 {
-    asm volatile(
-    "movl   $3, %%eax\n\t"
-    "int    $0x80\n\t"
-    :
-    :
-    : "%eax"          
-    );
-
+    clear();
+    int i;
+    int32_t retval;
+    for(i=-1; i<11; i++)
+    {
+        asm volatile(
+        "movl   %0, %%eax\n\t"
+        "int    $0x80\n\t"
+        :
+        : "r"(i)
+        : "%eax"
+        );
+        asm("\tmovl %%eax, %0" : "=r"(retval));
+        printf("retval = %d\n",retval);
+    }
 }
 
