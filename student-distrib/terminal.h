@@ -10,6 +10,8 @@
 #define NO 0
 #define YES 1
 
+void set_termfops();
+
 int32_t term_open();
 
 int32_t term_close();

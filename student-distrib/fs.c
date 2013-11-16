@@ -2,7 +2,7 @@
 #include "lib.h"
 #include "multiboot.h"
 
-#define MAX_FNAME_LENGTH 32
+//#define MAX_FNAME_LENGTH 32
 /* filesystem file states, parameters */
 #define FS_FILE_OPEN			1
 #define FS_FILE_CLOSED		0
