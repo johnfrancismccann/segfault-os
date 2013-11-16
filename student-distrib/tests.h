@@ -11,5 +11,6 @@ void test_fs();
 void test_rwrtc();
 void test_div0();
 void test_pagef();
+void test_syscall();
 
 #endif

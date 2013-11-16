@@ -112,8 +112,12 @@ void set_system_gate(uint8_t entry_num, void* function)
     //Reserved (0x0)
     outdata[4] = 0x0;
     //Segment = kernel code
+#if 0
     outdata[3] = ((USER_CS >> 8) & 0xFF);
     outdata[2] = USER_CS & 0xFF;
+#endif
+    outdata[3] = ((KERNEL_CS >> 8) & 0xFF);
+    outdata[2] = KERNEL_CS & 0xFF;
     //Handler addr [15:0]
     outdata[1] = (((uint32_t)function & 0x0000FF00) >> 8);
     outdata[0] = (uint32_t)function & 0xFF;

@@ -423,3 +423,16 @@ void test_pagef()
     int* i = NULL;
     *i = 5;
 }
+
+void test_syscall()
+{
+    asm volatile(
+    "movl   $2, %%eax\n\t"
+    "int    $0x80\n\t"
+    :
+    :
+    : "%eax"          
+    );
+
+}
+
