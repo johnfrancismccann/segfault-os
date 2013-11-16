@@ -28,7 +28,7 @@
 #define TEST_PAGEF  0           //Set to 1 to test page fault exception
 #define TEST_FS     0           //Set to 1 to test filesystem
 #define TEST_RWRTC  0           //Set to 1 to test rtc read/write
-#define TEST_SYSCALL 0
+#define TEST_SYSCALL 0          //Set to 1 to test system calls
 
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
