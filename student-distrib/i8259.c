@@ -15,23 +15,23 @@ uint8_t slave_mask;  /* IRQs 8-15 */
 void
 i8259_init(void)
 {
-	outb(0xFF, MASTER_8259_PORT + 1);	//Mask Master Interrupts
-	outb(0xFF, SLAVE_8259_PORT + 1);	//Mask Slave Interrupts
+    outb(0xFF, MASTER_8259_PORT + 1);   //Mask Master Interrupts
+    outb(0xFF, SLAVE_8259_PORT + 1);    //Mask Slave Interrupts
 
-	//Setup Master PIC
-	outb(ICW1, MASTER_8259_PORT);
-	outb(ICW2_MASTER, MASTER_8259_PORT + 1); //Map IRs to 0x20-0x27
-	outb(ICW3_MASTER, MASTER_8259_PORT + 1); //Tell it it has a slave
-	outb(ICW4, MASTER_8259_PORT + 1);		 //Normal EOI (not auto)
+    //Setup Master PIC
+    outb(ICW1, MASTER_8259_PORT);
+    outb(ICW2_MASTER, MASTER_8259_PORT + 1); //Map IRs to 0x20-0x27
+    outb(ICW3_MASTER, MASTER_8259_PORT + 1); //Tell it it has a slave
+    outb(ICW4, MASTER_8259_PORT + 1);        //Normal EOI (not auto)
 
-	//Setup Slave PIC
-	outb(ICW1, SLAVE_8259_PORT);
-	outb(ICW2_SLAVE, SLAVE_8259_PORT + 1);	//Map IRs to 0x28-0x2F
-	outb(ICW3_SLAVE, SLAVE_8259_PORT + 1);	//Tell it it is a slave on IR2
-	outb(ICW4, SLAVE_8259_PORT + 1);		//Normal EOI (not auto)
+    //Setup Slave PIC
+    outb(ICW1, SLAVE_8259_PORT);
+    outb(ICW2_SLAVE, SLAVE_8259_PORT + 1);  //Map IRs to 0x28-0x2F
+    outb(ICW3_SLAVE, SLAVE_8259_PORT + 1);  //Tell it it is a slave on IR2
+    outb(ICW4, SLAVE_8259_PORT + 1);        //Normal EOI (not auto)
 
-	master_mask = 0xFF;
-	slave_mask = 0xFF;
+    master_mask = 0xFF;
+    slave_mask = 0xFF;
 
     //Manual delay function
     __asm__("MOVL $50, %%eax \n\t"
@@ -41,7 +41,7 @@ i8259_init(void)
             :
             : "eax");
 
-	outb(master_mask, MASTER_8259_PORT + 1); //Restore Interrupt mask for master
+    outb(master_mask, MASTER_8259_PORT + 1); //Restore Interrupt mask for master
     outb(slave_mask, SLAVE_8259_PORT + 1);   //Restore Interrupt mask for slave
 }
 
@@ -49,32 +49,32 @@ i8259_init(void)
 void
 enable_irq(uint32_t irq_num)
 {
-	if(irq_num >= 0 && irq_num < 8)
-	{
-		master_mask &= ~(0x1 << irq_num);
+    if(irq_num >= 0 && irq_num < 8)
+    {
+        master_mask &= ~(0x1 << irq_num);
         outb(master_mask, MASTER_8259_PORT + 1);
-	}
-	else if(irq_num >= 8 && irq_num < 16)
-	{
-		slave_mask &= ~(0x1 << (irq_num - 8));
+    }
+    else if(irq_num >= 8 && irq_num < 16)
+    {
+        slave_mask &= ~(0x1 << (irq_num - 8));
         outb(slave_mask, SLAVE_8259_PORT + 1);
-	}
+    }
 }
 
 /* Disable (mask) the specified IRQ */
 void
 disable_irq(uint32_t irq_num)
 {
-	if(irq_num >= 0 && irq_num < 8)
-	{
-		master_mask |= (0x1 << irq_num);
+    if(irq_num >= 0 && irq_num < 8)
+    {
+        master_mask |= (0x1 << irq_num);
         outb(master_mask, MASTER_8259_PORT + 1);
-	}
-	else if(irq_num >= 8 && irq_num < 16)
-	{
-		slave_mask |= (0x1 << (irq_num - 8));
+    }
+    else if(irq_num >= 8 && irq_num < 16)
+    {
+        slave_mask |= (0x1 << (irq_num - 8));
         outb(slave_mask, SLAVE_8259_PORT + 1);
-	}
+    }
 }
 
 /* Send end-of-interrupt signal for the specified IRQ */
