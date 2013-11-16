@@ -37,20 +37,20 @@ typedef struct
 
 typedef struct
 {
-	syscall_func_t* file_ops_table;	
-	uint32_t inode_ptr;
-	uint32_t file_pos;
-	uint32_t flags;  
+    syscall_func_t* file_ops_table; 
+    uint32_t inode_ptr;
+    uint32_t file_pos;
+    uint32_t flags;  
 } file_desc_t;
 
 
 #define MAX_OPEN_FILES 8
 typedef struct //pcb_t
 {
-	file_desc_t 	file_desc_arr[MAX_OPEN_FILES];
-	uint32_t* 		page_dir;
+    file_desc_t     file_desc_arr[MAX_OPEN_FILES];
+    uint32_t*       page_dir;
   struct pcb_t* parent_pcb;
-  uint32_t*	 		parent_kstack;
+  uint32_t*         parent_kstack;
   struct pcb_t* child_pcb;
 } pcb_t;
 
