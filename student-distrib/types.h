@@ -61,20 +61,6 @@ typedef struct //pcb_t
   struct pcb_t*   child_pcb;
 } pcb_t;
 
-//task structures
-//TSS descriptor
-typedef struct
-{
-    uint16_t SS0;
-    uint32_t ESP0;	
-} TSS;
-
-typedef struct
-{
-    TSS* task_tss;
-} struct_task;
-//task structures end
-
 #endif /* ASM */
 
 #endif /* _TYPES_H */
