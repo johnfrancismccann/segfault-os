@@ -1,19 +1,15 @@
 #include "fs.h"
 #include "lib.h"
 #include "multiboot.h"
+#include "syscalls.h"
 
 //#define MAX_FNAME_LENGTH 32
 /* filesystem file states, parameters */
 #define FS_FILE_OPEN        1
 #define FS_FILE_CLOSED      0
-static uint8_t  fs_file_state = FS_FILE_CLOSED;
-static uint32_t fs_file_inode;
-static uint32_t fs_file_offset;
 /* filesystem directory states, parameters */
 #define FS_DIR_OPEN         1
 #define FS_DIR_CLOSED       0
-static uint8_t  fs_dir_state = FS_DIR_CLOSED;
-static uint32_t fs_dir_index;
 static uint32_t fs_dir_num_entry;
 /* location of filesystem in memory */
 static uint8_t* file_sys_loc;
@@ -69,14 +65,7 @@ int32_t fs_open_file(const uint8_t* filename)
     /* check input parameter */
     if(filename == NULL)
         return -1;
-    
-    /* check if file is already opened */
-    if(fs_file_state == FS_FILE_OPEN)
-        return -1;
-    /* if not opened, set file as opened, offset to 0 */
-    fs_file_state = FS_FILE_OPEN;
-    fs_file_offset = 0;
-    
+        
     /* try finding inode number of passed file */
     search_res = read_dentry_by_name(filename, &dentry);
     
@@ -86,7 +75,8 @@ int32_t fs_open_file(const uint8_t* filename)
             /* if so, return failure */
             return -1;  
         /* otherwise, set inode number */
-        fs_file_inode = dentry.index_node;
+        cur_file->inode_ptr = dentry.index_node;
+        cur_file->file_pos = 0;
     }
     else if(search_res == -1)
         /* return failure if not found */
@@ -106,20 +96,20 @@ int32_t fs_open_file(const uint8_t* filename)
  */
 int32_t fs_open_dir(const uint8_t* filename)
 {
-    /* check that filename is not a null pointer */
+    dentry_t dentry;
+    int32_t search_res;
+    
+    /* check input parameter */
     if(filename == NULL)
         return -1;
-    /* check that directory is pwd */
-    else if(filename[0] != '.' || filename[1] != '\0')
-        return -1;
         
-    /* check if directory is already opened */
-    if(fs_dir_state == FS_DIR_OPEN)
-        return -1;
+    /* try finding inode number of passed file */
+    search_res = read_dentry_by_name(filename, &dentry);
+
     /* if not opened, set directory as open and index to first entry */
-    fs_dir_state = FS_DIR_OPEN;
-    fs_dir_index = 0;
     fs_dir_num_entry = ((uint32_t*)file_sys_loc+FS_BT_IND)[BT_NUM_DIR_IND];
+    cur_file->inode_ptr = dentry.index_node;
+    cur_file->file_pos = 0;
     
     return 0;
 }
@@ -146,15 +136,12 @@ int32_t fs_read_file(void* buf, int32_t nbytes)
     /* check that instructed number of bytes to read is nonnegative */
     if(nbytes < 0)
         return -1;
-    /* check that file is opened */
-    if(fs_file_state != FS_FILE_OPEN)
-        return -1;
     
     /* read bytes from file */
-    bytes_read = read_data(fs_file_inode, fs_file_offset, buf, (uint32_t)nbytes);
+    bytes_read = read_data(cur_file->inode_ptr, cur_file->file_pos, buf, (uint32_t)nbytes);
     /* update offset if reading didn't fail */
     if(bytes_read != -1)
-        fs_file_offset += bytes_read; 
+        cur_file->file_pos += bytes_read;
     
     return bytes_read;
 }
@@ -181,20 +168,17 @@ int32_t fs_read_dir(void* buf, int32_t nbytes)
     /* check that instructed number of bytes to read is positive */
     if(nbytes <= 0)
         return -1;
-    /* check that directory is opened */    
-    if(fs_dir_state != FS_DIR_OPEN)
-        return -1;
     /* if all directory entries have been read, return 0 */
-    if(fs_dir_index >= fs_dir_num_entry)
+    if(cur_file->file_pos >= fs_dir_num_entry)
         return 0;
     
     /* get 32 byte filename of current entry into filename buffer */
-    filename_loc = (file_sys_loc+(BT_DE_START_IND+fs_dir_index)*DE_ENT_SZ);
+    filename_loc = (file_sys_loc+(BT_DE_START_IND+cur_file->file_pos)*DE_ENT_SZ);
     strncpy((int8_t*)filename, (int8_t*)filename_loc, MAX_FNAME_LENGTH);
     /* the filename could be 32 bytes long. terminate with EOS */
     filename[MAX_FNAME_LENGTH] = '\0'; 
     /* increment directory entry */
-    fs_dir_index++;
+    cur_file->file_pos++;
     
     filename_len = strlen((int8_t*)filename);
     /* copy lesser of filename length,requested length to caller's buffer */
@@ -251,11 +235,6 @@ int32_t fs_write_dir(void* buf, int32_t  nbytes)
  */
 int32_t fs_close_file() 
 {
-    /* files must have been opened to be closed */
-    if(fs_file_state != FS_FILE_OPEN)
-        return -1;
-    /* mark file as closed. must be opened for furthered processing */
-    fs_file_state = FS_FILE_CLOSED;
     return 0;
 }
 
@@ -270,11 +249,6 @@ int32_t fs_close_file()
  */
 int32_t fs_close_dir()
 {
-    /* directory must have been opened to be closed */
-    if(fs_dir_state != FS_DIR_OPEN)
-        return -1;
-    /* mark directory as closed. must be opened for furthered processing */
-    fs_dir_state = FS_DIR_CLOSED;
     return 0;
 }
 
@@ -512,5 +486,3 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t * buf, uint32_t leng
     }
     return bytes_read;
 }
-
-

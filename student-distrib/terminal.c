@@ -10,8 +10,6 @@
 #include "lib.h"
 #include "types.h"
 
-uint8_t is_terminal_open = NO;
-
 syscall_func_t termfops_table[4] = {(syscall_func_t)term_open, 
                                     (syscall_func_t)term_read,
                                     (syscall_func_t)term_write,
@@ -26,8 +24,6 @@ syscall_func_t termfops_table[4] = {(syscall_func_t)term_open,
  *   SIDE EFFECTS: none
  */
 int32_t term_open() {
-    if(is_terminal_open == YES) return -1; //make sure terminal closed before opening
-    is_terminal_open = YES;
     return 0; //indicates successful open
 }
 
@@ -40,8 +36,6 @@ int32_t term_open() {
  *   SIDE EFFECTS: none
  */
 int32_t term_close() {
-    if(is_terminal_open == NO) return -1; //make sure terminal open before closing
-    is_terminal_open = NO;
     clear_read_buf();
     return 0; //indicates successful close
 }
@@ -55,7 +49,6 @@ int32_t term_close() {
  *   SIDE EFFECTS: none
  */
 int32_t term_read(void* read_ptr, int32_t nbytes) {
-    if(is_terminal_open == NO) return -1;
     if(read_ptr == NULL) return -1;
     if(nbytes > BUF_SIZE) return -1;
     int bytes_copied;
@@ -76,7 +69,6 @@ int32_t term_read(void* read_ptr, int32_t nbytes) {
  *   SIDE EFFECTS: none
  */
 int32_t term_write(const void* wrt_ptr, int32_t nbytes) {
-    if(is_terminal_open == NO) return -1;
     if(wrt_ptr == NULL) return -1;
     int32_t bytes_copied;
     cli(); //disable interrupts so input printed cleanly
