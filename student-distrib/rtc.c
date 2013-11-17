@@ -18,6 +18,11 @@
 uint8_t interrupt_flag;
 uint8_t am_i_open_yet = NO;
 
+syscall_func_t rtcfops_table[4] = {(syscall_func_t)rtc_open, 
+                                   (syscall_func_t)rtc_read,
+                                   (syscall_func_t)rtc_write,
+                                   (syscall_func_t)rtc_close};
+
 /*
  * init_rtc()
  *   DESCRIPTION: Registers the rtc interrupt handler in the IDT

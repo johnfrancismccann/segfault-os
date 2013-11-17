@@ -1,12 +1,14 @@
 #include "lib.h"
 #include "types.h"
 #include "fs.h"
+#include "terminal.h"
+#include "rtc.h"
 
 #define MAX_PROCESSES 2
 
 #if 1  /*track current process. commented to prevent warnings */
     pcb_t* pcbs[MAX_PROCESSES];
-    int8_t curprocess = -1;
+    int32_t curprocess = -1;
 #endif 
 
 /*
@@ -85,29 +87,43 @@ int32_t sys_open(const uint8_t* filename)
         if(!(available & (1 << i)))
         {
             fd = i;
+            pcbs[curprocess]->available_fds |= (1 << i);
             break;
         }
     }
-    
+    //failed to find empty file descriptor
     if(fd == -1)
         return -1;
     read_dentry_by_name(filename, &myfiledentry);
     switch(myfiledentry.ftype)
     {
         case TYPE_USER:
+            pcbs[curprocess]->file_desc_arr[fd].file_ops_table = rtcfops_table;
             printf("RTC file\n");
-            return 0;
+            break;
         case TYPE_DIR:
+            pcbs[curprocess]->file_desc_arr[fd].file_ops_table = dirfops_table;
             printf("Directory file \n");
-            return 0;
+            break;
         case TYPE_REG:
+            pcbs[curprocess]->file_desc_arr[fd].file_ops_table = filefops_table;
             printf("Regular file \n");
-            return 0;
+            break;
         default:
             printf("INVALID FILE!\n");
+            //free assigned fd
+            pcbs[curprocess]->available_fds &= (!(1 << fd));
             return -1;
     }
-    return -1;
+    //Attempt to open file
+    int32_t retval = ((syscall_open_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_OPEN]))(NULL);
+    if(retval == -1)
+    {
+        //on failure, release assigned fd and return error.
+        pcbs[curprocess]->available_fds &= (!(1 << fd));
+        return -1;
+    }
+    return fd;
 }
 
 /*
@@ -116,6 +132,12 @@ int32_t sys_open(const uint8_t* filename)
 int32_t sys_close(int32_t fd)
 {
     printf("This is the %s call\n",__func__);
+    //Error on out-of-range fd
+    if(fd < 0 || fd >= MAX_OPEN_FILES)
+        return -1;
+    //Error on invalid PCB for process
+    if(pcbs[(uint32_t)curprocess] == NULL)
+        return -1;
     return -1;
 }
 
