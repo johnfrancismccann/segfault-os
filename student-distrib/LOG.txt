@@ -7,3 +7,19 @@ Wenyu:
     Well, I'll just assume dentry_t is already defined for now
 
     NO ITS NOT :(
+	
+11/16/2013
+
+Here are all the references I have already read:
+
+The things need to do are already written as comments in test.c, task_execute
+http://wiki.osdev.org/Task_State_Segment
+Intel IA32-ref-manual-vol-3   6-5; pay attention to the instruction for SS0 and ESP0
+TSS as well as TSS descriptor structure are defined in x86_desc.h
+my understanding is, you make changes to TSS instead of either:1. movl new value to the registers
+                                                            or:2. push the new values onto the kernel stack
+															
+It seems that you have to call IRET after execution of the execute system call, but I don't know where and how
+
+def of struct_task is in task.h
+I think the only thing we have to do in task.c is the execution function, you guys can delete others
