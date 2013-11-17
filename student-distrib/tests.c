@@ -429,6 +429,7 @@ void test_syscall()
     clear();
     int i;
     int32_t retval;
+#if 0
     uint8_t* filename = (uint8_t*)"rsafd";
     for(i=-1; i<11; i++)
     {
@@ -443,5 +444,21 @@ void test_syscall()
         asm("\tmovl %%eax, %0" : "=r"(retval));
         printf("retval = %d\n",retval);
     }
+#endif
+    i=2;
+    uint8_t* buf = (uint8_t*)"hello";
+asm volatile(
+        "movl   $2, %%eax\n\t"
+        "movl   $55, %%ebx\n\t"
+        "movl   %0, %%ecx\n\t"
+        "movl   $128, %%edx\n\t"
+        "int    $0x80\n\t"
+        :
+        : "r"(buf)
+        : "%eax","%ebx","%ecx","%edx"
+        );
+        asm("\tmovl %%eax, %0" : "=r"(retval));
+        printf("retval = %d\n",retval);
+
 }
 
