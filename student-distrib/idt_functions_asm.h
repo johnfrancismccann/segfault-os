@@ -25,6 +25,4 @@ extern void idt_coprocessor_error();
 extern void idt_alignment_check();
 extern void idt_system_call();
 
-#include "syscalls.h"
-
 #endif
