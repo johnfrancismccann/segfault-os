@@ -51,6 +51,7 @@ typedef struct
 
 
 #define MAX_OPEN_FILES 8
+#define MAX_ARG_BUFFER 128
 typedef struct //pcb_t
 {
   file_desc_t     file_desc_arr[MAX_OPEN_FILES];
@@ -59,6 +60,8 @@ typedef struct //pcb_t
   struct pcb_t*   parent_pcb;
   uint32_t*       parent_kstack;
   struct pcb_t*   child_pcb;
+  uint8_t         arg_buffer[MAX_ARG_BUFFER];
+  uint8_t         arg_buffer_size;
 } pcb_t;
 
 #endif /* ASM */

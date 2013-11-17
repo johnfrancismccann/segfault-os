@@ -8,6 +8,7 @@
 #include "rtc.h"
 #include "keyboard.h"
 #include "terminal.h"
+#include "test_syscalls.h"
 
 void test_handin_code()
 {
@@ -427,24 +428,13 @@ void test_pagef()
 void test_syscall()
 {
     clear();
-    int i;
-    int32_t retval;
-#if 0
-    uint8_t* filename = (uint8_t*)"rsafd";
-    for(i=-1; i<11; i++)
-    {
-        asm volatile(
-        "movl   %0, %%eax\n\t"
-        "movl   %1, %%ebx\n\t"
-        "int    $0x80\n\t"
-        :
-        : "r"(i),"r"(filename)
-        : "%eax","%ebx"
-        );
-        asm("\tmovl %%eax, %0" : "=r"(retval));
-        printf("retval = %d\n",retval);
-    }
+#if 1
+    uint8_t* filename = (uint8_t*)"rtc";
+    test_execute(NULL);
+    printf("%d\n",test_open(filename));
+
 #endif
+#if 0
     i=2;
     uint8_t* buf = (uint8_t*)"hello";
 asm volatile(
@@ -459,6 +449,6 @@ asm volatile(
         );
         asm("\tmovl %%eax, %0" : "=r"(retval));
         printf("retval = %d\n",retval);
-
+#endif
 }
 
