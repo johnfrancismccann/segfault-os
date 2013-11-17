@@ -25,6 +25,7 @@ typedef int32_t (*syscall_func_t)(void);
 typedef int32_t (*syscall_open_t)(const uint8_t* filename);
 typedef int32_t (*syscall_read_t)(void* buf, int32_t nbytes);
 typedef int32_t (*syscall_write_t)(const void* buf, int32_t nbytes);
+typedef int32_t (*syscall_close_t)(int32_t fd);
 
 
 #define MAX_FNAME_LENGTH 32
@@ -34,6 +35,11 @@ typedef struct
   uint32_t ftype;
   uint32_t index_node;
 } dentry_t;
+
+#define FOPS_OPEN  0
+#define FOPS_READ  1
+#define FOPS_WRITE 2
+#define FOPS_CLOSE 3
 
 typedef struct
 {
