@@ -14,6 +14,8 @@
 .globl idt_stack_segment, idt_general_protection, idt_page_fault
 .globl idt_coprocessor_error, idt_alignment_check, idt_system_call
 
+.globl do_iret
+
 .type idt_div_error, @function
 .type idt_debug, @function
 .type idt_nmi, @function
@@ -141,7 +143,8 @@ idt_system_call:
     SAVE_ALL
 # reference data as kernel data
     movl $(KERNEL_DS), %ebx
-    movl %ebx, %ds 
+    movl %ebx, %ds
+ 
 #check requested system call number
     cmpl    $11, %eax
     jb      call_syscall
@@ -158,3 +161,20 @@ call_syscall:
 ret_to_user:
     RESTORE_ALL
     iret
+
+#define USR_STK_LC 0x83FFFFC
+
+do_iret:
+     #USER_DS = 0x002B
+     #USR_STK_LOC = 0x83FFFFC
+     #USER_CS = 0x0023
+# prepare stack for iret to user program 
+     pushl $USER_DS
+     pushl $0x83FFFFC
+     pushl $0x206
+     pushl $USER_CS
+     pushl %eax
+
+     movl $USER_DS,%eax
+     movl %eax, %ds
+     iret

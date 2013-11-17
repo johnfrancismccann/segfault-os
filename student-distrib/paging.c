@@ -33,6 +33,16 @@ void enable_paging()
                 );
 }
 
+void set_CR3(uint32_t page_dir_address)
+{
+    asm volatile(
+        /* load address of page directory into CR3 */
+        "movl %0, %%cr3\n\t"
+        :
+        : "r"(page_dir_address)
+        );    
+}
+
 /*
  * init_paging
  *  DESCRIPTION: initialize a page directory and page table so 
@@ -90,21 +100,37 @@ void init_paging()
  * get_proc_page_dir
  *  DESCRIPTION: map physical to virtual address in process page directory
  *  INPUTS: process page directory, real (physical) address, virtual address
+ *          phys_addr, virt_addr are assumed to be 4 MB aligned
  *  OUTPUTS: none
  *  RETURN VALUE: -1 if error
  *  SIDE EFFECTS: new page in page directory for program
  */
 uint32_t get_proc_page_dir(uint32_t* proc_page_dir, uint32_t phys_addr, uint32_t virt_addr)
 {
-    uint32_t new_dir; //new directory for user-level program
-
+#if 1
+    uint32_t i;
+    /* perform checks on input */
     if(proc_page_dir == NULL || phys_addr < 0 || virt_addr < 0)
         return -1;
+    /* initialize process page table to original mapping */
+    proc_page_dir[0] = page_dir[0];
+    proc_page_dir[1] = page_dir[1];
+    for(i=2; i<PAGE_DIR_SIZE; i++)
+        proc_page_dir[i] = page_dir[i];
 
-    new_dir = phys_addr;
-    /* set new directory as 4MB page, user, present, r/w */
-    new_dir |= (SET_PAGE_4MB | SET_PAGE_USER | SET_PAGE_PRES | SET_PAGE_RW);
-    proc_page_dir[virt_addr/FOUR_MB] = new_dir;
+    /* init new page as 4MB page, user, present, r/w */
+    phys_addr |= (SET_PAGE_4MB | SET_PAGE_USER | SET_PAGE_PRES | SET_PAGE_RW);
+    proc_page_dir[virt_addr/FOUR_MB] = phys_addr;
+
+#endif
+
+#if 0
+    proc_page_dir[0] = page_dir[0];
+    proc_page_dir[1] = page_dir[1];
+    int i;
+    for(i=2; i<PAGE_DIR_SIZE; i++)
+        proc_page_dir[i] = page_dir[i];
+#endif
 
     return 0;
 }

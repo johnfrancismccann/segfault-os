@@ -3,6 +3,8 @@
 #include "fs.h"
 #include "terminal.h"
 #include "rtc.h"
+#include "paging.h"
+#include "x86_desc.h"
 
 #define MAX_PROCESSES 2
 
@@ -29,8 +31,15 @@ void strip_buf_whitespace(uint8_t* buf, uint8_t* size);
 int32_t sys_halt(uint8_t status)
 {
     printf("This is the %s call\n",__func__);
+    while(1);
     return -1;
 }
+
+uint32_t proc_page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
+#define MB_128              0x8000000
+#define USR_PRGRM_VIRT_LC   MB_128+0x48000
+#define MAX_PRGRM_SZ        FOUR_MB
+#define ELF_MAG_NUM         0x464C457F
 
 /*
  * 
@@ -42,6 +51,7 @@ int32_t sys_halt(uint8_t status)
  */
 int32_t sys_execute(const uint8_t* command)
 {
+    /* can be used later */
     //Set up process out of nowhere!
     if(1)
     {
@@ -49,10 +59,47 @@ int32_t sys_execute(const uint8_t* command)
         pcbs[curprocess] = &blahprocess;
         pcbs[curprocess]->available_fds = 3;
     }
+
+    /* testing code below now */
     //Return error on invalid argument
     if(command == NULL)
         return -1;
     printf("This is the %s call\n",__func__);
+
+    /* set location of program image */
+    uint32_t prog_loc = USR_PRGRM_VIRT_LC;
+    /* set up paging for process */
+    get_proc_page_dir(proc_page_dir, EIGHT_MB, MB_128);
+    set_CR3((uint32_t)proc_page_dir);
+    /* load file into contiguous memory */
+    uint32_t bytes_read = load_file(command, (void*)prog_loc, MAX_PRGRM_SZ);
+
+    /* check for magic constant indicating executable file */
+    if(((uint32_t*)prog_loc)[0] != ELF_MAG_NUM) {
+        printf("Magic number not found\n");
+        return -1;
+    }
+    else {
+        printf("Magic number: %u\n", ((uint32_t*)prog_loc)[0]);
+        printf("Bytes read: %u\n", bytes_read);
+    }
+
+    /* initialize standard output */
+    pcbs[curprocess]->file_desc_arr[STDOUT].file_ops_table = termfops_table;
+    /* initialize kernel stack for when user program makes system call */
+    tss.esp0 = 0x7FFFFC; 
+    tss.ss0 =  KERNEL_DS;
+    
+    /* pass location of user program's first instruction to be executed 
+       and jump to procedure to issue iret */
+    asm volatile(
+        "movl %0, %%eax\n\t"
+        "jmp do_iret\n\t"
+        :
+        :"r" (*((uint32_t*)(prog_loc+24))) /* location of first instruction */
+        :"%eax"
+        );
+
     return -1;
 }
 
