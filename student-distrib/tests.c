@@ -496,3 +496,23 @@ asm volatile(
 #endif
 }
 
+void test_sys_exec()
+{
+    clear();
+    int32_t retval;
+    uint8_t* buf = (uint8_t*)"testprint";
+    asm volatile(
+        "movl   $2, %%eax\n\t"
+        "movl   %0, %%ebx\n\t"
+        "movl   %0, %%ecx\n\t"
+        "movl   $128, %%edx\n\t"
+        "int    $0x80\n\t"
+        :
+        :"r"(buf)
+        : "%eax","%ebx","%ecx","%edx"
+        );
+        
+    asm("\tmovl %%eax, %0" : "=r"(retval));
+    printf("retval = %d\n",retval);
+}
+
