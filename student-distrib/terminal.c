@@ -12,16 +12,10 @@
 
 uint8_t is_terminal_open = NO;
 
-#if 0 /* will when initializing stdin, stdout. commented to prevent warning */
-static syscall_func_t termfops_table[3] = {(syscall_func_t)term_open, 
-                                                                        (syscall_func_t)term_read,
-                                                                    (syscall_func_t)term_write};
-#endif 
-
-#if 0
-static  void (*termfops_table[3])(void);
-termfops_table[0] =  term_open
-#endif
+syscall_func_t termfops_table[4] = {(syscall_func_t)term_open, 
+                                    (syscall_func_t)term_read,
+                                    (syscall_func_t)term_write,
+                                    (syscall_func_t)term_close};
 
 /*
  * term_open()
