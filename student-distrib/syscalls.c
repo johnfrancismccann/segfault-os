@@ -6,15 +6,25 @@
 
 #define MAX_PROCESSES 2
 
-#if 1  /*track current process. commented to prevent warnings */
-    pcb_t* pcbs[MAX_PROCESSES];
-    int32_t curprocess = -1;
-#endif
+/*track current process.*/
+pcb_t* pcbs[MAX_PROCESSES];
+int32_t curprocess = -1;
+
+//for testing with dysfunctional execute
+pcb_t blahprocess;
 
 file_desc_t* cur_file = NULL;
 
+void strip_buf_whitespace(uint8_t* buf, uint8_t* size);
+
+
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_halt(uint8_t status)
 {
@@ -23,10 +33,22 @@ int32_t sys_halt(uint8_t status)
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_execute(const uint8_t* command)
 {
+    //Set up process out of nowhere!
+    if(1)
+    {
+        curprocess = 0;
+        pcbs[curprocess] = &blahprocess;
+        pcbs[curprocess]->available_fds = 3;
+    }
     //Return error on invalid argument
     if(command == NULL)
         return -1;
@@ -62,7 +84,12 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 {
@@ -90,7 +117,12 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_open(const uint8_t* filename)
 {
@@ -122,18 +154,18 @@ int32_t sys_open(const uint8_t* filename)
     {
         case TYPE_USER:
             pcbs[curprocess]->file_desc_arr[fd].file_ops_table = rtcfops_table;
-            printf("RTC file\n");
+            // printf("RTC file\n");
             break;
         case TYPE_DIR:
             pcbs[curprocess]->file_desc_arr[fd].file_ops_table = dirfops_table;
-            printf("Directory file \n");
+            // printf("Directory file \n");
             break;
         case TYPE_REG:
             pcbs[curprocess]->file_desc_arr[fd].file_ops_table = filefops_table;
-            printf("Regular file \n");
+            // printf("Regular file \n");
             break;
         default:
-            printf("INVALID FILE!\n");
+            // printf("INVALID FILE!\n");
             //free assigned fd
             pcbs[curprocess]->available_fds &= (!(1 << fd));
             return -1;
@@ -155,7 +187,12 @@ int32_t sys_open(const uint8_t* filename)
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_close(int32_t fd)
 {
@@ -183,19 +220,39 @@ int32_t sys_close(int32_t fd)
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
 {
     //Return error on invalid argument
     if(buf == NULL)
         return -1;
+    //Error on invalid PCB for process
+    if(pcbs[curprocess] == NULL)
+        return -1;
+    //Prep buffer for delivery by removing preceding whitespace
+    //and counting size of buffer
+    strip_buf_whitespace(pcbs[curprocess]->arg_buffer, &pcbs[curprocess]->arg_buffer_size);
+    //Error on larger buffer than can fit
+    if(pcbs[curprocess]->arg_buffer_size > nbytes)
+        return -1;
+    strcpy((int8_t*) buf, (int8_t*) pcbs[curprocess]->arg_buffer);
     printf("This is the %s call\n",__func__);
     return -1;   
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_vidmap(uint8_t** screen_start)
 {
@@ -209,7 +266,12 @@ int32_t sys_vidmap(uint8_t** screen_start)
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */
 int32_t sys_set_handler(int32_t signum, void* handler_address)
 {
@@ -221,7 +283,12 @@ int32_t sys_set_handler(int32_t signum, void* handler_address)
 }
 
 /*
- *
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
  */ 
 int32_t sys_sigreturn(void)
 {
@@ -229,3 +296,42 @@ int32_t sys_sigreturn(void)
     return -1;   
 }
 
+/*
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ */
+void strip_buf_whitespace(uint8_t* buf, uint8_t* size)
+{
+    //Exit on invalid buffer
+    if(buf == NULL)
+        return;
+    uint8_t tempbuf[MAX_ARG_BUFFER];
+    (*size) = 0;
+    int i=0;
+    //Skip leading spaces
+    while(buf[i] == ' ') i++;
+    //copy up to MAX_ARG_BUFFER characters into temporary buffer
+    //starting after preceding spaces.
+    while(i < MAX_ARG_BUFFER)
+    {
+        if(buf[i] == '\0')
+            break;
+        tempbuf[*size] = buf[i];
+        (*size)++;
+        i++;
+    }
+    //Add ending null character
+    if(*size >= MAX_ARG_BUFFER)
+    {
+        *size = MAX_ARG_BUFFER - 1;
+    }
+    tempbuf[*size] = '\0';
+    //Copy over to actual buffer for output
+    strcpy((int8_t*)buf, (int8_t*)tempbuf);
+    //Increase size to reflect presence of null terminator
+    (*size)++;
+}
