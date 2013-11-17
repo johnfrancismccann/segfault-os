@@ -10,7 +10,6 @@
 //task structures
 typedef struct
 {
-    tss_t task_tss;
     seg_desc_t tss_dec;	
 } struct_task;
 //task structures end
