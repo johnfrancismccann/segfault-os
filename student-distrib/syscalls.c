@@ -77,6 +77,20 @@ int32_t sys_open(const uint8_t* filename)
     //Error on invalid PCB for process
     if(pcbs[(uint32_t)curprocess] == NULL)
         return -1;
+    int i;
+    int32_t fd = -1;
+    uint8_t available = pcbs[curprocess]->available_fds;
+    for (i = 0; i < MAX_OPEN_FILES; i++)
+    {
+        if(!(available & (1 << i)))
+        {
+            fd = i;
+            break;
+        }
+    }
+    
+    if(fd == -1)
+        return -1;
     read_dentry_by_name(filename, &myfiledentry);
     switch(myfiledentry.ftype)
     {

@@ -134,15 +134,14 @@ idt_alignment_check:
     popl %fs;
 
 idt_system_call:
-    #call do_idt_system_call
 # @@@@interrupts still need to be disabled@@@@
 
 # save, restore registers to prevent leaking to user program. in SAVE_ALL, also
 # prepare arguments on stack for function call
     SAVE_ALL
-# reference data as kernel data ****AUTOMATIC BY IDT****
-    # movl $(KERNEL_DS), %ebx
-    # movl %ebx, %ds 
+# reference data as kernel data
+    movl $(KERNEL_DS), %ebx
+    movl %ebx, %ds 
 #check requested system call number
     cmpl    $10, %eax
     jb      call_syscall  
@@ -152,10 +151,6 @@ idt_system_call:
 
 call_syscall:
     call *syscall_table(,%eax,4)
-
-# reference data as user data
-    #movl $(USER_DS), %ebx
-    #movl %ebx, %ds
 
 ret_to_user:
     RESTORE_ALL
