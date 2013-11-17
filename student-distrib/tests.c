@@ -425,13 +425,57 @@ void test_pagef()
     *i = 5;
 }
 
+/*
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ */
 void test_syscall()
 {
     clear();
 #if 1
+    uint8_t* buffer[1024];
     uint8_t* filename = (uint8_t*)"rtc";
     test_execute(NULL);
     printf("%d\n",test_open(filename));
+    test_close(3);
+    int i,j;
+    //fake fish
+    for(i=0; i < 2048; i++)
+    {
+        if(i%2 == 0)
+            filename = (uint8_t*)"frame0.txt";
+        else
+            filename = (uint8_t*)"frame1.txt";
+        test_open(filename);
+        test_read(3,(void*)buffer, 1024);
+        test_close(3);
+        clear();
+        reset_screen_pos();
+        printf("%s", buffer);
+        test_read(2,(void*)buffer,1);
+        test_write(2,(void*)(&i),1);
+        for(j=0; j < 1024; j++)
+            buffer[j] = '\0';
+    }
+    //test read directory
+    test_close(3);
+    clear();
+    reset_screen_pos();
+    filename = (uint8_t*)".";
+    printf("%d\n",test_open(filename));
+    uint8_t dir_buf[MX_DIR_ENTRY_SZ];
+    uint32_t dir_entry_sz;
+    while(0 != (dir_entry_sz = test_read(3,(void*)dir_buf,MX_DIR_ENTRY_SZ)))
+    {
+        dir_buf[dir_entry_sz] = '\0';
+        printf("%s\n",dir_buf);
+        i++;
+    }
+
 
 #endif
 #if 0
