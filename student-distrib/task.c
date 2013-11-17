@@ -44,11 +44,49 @@ int task_execute(){
 	//tss.ss = ;//I don't know where these values come from
 	
 	//do the system call after everything is set up
-    if (sys_execute() == -1)
-	    return -1;//kill the task
+//    if (sys_execute() == -1)
+//	    return -1;//kill the task
 	
 	//return success if no exceptions
 	return 1;
+}
+
+/*
+ * switch_to_user_mode
+ *  DESCRIPTION: push values to the stack, and execure IRET at last 
+ *  INPUTS: none
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: none?
+ */
+void switch_to_user_mode()
+{
+    // Set up a stack structure for switching to user mode.
+    asm volatile(
+                //data segment selector is (0x20 | 0x3 = 0x23)
+                //0x20: User data segment, and 0x3 is setting RPL to 3				
+                "cli\n\t"  
+                "mov $0x23, %%ax\n\t" 
+                "mov %%ax, %%ds\n\t" 
+                "mov %%ax, %%es\n\t" 
+	            "mov %%ax, %%fs\n\t" 
+                "mov %%ax, %%gs\n\t" 
+
+                "mov %%esp, %%eax\n\t" 
+                "pushl $0x23\n\t"
+                "pushl %%eax\n\t" 
+                "pushf\n\t"
+				"pop %%eax\n\t"        //Get EFLAGS back into EAX. The only way to read EFLAGS is to pushf then pop.
+                "or $0x200, %%eax\n\t" //Set the IF flag, IF flag has a mask of 0x200
+                "push %%eax\n\t"        //Push the new EFLAGS value back onto the stack.
+                "pushl $0x1B\n\t" 
+                "push $1f\n\t" 
+                "iret\n\t" 
+              "1:\n\t" 
+			    :        //no input
+				:        //no output
+				: "%eax" //eax is clobbered
+                );
 }
 
 /*
