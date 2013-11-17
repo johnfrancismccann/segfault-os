@@ -4,6 +4,11 @@
 #include "lib.h"
 #include "types.h"
 
+/* file types */
+#define TYPE_USER 0
+#define TYPE_DIR 1
+#define TYPE_REG 2
+
 int32_t fs_open_file(const uint8_t* filename);
 
 int32_t fs_read_file(void* buf, int32_t nbytes);
