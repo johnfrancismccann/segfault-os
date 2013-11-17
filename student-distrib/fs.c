@@ -41,6 +41,17 @@ static uint8_t* file_sys_loc;
 #define MAX(x,y) (((x)>(y))?(x):(y))
 
 
+syscall_func_t filefops_table[4] = {(syscall_func_t)fs_open_file, 
+                                    (syscall_func_t)fs_read_file,
+                                    (syscall_func_t)fs_write_file,
+                                    (syscall_func_t)fs_close_file};
+
+syscall_func_t dirfops_table[4] = {(syscall_func_t)fs_open_dir, 
+                                   (syscall_func_t)fs_read_dir,
+                                   (syscall_func_t)fs_write_dir,
+                                   (syscall_func_t)fs_close_dir};
+
+
 /*
  * fs_open_file
  * DESCRIPTION: opens specified file from filesystem
