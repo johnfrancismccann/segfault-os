@@ -17,10 +17,15 @@
 #define PG_DIR_ALIGN            0x1000
 
 #define FOUR_MB                 0x400000
+#define EIGHT_MB								800000
 #define FOUR_GB                 0x100000000
 
 extern void init_paging();
-uint32_t get_proc_page_dir(uint32_t* proc_page_dir, uint32_t phys_addr, uint32_t virt_addr);
+uint32_t get_proc_page_dir(uint32_t* proc_page_dir, 
+													 uint32_t phys_addr,
+													 uint32_t virt_addr);
+
+void set_CR3(uint32_t page_dir_address);
 
 /* page directory memory */
 unsigned int page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));

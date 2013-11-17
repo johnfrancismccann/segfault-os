@@ -12,5 +12,6 @@ void test_rwrtc();
 void test_div0();
 void test_pagef();
 void test_syscall();
+void test_sys_exec();
 
 #endif

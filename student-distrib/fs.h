@@ -33,6 +33,8 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t * dentry);
 
 int32_t read_data (uint32_t inode, uint32_t offset, uint8_t * buf, uint32_t length);
 
+int32_t load_file(const uint8_t* filename, void* buf, int32_t nbytes);
+
 syscall_func_t filefops_table[4];
 
 syscall_func_t dirfops_table[4];
