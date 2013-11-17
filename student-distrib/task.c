@@ -23,7 +23,7 @@
  *               -1 on failure
  *  SIDE EFFECTS: modify contents in TSS structure
  */
-int task_execute(struct_task cur_task){
+int task_execute(){
     //call the loader function first
 	int8_t buf;
 	//modify some values according to the first 40 bytes if the file, modify the stack(the paras are in TSS)
