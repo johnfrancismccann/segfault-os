@@ -14,10 +14,29 @@
  *Then the program image must be copied to the correct offset(0x00048000) within that page
  */
 
-//to load TSS, load the address of TSS descriptor to TR(Task Register)
-//asm code is LTR
-void task_execute(struct_task cur_task){
+/*
+ * task_execute
+ *  DESCRIPTION: execute the task 
+ *  INPUTS: size: cur_task: the tusk to be executed
+ *  OUTPUTS: none
+ *  RETURN VALUE: 1 on success; 
+ *               -1 on failure
+ *  SIDE EFFECTS: modify contents in TSS structure
+ */
+int task_execute(struct_task cur_task){
+    //call the loader function first
+	int8_t buf;
+	//modify some values according to the first 40 bytes if the file, modify the stack(the paras are in TSS)
 
+    //modify TSS	
+	
+	
+    if (sys_execute() == -1)
+	    return -1;
+	    //kill the task
+	
+	//return success if no exceptions
+	return 1;
 }
 
 /*
