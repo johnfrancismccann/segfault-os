@@ -14,6 +14,9 @@
  *Then the program image must be copied to the correct offset(0x00048000) within that page
  */
 
+#define EIP_START 24
+#define EIP_SIZE 4
+ 
 /*
  * task_execute
  *  DESCRIPTION: execute the task 
@@ -25,15 +28,26 @@
  */
 int task_execute(){
     //call the loader function first
-	int8_t buf;
-	//modify some values according to the first 40 bytes if the file, modify the stack(the paras are in TSS)
+	int8_t buf[5000];//CHANGE THIS!!
+	//call_loader(buf);
 
-    //modify TSS	
+	int8_t _24_to_27[EIP_SIZE];
+    int i;//iterator
+	//copy the new EIP value to the temp buffer
+	for (i = 0; i < EIP_SIZE; i++)
+        _24_to_27[i] = buf[EIP_START+i];
+		
+	int8_t* asm_input = _24_to_27;
 	
+	//modify some values according to the first 40 bytes if the file, modify the stack(the paras are in TSS)
+    //thigs to set: EIP,CS,EFLAGS,ESP,SS
+
+	
+    //modify TSS	
+	//tss;//this is the extern tss defined in x86_desc.h
 	
     if (sys_execute() == -1)
-	    return -1;
-	    //kill the task
+	    return -1;//kill the task
 	
 	//return success if no exceptions
 	return 1;
