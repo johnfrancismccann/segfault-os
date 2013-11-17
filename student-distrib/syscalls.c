@@ -9,7 +9,9 @@
 #if 1  /*track current process. commented to prevent warnings */
     pcb_t* pcbs[MAX_PROCESSES];
     int32_t curprocess = -1;
-#endif 
+#endif
+
+file_desc_t* cur_file = NULL;
 
 /*
  *
@@ -36,17 +38,27 @@ int32_t sys_execute(const uint8_t* command)
    sys_open */
 int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
 {
+    //Return error on invalid argument
     if(buf == NULL)
         return -1;
+    //Error on out-of-range fd
+    if(fd < 0 || fd >= MAX_OPEN_FILES)
+        return -1;
+    //Error on invalid PCB for process
+    if(pcbs[curprocess] == NULL)
+        return -1;
+    //Error on unopened file
+    if((pcbs[curprocess]->available_fds & (1 << fd)) == 0)
+        return -1;
+    //Error on negative number of bytes
+    if(nbytes < 0)
+        return -1;
+    //Set current file for read function to use
+    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
+    //Call read function
+    return((syscall_read_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_READ]))
+            (buf,nbytes);
     printf("This is the %s call\n",__func__);
-    printf("First arg: %d\nSecond arg: %s\nThird arg: %d\n", fd, buf, nbytes);
-    return -1;
-
-#if 0 /* prevent warnings */
-    /* call the read function corresponding to the file type specified by fd */
-    return ((syscall_read_t)(current_pcb->file_desc_arr[fd].file_ops_table[1]))
-                 (buf, nbytes);
-#endif
 }
 
 /*
@@ -57,13 +69,24 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
     //Return error on invalid argument
     if(buf == NULL)
         return -1;
+    //Error on out-of-range fd
+    if(fd < 0 || fd >= MAX_OPEN_FILES)
+        return -1;
+    //Error on invalid PCB for process
+    if(pcbs[curprocess] == NULL)
+        return -1;
+    //Error on unopened file
+    if((pcbs[curprocess]->available_fds & (1 << fd)) == 0)
+        return -1;
+    //Error on negative number of bytes
+    if(nbytes < 0)
+        return -1;
+    //Set current file for read function to use
+    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
+    //Call read function
+    return((syscall_write_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_WRITE]))
+            (buf,nbytes);
     printf("This is the %s call\n",__func__);
-    return -1;
-#if 0 /* prevent warnings */
-    /* call the write function corresponding to the file type specified by fd */
-    return ((syscall_write_t)(current_pcb->file_desc_arr[fd].file_ops_table[2]))
-                 (buf, nbytes);
-#endif
 }
 
 /*
@@ -116,6 +139,7 @@ int32_t sys_open(const uint8_t* filename)
             return -1;
     }
     //Attempt to open file
+    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
     int32_t retval = ((syscall_open_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_OPEN]))(NULL);
     if(retval == -1)
     {
@@ -123,6 +147,10 @@ int32_t sys_open(const uint8_t* filename)
         pcbs[curprocess]->available_fds &= (!(1 << fd));
         return -1;
     }
+    //Set iNode, beginning of file, and in use
+    pcbs[curprocess]->file_desc_arr[fd].inode_ptr = myfiledentry.index_node;
+    pcbs[curprocess]->file_desc_arr[fd].file_pos = 0;
+    pcbs[curprocess]->file_desc_arr[fd].flags = 1;
     return fd;
 }
 
@@ -136,9 +164,22 @@ int32_t sys_close(int32_t fd)
     if(fd < 0 || fd >= MAX_OPEN_FILES)
         return -1;
     //Error on invalid PCB for process
-    if(pcbs[(uint32_t)curprocess] == NULL)
+    if(pcbs[curprocess] == NULL)
         return -1;
-    return -1;
+    //Error on unopened file
+    if((pcbs[curprocess]->available_fds & (1 << fd)) == 0)
+        return -1;
+    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
+    int32_t retval = ((syscall_open_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_CLOSE]))(NULL);
+    //Error on failed close; must undo mark as available fd
+    if(retval == -1)
+    {
+        pcbs[curprocess]->available_fds |= (1 << fd);
+        return -1;
+    }
+    //mark as unused
+    pcbs[curprocess]->file_desc_arr[fd].flags = 0;
+    return retval;
 }
 
 /*

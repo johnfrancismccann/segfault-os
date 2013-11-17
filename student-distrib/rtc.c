@@ -16,7 +16,6 @@
 
 //Flag indicating an interrupt has occured
 uint8_t interrupt_flag;
-uint8_t am_i_open_yet = NO;
 
 syscall_func_t rtcfops_table[4] = {(syscall_func_t)rtc_open, 
                                    (syscall_func_t)rtc_read,
@@ -66,8 +65,6 @@ void init_rtc()
     //Unmask RTC interrupts
     enable_irq(RTC_IRQ_NUM);
     enable_irq(PIC_CHAIN_IRQ);
-    //Mark as initialized
-    am_i_open_yet = YES;
     //Restore flags
     restore_flags(flags);
 }
@@ -105,8 +102,7 @@ void rtc_idt_handle()
  */
 int32_t rtc_open()
 {
-    if(am_i_open_yet == NO)
-        init_rtc();
+    init_rtc();
     return 0;
 }
 
@@ -123,9 +119,6 @@ int32_t rtc_open()
  */
 int32_t rtc_read(int32_t* buffer, int32_t nbytes)
 {
-    //Don't wait on unopened RTC
-    if(am_i_open_yet == NO)
-        return -1;
     //reset interrupt_flag to wait for interrupt
     interrupt_flag &= 0;
     //wait for interrupt
@@ -152,9 +145,6 @@ int32_t rtc_write(void* buffer, int32_t nbytes)
     uint8_t rate = 0;
     uint32_t flags;
     if(buffer == NULL)
-        return -1;
-    //Don't set on unopened RTC
-    if(am_i_open_yet == NO)
         return -1;
     int32_t freq = *((int32_t*) buffer);
     //Error if more or less than 1 byte is requested to write
@@ -205,7 +195,6 @@ int32_t rtc_write(void* buffer, int32_t nbytes)
 int32_t rtc_close()
 {
     int32_t frequency = 2;
-    if(am_i_open_yet == YES)
-        rtc_write(&frequency, 1);
+    rtc_write(&frequency, 1);
     return 0;
 }
