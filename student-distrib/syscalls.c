@@ -172,11 +172,12 @@ int32_t sys_open(const uint8_t* filename)
     }
     //Attempt to open file
     cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
-    int32_t retval = ((syscall_open_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_OPEN]))(NULL);
+    int32_t retval = ((syscall_open_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_OPEN]))
+                     (filename);
     if(retval == -1)
     {
         //on failure, release assigned fd and return error.
-        pcbs[curprocess]->available_fds &= (!(1 << fd));
+        pcbs[curprocess]->available_fds &= (~(1 << fd));
         return -1;
     }
     //Set iNode, beginning of file, and in use
@@ -206,8 +207,10 @@ int32_t sys_close(int32_t fd)
     //Error on unopened file
     if((pcbs[curprocess]->available_fds & (1 << fd)) == 0)
         return -1;
+    pcbs[curprocess]->available_fds &= (~(1 << fd));
     cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
-    int32_t retval = ((syscall_open_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_CLOSE]))(NULL);
+    int32_t retval = ((syscall_close_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_CLOSE]))
+                      (fd);
     //Error on failed close; must undo mark as available fd
     if(retval == -1)
     {
