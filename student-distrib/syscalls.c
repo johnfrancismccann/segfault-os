@@ -2,8 +2,11 @@
 #include "types.h"
 #include "fs.h"
 
-#if 0  /*track current process. commented to prevent warnings */
-static pcb_t* current_pcb=NULL;
+#define MAX_PROCESSES 2
+
+#if 1  /*track current process. commented to prevent warnings */
+    pcb_t* pcbs[MAX_PROCESSES];
+    int8_t curprocess = -1;
 #endif 
 
 /*
@@ -28,6 +31,9 @@ int32_t sys_execute(void)
     //Load arguments from registers
     //System calls can't use normal c calling convention
     asm("\t movl %%ebx,%0" : "=r"(command));
+    //Return error on invalid argument
+    if(command == NULL)
+        return -1;
     printf("This is the %s call\n",__func__);
     return -1;
 }
@@ -44,6 +50,9 @@ int32_t sys_read(void)
     asm("\t movl %%ebx,%0 \n"
         "\t movl %%ecx,%1 \n"
         "\t movl %%edx,%2" : "=r"(fd), "=r"(buf), "=r"(nbytes));
+    //Return error on invalid argument
+    if(buf == NULL)
+        return -1;
     printf("This is the %s call\n",__func__);
     return -1;
 #if 0 /* prevent warnings */
@@ -66,6 +75,9 @@ int32_t sys_write(void)
     asm("\t movl %%ebx,%0 \n"
         "\t movl %%ecx,%1 \n"
         "\t movl %%edx,%2" : "=r"(fd), "=r"(buf), "=r"(nbytes));
+    //Return error on invalid argument
+    if(buf == NULL)
+        return -1;
     printf("This is the %s call\n",__func__);
     return -1;
 #if 0 /* prevent warnings */
@@ -86,16 +98,22 @@ int32_t sys_open(void)
     //System calls can't use normal c calling convention
     asm("\t movl %%ebx,%0" : "=r"(filename));
     printf("This is the %s call\n",__func__);
+    //Return error on invalid argument
+    if(filename == NULL || curprocess < 0 || curprocess > MAX_PROCESSES)
+        return -1;
+    //Error on invalid PCB for process
+    if(pcbs[curprocess] == NULL)
+        return -1;
     read_dentry_by_name(filename, &myfiledentry);
     switch(myfiledentry.ftype)
     {
-        case 0:
+        case TYPE_USER:
             printf("RTC file\n");
             return 0;
-        case 1:
+        case TYPE_DIR:
             printf("Directory file \n");
             return 0;
-        case 2:
+        case TYPE_REG:
             printf("Regular file \n");
             return 0;
         default:
@@ -129,6 +147,9 @@ int32_t sys_getargs(void)
     //System calls can't use normal c calling convention
     asm("\t movl %%ebx,%0\n"
         "\t movl %%ecx,%1" : "=r"(buf), "=r"(nbytes));
+    //Return error on invalid argument
+    if(buf == NULL)
+        return -1;
     printf("This is the %s call\n",__func__);
     return -1;   
 }
@@ -142,6 +163,11 @@ int32_t sys_vidmap(void)
     //Load arguments from registers
     //System calls can't use normal c calling convention
     asm("\t movl %%ebx,%0" : "=r"(screen_start));
+    //Return error on invalid argument
+    if(screen_start == NULL)
+        return -1;
+    else if(*screen_start == NULL)
+        return -1;
     printf("This is the %s call\n",__func__);
     return -1;
 }
@@ -157,6 +183,9 @@ int32_t sys_set_handler(void)
     //System calls can't use normal c calling convention
     asm("\t movl %%ebx,%0\n"
         "\t movl %%ecx,%1" : "=r"(signum), "=r"(handler_address));
+    //Return error on invalid argument
+    if(handler_address == NULL)
+        return -1;
     printf("This is the %s call\n",__func__);
     return -1;   
 }
