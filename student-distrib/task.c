@@ -25,22 +25,23 @@
  */
 int task_execute(){
     //call the loader function first
-	int8_t buf[5000];//CHANGE THIS!!
+	uint8_t buf[5000];//CHANGE THIS!!
 	//call_loader(buf);
 
-	int8_t _24_to_27[EIP_SIZE];
+	uint8_t _24_to_27[EIP_SIZE];
     int i;//iterator
 	//copy the new EIP value to the temp buffer
 	for (i = 0; i < EIP_SIZE; i++)
         _24_to_27[i] = buf[EIP_START+i];
 		
-	int8_t* new_eip = _24_to_27;
+	uint8_t* new_eip = _24_to_27;
 	
 	//modify some values according to the first 40 bytes if the file
     //thigs to set: EIP,CS,EFLAGS,ESP,SS	
     //modify TSS	
-	//tss.ESP = ;
-	//tss.SS = ;//I don't know where these values come from
+	tss.eip = (uint32_t)new_eip;
+	//tss.esp = ;
+	//tss.ss = ;//I don't know where these values come from
 	
 	//do the system call after everything is set up
     if (sys_execute() == -1)
