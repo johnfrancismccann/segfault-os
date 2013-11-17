@@ -15,7 +15,6 @@
  */
 void enable_paging()
 {
-        
     asm volatile(
                 /* load address of page directory into CR3 */
                 "movl %0, %%cr3\n\t"
@@ -39,8 +38,8 @@ void enable_paging()
  *  DESCRIPTION: initialize a page directory and page table so 
  *               that the first 4MB (not including the first 4KB) of 
  *               virtual memory is directly mapped to physical 
- *                           memory and broken into 1024 4 KB pages. the 
- *                           second 4 MB of virtual memory is also directly
+ *               memory and broken into 1024 4 KB pages. the 
+ *               second 4 MB of virtual memory is also directly
  *               mapped to physical memory, but is broken into 
  *               into one 4 MB page.
  *  INPUTS: none
@@ -59,12 +58,12 @@ void init_paging()
     unsigned int i;
         
     /* initialize first page to not present, but r/w */ 
-    page_table[0] = SET_PAGE_RW;    
+    page_table[0] = SET_PAGE_RW;
     /* initialize page_table to contain contiguous 4MB block of memory */
-    for(i=1; i<PAGE_TABLE_SIZE; i++) 
+    for(i=1; i<PAGE_TABLE_SIZE; i++)
         page_table[i] = ((PAGE_SIZE_4K*i) | (SET_PAGE_PRES | SET_PAGE_RW));
 
-    /* initialize video directory entry with page_table and set to present, r/w */
+    /* initialize video directory entry with page_table and set to present, r/w (pages 4kB by default) */
     video_dir = (unsigned int)page_table;
     video_dir |= (SET_PAGE_PRES | SET_PAGE_RW);
     
@@ -87,5 +86,25 @@ void init_paging()
     enable_paging();
 }
 
+/*
+ * get_proc_page_dir
+ *  DESCRIPTION: map physical to virtual address in process page directory
+ *  INPUTS: process page directory, real (physical) address, virtual address
+ *  OUTPUTS: none
+ *  RETURN VALUE: -1 if error
+ *  SIDE EFFECTS: new page in page directory for program
+ */
+uint32_t get_proc_page_dir(uint32_t* proc_page_dir, uint32_t phys_addr, uint32_t virt_addr)
+{
+    uint32_t new_dir; //new directory for user-level program
 
+    if(proc_page_dir == NULL || phys_addr < 0 || virt_addr < 0)
+        return -1;
 
+    new_dir = phys_addr;
+    /* set new directory as 4MB page, user, present, r/w */
+    new_dir |= (SET_PAGE_4MB | SET_PAGE_USER | SET_PAGE_PRES | SET_PAGE_RW);
+    proc_page_dir[virt_addr/FOUR_MB] = new_dir;
+
+    return 0;
+}

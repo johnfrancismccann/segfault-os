@@ -313,6 +313,7 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     int i; //loop iterator
     char* buf = (char*) wrt_buf;
     if(buf[0] == '\0') return 0;
+    cli(); //clear interrupts to ensure buffer correctly printed to screen
     for(i = 0; i < bytes; i++) {
         switch(buf[i]) {
             case '\0': break;
@@ -328,6 +329,7 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
         }
         check_scroll(print_idx);
     }
+    sti();
     update_cursor(print_idx);
     return bytes;
  }

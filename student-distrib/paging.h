@@ -1,36 +1,26 @@
+#include "types.h"
+
 #ifndef PAGING_H
 #define PAGING_H
 
-#define PAGE_DIR_SIZE           0x400
+#define PAGE_DIR_SIZE           0x400 //1KB
 #define PAGE_TABLE_SIZE         0x400
-#define PAGE_SIZE_4K                0x1000
-#define KERNEL_LOAD_POINT   0x400000
+#define PAGE_SIZE_4K            0x1000 //4kB
+#define KERNEL_LOAD_POINT       0x400000 //4MB
 
-#define SET_PAGE_4MB                0x80
-#define SET_PAGE_RW                 0x2
-#define SET_PAGE_PRES               0x1
+#define SET_PAGE_4MB            0x80
+#define SET_PAGE_USER           0x4
+#define SET_PAGE_RW             0x2
+#define SET_PAGE_PRES           0x1
 
-#define PG_TBL_ALIGN 0x1000
-#define PG_DIR_ALIGN 0x1000
+#define PG_TBL_ALIGN            0x1000 //to align pages on 4kB boundaries
+#define PG_DIR_ALIGN            0x1000
 
-/*
- * init_paging
- *  DESCRIPTION: initialize a page directory and page table so 
- *               that the first 4MB (not including the first 4KB) of 
- *               virtual memory is directly mapped to physical 
- *               memory and broken into 1024 4 KB pages. the 
- *               second 4 MB of virtual memory is also directly
- *               mapped to physical memory, but is broken into 
- *               into one 4 MB page.
- *  INPUTS: none
- *  OUTPUTS: none
- *  RETURN VALUE: none
- *  SIDE EFFECTS: the first 8 MB of virtual memory(not including the 
- *                first 4 KB) are present within physical memory and 
- *                mapped directly to physical memory. the rest of memory 
- *                is not present within physical memory.
- */
+#define FOUR_MB                 0x400000
+#define FOUR_GB                 0x100000000
+
 extern void init_paging();
+uint32_t get_proc_page_dir(uint32_t* proc_page_dir, uint32_t phys_addr, uint32_t virt_addr);
 
 /* page directory memory */
 unsigned int page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
@@ -38,4 +28,3 @@ unsigned int page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
 unsigned int page_table[PAGE_TABLE_SIZE] __attribute__((aligned(PG_TBL_ALIGN)));
 
 #endif
-
