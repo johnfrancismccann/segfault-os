@@ -252,6 +252,43 @@ int32_t fs_close_dir()
     return 0;
 }
 
+/*
+ *
+ * 
+ */
+int32_t load_file(const uint8_t* filename, void* buf, int32_t nbytes)
+{
+    int32_t bytes_read;
+    dentry_t dentry;
+    int32_t search_res;
+    
+    /* check that buffer is valid */
+    if(buf == NULL)
+        return -1;  
+    /* check that instructed number of bytes to read is nonnegative */
+    if(nbytes < 0)
+        return -1;
+
+    /* try finding inode number of passed file */
+    search_res = read_dentry_by_name(filename, &dentry);
+    if(!search_res) {
+        /* check if filename is name of a directory */
+        if(dentry.ftype == TYPE_DIR)
+            /* if so, return failure */
+            return -1;  
+    }
+    else if(search_res == -1)
+        /* return failure if not found */
+        return -1;
+
+    /* read bytes from file */
+    bytes_read = read_data(dentry.index_node, 0, buf, (uint32_t)nbytes);
+    /* update offset if reading didn't fail */
+    
+    return bytes_read;              
+}
+
+
 
 /*
  * set_fs_loc

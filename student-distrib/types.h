@@ -41,6 +41,9 @@ typedef struct
 #define FOPS_WRITE 2
 #define FOPS_CLOSE 3
 
+#define STDIN   0
+#define STDOUT  1
+
 typedef struct
 {
     syscall_func_t* file_ops_table; 
@@ -48,7 +51,6 @@ typedef struct
     uint32_t file_pos;
     uint32_t flags;  
 } file_desc_t;
-
 
 #define MAX_OPEN_FILES 8
 #define MAX_ARG_BUFFER 128
