@@ -39,10 +39,7 @@ static uint8_t* file_sys_loc;
 
 #define MIN(x,y) (((x)<(y))?(x):(y))
 #define MAX(x,y) (((x)>(y))?(x):(y))
-/* file types */
-#define TYPE_USER 0
-#define TYPE_DIR 1
-#define TYPE_REG 2
+
 
 /*
  * fs_open_file
