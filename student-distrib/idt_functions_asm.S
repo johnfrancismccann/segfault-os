@@ -143,13 +143,16 @@ idt_system_call:
     movl $(KERNEL_DS), %ebx
     movl %ebx, %ds 
 #check requested system call number
-    cmpl    $10, %eax
-    jb      call_syscall  
+    cmpl    $11, %eax
+    jb      call_syscall
+    cmpl    $0, %eax
+    jg      call_syscall  
 # return failure if greater than or equal to number of system calls
     movl    $-1, %eax
     jmp     ret_to_user
 
 call_syscall:
+    decl %eax #change from 1-10 to 0-9
     call *syscall_table(,%eax,4)
 
 ret_to_user:
