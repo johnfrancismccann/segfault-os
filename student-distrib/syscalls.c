@@ -13,8 +13,8 @@
 pcb_t* pcbs[MAX_PROCESSES];
 int32_t curprocess = -1;
 
-//for testing with dysfunctional execute
-pcb_t blahprocess;
+pcbs[0] = (pcb_t*)(EIGHT_MB - sizeof(pcb_t));
+pcbs[1] = (pcb_t*)(pcbs[0] - EIGHT_KB - sizeof(pcb_t));
 
 file_desc_t* cur_file = NULL;
 
@@ -62,6 +62,12 @@ int32_t sys_execute(const uint8_t* command)
         pcbs[curprocess] = &blahprocess;
         pcbs[curprocess]->available_fds = 3;
     }
+    //Already have both processes running
+    if(curprocess = 1)
+        return -1;
+    else if(curprocess = 0)
+
+
 
     /* testing code below now */
     //Return error on invalid argument
@@ -79,9 +85,9 @@ int32_t sys_execute(const uint8_t* command)
     uint8_t temp_size;
     uint8_t* arguments[MAX_ARG_BUFFER];
     strcpy((int8_t*)mycommand, (const int8_t*)command);
-    strip_buf_whitespace(mycommand, &temp_size);
-    parse_command(mycommand, arguments, &temp_size);
-    uint32_t bytes_read = load_file(mycommand, (void*)prog_loc, MAX_PRGRM_SZ);
+    strip_buf_whitespace((uint8_t*)mycommand, &temp_size);
+    parse_command((uint8_t*)mycommand, (uint8_t*)arguments, &temp_size);
+    load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ);
 
     /* check for magic constant indicating executable file */
     if(((uint32_t*)prog_loc)[0] != ELF_MAG_NUM) {
@@ -94,7 +100,7 @@ int32_t sys_execute(const uint8_t* command)
     }
 
     //store arguments
-    strcpy(pcbs[curprocess]->arg_buffer, arguments);
+    strcpy((int8_t*)pcbs[curprocess]->arg_buffer, (const int8_t*)arguments);
     pcbs[curprocess]->arg_buffer_size = temp_size;
 
     /* initialize standard output */
