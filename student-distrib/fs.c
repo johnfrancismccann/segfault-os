@@ -364,7 +364,7 @@ int32_t read_dentry_by_name (const uint8_t * fname, dentry_t * dentry) {
     /* get number of entries in directory */
     num_dir_ent = ((uint32_t*)(file_sys_loc+FS_BT_IND*FS_BLK_SZ))[BT_NUM_DIR_IND];
     /* iterate through directory entries */
-    for(i=BT_DE_START_IND; i<num_dir_ent; i++) {
+    for(i=BT_DE_START_IND; i<=num_dir_ent; i++) {
         /* get location of directory entry for reference */
         dir_ent_loc = file_sys_loc+i*DE_ENT_SZ; 
         /* check if fname matches with iterated directory entry filename */
