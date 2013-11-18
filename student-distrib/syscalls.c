@@ -12,9 +12,10 @@
 /*track current process.*/
 pcb_t* pcbs[MAX_PROCESSES];
 int32_t curprocess = -1;
+pcb_t blahprocess;
 
-pcbs[0] = (pcb_t*)(EIGHT_MB - sizeof(pcb_t));
-pcbs[1] = (pcb_t*)(pcbs[0] - EIGHT_KB - sizeof(pcb_t));
+// pcbs[0] = (pcb_t*)(EIGHT_MB - sizeof(pcb_t));
+// pcbs[1] = (pcb_t*)(pcbs[0] - EIGHT_KB - sizeof(pcb_t));
 
 file_desc_t* cur_file = NULL;
 
@@ -63,9 +64,9 @@ int32_t sys_execute(const uint8_t* command)
         pcbs[curprocess]->available_fds = 3;
     }
     //Already have both processes running
-    if(curprocess = 1)
+    if(curprocess == 1)
         return -1;
-    else if(curprocess = 0)
+    else if(curprocess == 0);
 
 
 
