@@ -169,8 +169,19 @@ SOLUTION:   We were checking the magic number after loading the file, which coul
             on bad files.
 
 18.
+SYMPTOM:    The 'fish' program did not print anything to the screen.
+TIME SPENT: 2 hours
+SOLUTION:   When mapping a page to the physical address of video memory, an incorrect
+            address was used. The virtual address was used instead of the physical
+            address, which caused the memory to be mapped to an incorrect location
+            and never to be printed to the screen.
+
+19.
 SYMPTOM:
 TIME SPENT:
 SOLUTION:
 
-
+20.
+SYMPTOM:
+TIME SPENT:
+SOLUTION:

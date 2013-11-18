@@ -436,7 +436,55 @@ void test_pagef()
 void test_syscall()
 {
     clear();
+
+//new testing without inline assembly
 #if 1
+    uint8_t* vmem_base_addr;
+    int32_t retval;
+    // uint32_t y;
+    // uint32_t* addr = 0x8400000; //new VIRT_ADDR
+
+    printf("pre vmem_base_addr %#x\n", vmem_base_addr);
+    printf("pre *vmem_base_addr %#x\n", *vmem_base_addr);
+
+    retval = test_vidmap(&vmem_base_addr);
+    printf("post vmem_base_addr %#x\n", vmem_base_addr);
+    printf("post *vmem_base_addr %#x\n", *vmem_base_addr);
+    //y = (uint32_t) *(addr);
+#endif
+
+//original testing with inline assembly
+#if 0
+    uint8_t** pointer;
+    int32_t retval;
+    uint32_t y;
+    //uint32_t* addr = 10001000; //in new video memory block
+    //uint32_t* addr = 3145728; //3MB, in video block
+    uint32_t* addr = 5242880; //5MB, in kernel block
+
+    printf("pre pointer %d\n", pointer);
+    printf("pre *pointer %d\n", *pointer);
+
+    asm volatile(
+    "movl   $7, %%eax\n\t" //sys call num
+    "movl   %0, %%ebx\n\t" //1st arg
+    // "movl   %0, %%ecx\n\t" //2nd
+    // "movl   $128, %%edx\n\t" //3rd
+    "int    $0x80\n\t"
+    :
+    : "r"(pointer)
+    : "%eax","%ebx","%ecx","%edx"
+    );
+    asm("\tmovl %%eax, %0" : "=r"(retval));
+    printf("retval = %d\n",retval);
+    printf("post pointer %d\n", pointer);
+    printf("post *pointer %d\n", *pointer);
+    //printf("**pointer %d\n", *(*pointer));
+    y = (uint32_t) *(addr);
+#endif
+
+
+#if 0
     uint8_t* buffer[1024];
     uint8_t* filename = (uint8_t*)"rtc";
     test_execute(NULL);
@@ -475,9 +523,8 @@ void test_syscall()
         printf("%s\n",dir_buf);
         i++;
     }
-
-
 #endif
+
 #if 0
     i=2;
     uint8_t* buf = (uint8_t*)"hello";
