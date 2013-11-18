@@ -24,7 +24,7 @@ OBJS += $(patsubst %.c,%.o,$(filter %.c,$(SRC)))
 
 bootimg: Makefile $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -Ttext=0x400000 -o bootimg
-	./debug.sh
+	sh debug.sh
 
 dep: Makefile.dep
 
