@@ -8,6 +8,7 @@
 #define PAGE_SIZE_4K            0x1000 //4kB
 #define KERNEL_LOAD_POINT       0x400000 //4MB
 
+#define SET_PAGE_GLOBAL         0x100
 #define SET_PAGE_4MB            0x80
 #define SET_PAGE_USER           0x4
 #define SET_PAGE_RW             0x2
