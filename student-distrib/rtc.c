@@ -147,8 +147,8 @@ int32_t rtc_write(void* buffer, int32_t nbytes)
     if(buffer == NULL)
         return -1;
     int32_t freq = *((int32_t*) buffer);
-    //Error if more or less than 1 byte is requested to write
-    if(nbytes != 1)
+    //Error if negative bytes
+    if(nbytes < 1)
         return -1;
     //Don't set if outside valid frequency range
     if(freq > MAXFREQ || freq < MINFREQ)

@@ -5,6 +5,7 @@
 #include "rtc.h"
 #include "paging.h"
 #include "x86_desc.h"
+#include "test_syscalls.h"
 
 #define MAX_PROCESSES 2
 
@@ -18,6 +19,7 @@ pcb_t blahprocess;
 file_desc_t* cur_file = NULL;
 
 void strip_buf_whitespace(uint8_t* buf, uint8_t* size);
+void parse_command(uint8_t* command, uint8_t* args, uint8_t* size);
 
 
 /*
@@ -30,7 +32,8 @@ void strip_buf_whitespace(uint8_t* buf, uint8_t* size);
  */
 int32_t sys_halt(uint8_t status)
 {
-    printf("This is the %s call\n",__func__);
+    test_execute((uint8_t*)"shell");
+    // printf("This is the %s call\n",__func__);
     while(1);
     return -1;
 }
@@ -64,7 +67,7 @@ int32_t sys_execute(const uint8_t* command)
     //Return error on invalid argument
     if(command == NULL)
         return -1;
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
 
     /* set location of program image */
     uint32_t prog_loc = USR_PRGRM_VIRT_LC;
@@ -72,20 +75,34 @@ int32_t sys_execute(const uint8_t* command)
     get_proc_page_dir(proc_page_dir, EIGHT_MB, MB_128);
     set_CR3((uint32_t)proc_page_dir);
     /* load file into contiguous memory */
-    uint32_t bytes_read = load_file(command, (void*)prog_loc, MAX_PRGRM_SZ);
+    uint8_t* mycommand[MAX_ARG_BUFFER];
+    uint8_t temp_size;
+    uint8_t* arguments[MAX_ARG_BUFFER];
+    strcpy((int8_t*)mycommand, (const int8_t*)command);
+    strip_buf_whitespace(mycommand, &temp_size);
+    parse_command(mycommand, arguments, &temp_size);
+    uint32_t bytes_read = load_file(mycommand, (void*)prog_loc, MAX_PRGRM_SZ);
 
     /* check for magic constant indicating executable file */
     if(((uint32_t*)prog_loc)[0] != ELF_MAG_NUM) {
-        printf("Magic number not found\n");
+        // printf("Magic number not found\n");
         return -1;
     }
     else {
-        printf("Magic number: %u\n", ((uint32_t*)prog_loc)[0]);
-        printf("Bytes read: %u\n", bytes_read);
+        // printf("Magic number: %u\n", ((uint32_t*)prog_loc)[0]);
+        // printf("Bytes read: %u\n", bytes_read);
     }
+
+    //store arguments
+    strcpy(pcbs[curprocess]->arg_buffer, arguments);
+    pcbs[curprocess]->arg_buffer_size = temp_size;
 
     /* initialize standard output */
     pcbs[curprocess]->file_desc_arr[STDOUT].file_ops_table = termfops_table;
+    pcbs[curprocess]->file_desc_arr[STDIN].file_ops_table = termfops_table;
+    pcbs[curprocess]->available_fds = 3;
+    pcbs[curprocess]->file_desc_arr[STDOUT].flags = 1;
+    pcbs[curprocess]->file_desc_arr[STDIN].flags = 1;
     /* initialize kernel stack for when user program makes system call */
     tss.esp0 = 0x7FFFFC; 
     tss.ss0 =  KERNEL_DS;
@@ -127,7 +144,7 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
     //Call read function
     return((syscall_read_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_READ]))
             (buf,nbytes);
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
 }
 
 /*
@@ -160,7 +177,7 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
     //Call read function
     return((syscall_write_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_WRITE]))
             (buf,nbytes);
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
 }
 
 /*
@@ -174,7 +191,7 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 int32_t sys_open(const uint8_t* filename)
 {
     dentry_t myfiledentry;
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
     //Return error on invalid argument
     if(filename == NULL || curprocess < 0 || curprocess > MAX_PROCESSES)
         return -1;
@@ -244,7 +261,7 @@ int32_t sys_open(const uint8_t* filename)
  */
 int32_t sys_close(int32_t fd)
 {
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
     //Error on out-of-range fd
     if(fd < 0 || fd >= MAX_OPEN_FILES)
         return -1;
@@ -292,8 +309,8 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
     if(pcbs[curprocess]->arg_buffer_size > nbytes)
         return -1;
     strcpy((int8_t*) buf, (int8_t*) pcbs[curprocess]->arg_buffer);
-    printf("This is the %s call\n",__func__);
-    return -1;   
+    // printf("This is the %s call\n",__func__);
+    return 0;   
 }
 
 /*
@@ -311,7 +328,7 @@ int32_t sys_vidmap(uint8_t** screen_start)
         return -1;
     else if(*screen_start == NULL)
         return -1;
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
     return -1;
 }
 
@@ -328,7 +345,7 @@ int32_t sys_set_handler(int32_t signum, void* handler_address)
     //Return error on invalid argument
     if(handler_address == NULL)
         return -1;
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
     return -1;   
 }
 
@@ -342,7 +359,7 @@ int32_t sys_set_handler(int32_t signum, void* handler_address)
  */ 
 int32_t sys_sigreturn(void)
 {
-    printf("This is the %s call\n",__func__);
+    // printf("This is the %s call\n",__func__);
     return -1;   
 }
 
@@ -357,7 +374,7 @@ int32_t sys_sigreturn(void)
 void strip_buf_whitespace(uint8_t* buf, uint8_t* size)
 {
     //Exit on invalid buffer
-    if(buf == NULL)
+    if(buf == NULL || size ==NULL)
         return;
     uint8_t tempbuf[MAX_ARG_BUFFER];
     (*size) = 0;
@@ -382,6 +399,45 @@ void strip_buf_whitespace(uint8_t* buf, uint8_t* size)
     tempbuf[*size] = '\0';
     //Copy over to actual buffer for output
     strcpy((int8_t*)buf, (int8_t*)tempbuf);
+    //Increase size to reflect presence of null terminator
+    (*size)++;
+}
+
+/*
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ */
+void parse_command(uint8_t* command, uint8_t* args, uint8_t* size)
+{
+    //Exit on invalid buffer
+    if(command == NULL || args == NULL || size == NULL)
+        return;
+    (*size) = 0;
+    int i=0;
+    //First word becomes command
+    while(command[i] != ' ' && command[i] != '\n') i++;
+    //copy up to MAX_ARG_BUFFER characters into temporary buffer
+    //starting after preceding spaces.
+    while(i < MAX_ARG_BUFFER)
+    {
+        if(command[i] == '\0' || command[i] == '\n')
+            break;
+        args[*size] = command[i];
+        command[i] = '\0';
+        (*size)++;
+        i++;
+    }
+    //Add ending null character
+    if(*size >= MAX_ARG_BUFFER)
+    {
+        *size = MAX_ARG_BUFFER - 1;
+    }
+    args[*size] = '\0';
+    command[i] = '\0';
     //Increase size to reflect presence of null terminator
     (*size)++;
 }
