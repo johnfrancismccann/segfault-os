@@ -19,8 +19,8 @@ pcb_t blahprocess;
 
 file_desc_t* cur_file = NULL;
 
-void strip_buf_whitespace(uint8_t* buf, uint8_t* size);
-void parse_command(uint8_t* command, uint8_t* args, uint8_t* size);
+void strip_buf_whitespace(int8_t* buf, uint8_t* size);
+void parse_command(int8_t* command, int8_t* args, uint8_t* size);
 
 
 /*
@@ -82,12 +82,12 @@ int32_t sys_execute(const uint8_t* command)
     get_proc_page_dir(proc_page_dir, EIGHT_MB, MB_128);
     set_CR3((uint32_t)proc_page_dir);
     /* load file into contiguous memory */
-    uint8_t* mycommand[MAX_ARG_BUFFER];
+    int8_t* mycommand[MAX_ARG_BUFFER];
     uint8_t temp_size;
-    uint8_t* arguments[MAX_ARG_BUFFER];
+    int8_t* arguments[MAX_ARG_BUFFER];
     strcpy((int8_t*)mycommand, (const int8_t*)command);
-    strip_buf_whitespace((uint8_t*)mycommand, &temp_size);
-    parse_command((uint8_t*)mycommand, (uint8_t*)arguments, &temp_size);
+    strip_buf_whitespace((int8_t*)mycommand, &temp_size);
+    parse_command((int8_t*)mycommand, (int8_t*)arguments, &temp_size);
     load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ);
 
     /* check for magic constant indicating executable file */
@@ -311,7 +311,7 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
         return -1;
     //Prep buffer for delivery by removing preceding whitespace
     //and counting size of buffer
-    strip_buf_whitespace(pcbs[curprocess]->arg_buffer, &pcbs[curprocess]->arg_buffer_size);
+    strip_buf_whitespace((int8_t*)pcbs[curprocess]->arg_buffer, &pcbs[curprocess]->arg_buffer_size);
     //Error on larger buffer than can fit
     if(pcbs[curprocess]->arg_buffer_size > nbytes)
         return -1;
@@ -378,7 +378,7 @@ int32_t sys_sigreturn(void)
  *   RETURN VALUE:
  *   SIDE EFFECTS:
  */
-void strip_buf_whitespace(uint8_t* buf, uint8_t* size)
+void strip_buf_whitespace(int8_t* buf, uint8_t* size)
 {
     //Exit on invalid buffer
     if(buf == NULL || size ==NULL)
@@ -418,7 +418,7 @@ void strip_buf_whitespace(uint8_t* buf, uint8_t* size)
  *   RETURN VALUE:
  *   SIDE EFFECTS:
  */
-void parse_command(uint8_t* command, uint8_t* args, uint8_t* size)
+void parse_command(int8_t* command, int8_t* args, uint8_t* size)
 {
     //Exit on invalid buffer
     if(command == NULL || args == NULL || size == NULL)
