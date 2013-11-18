@@ -93,7 +93,7 @@ int32_t sys_execute(const uint8_t* command)
     //Error on inability to open filename
     file_desc_t temp_file;
     cur_file = &temp_file;
-    if(-1 == fs_open_file((uint8_t*)command))
+    if(-1 == fs_open_file((uint8_t*)mycommand))
         return -1;
 
     //Error on inability to read file
