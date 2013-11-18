@@ -14,6 +14,7 @@
 #include "terminal.h"
 #include "fs.h"
 #include "tests.h"
+#include "test_syscalls.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -223,9 +224,11 @@ entry (unsigned long magic, unsigned long addr)
 #if TEST_SYSCALL_EXEC
     test_sys_exec();
 #endif
-    term_close();
 
     /* Execute the first program (`shell') ... */
+    clear();
+    uint8_t* command = (uint8_t*) "shell";
+    test_execute(command);
 
     /* Spin (nicely, so we don't chew up cycles) */
     asm volatile(".1: hlt; jmp .1;");

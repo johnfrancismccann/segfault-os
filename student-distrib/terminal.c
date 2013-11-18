@@ -50,7 +50,7 @@ int32_t term_close() {
  */
 int32_t term_read(void* read_ptr, int32_t nbytes) {
     if(read_ptr == NULL) return -1;
-    if(nbytes > BUF_SIZE) return -1;
+    // if(nbytes > BUF_SIZE) return -1;
     int bytes_copied;
 
     bytes_copied = get_read_buf(read_ptr, nbytes);
