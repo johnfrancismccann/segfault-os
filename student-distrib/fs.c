@@ -273,7 +273,7 @@ int32_t load_file(const int8_t* filename, void* buf, int32_t nbytes)
     search_res = read_dentry_by_name((uint8_t*)filename, &dentry);
     if(!search_res) {
         /* check if filename is name of a directory */
-        if(dentry.ftype == TYPE_DIR)
+        if(dentry.ftype != TYPE_REG)
             /* if so, return failure */
             return -1;  
     }
