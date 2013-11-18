@@ -8,6 +8,8 @@
 #include "test_syscalls.h"
 
 #define MAX_PROCESSES 2
+//#define VID_VIRT_ADDR           0x10000000 //256 MB
+#define VID_VIRT_ADDR 0x8400000 //132MB
 
 /*track current process.*/
 pcb_t* pcbs[MAX_PROCESSES];
@@ -136,7 +138,7 @@ int32_t sys_execute(const uint8_t* command)
     /* initialize kernel stack for when user program makes system call */
     tss.esp0 = 0x7FFFFC;
     tss.ss0 =  KERNEL_DS;
-    
+
     /* pass location of user program's first instruction to be executed 
        and jump to procedure to issue iret */
     asm volatile(
@@ -366,6 +368,11 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
     return 0;   
 }
 
+/* page directory memory */
+    uint32_t vid_pg_dir_ent;
+    /* page table for first 4MB of memory */
+    uint32_t vid_pg_tbl[PAGE_TABLE_SIZE] __attribute__((aligned(PG_TBL_ALIGN))); //needs to be static so can align properly (so that not placed on stack)
+
 /*
  * sys_vidmap
  *   DESCRIPTION: maps video memory for user program use.
@@ -377,13 +384,19 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
  */
 int32_t sys_vidmap(uint8_t** screen_start)
 {
-    //Return error on invalid argument
-    if(screen_start == NULL)
-        return -1;
-    else if(*screen_start == NULL)
-        return -1;
-    // printf("This is the %s call\n",__func__);
-    return -1;
+    uint32_t video_virt_addr = (uint32_t) VID_VIRT_ADDR; //virtual address of video memory
+
+    vid_pg_tbl[0] = VIDEO | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
+
+    /* add page mapping for video memory */
+    vid_pg_dir_ent = (uint32_t)vid_pg_tbl;
+    vid_pg_dir_ent |= (SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER);
+
+    proc_page_dir[curprocess][video_virt_addr/FOUR_MB] = (uint32_t) vid_pg_dir_ent;
+
+    *screen_start = (uint8_t*) VID_VIRT_ADDR;
+
+    return 0;
 }
 
 /*
