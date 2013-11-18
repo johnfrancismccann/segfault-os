@@ -39,7 +39,7 @@ int32_t sys_halt(uint8_t status)
     return -1;
 }
 
-uint32_t proc_page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
+uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
 #define MB_128              0x8000000
 #define USR_PRGRM_VIRT_LC   MB_128+0x48000
 #define MAX_PRGRM_SZ        FOUR_MB
@@ -79,8 +79,8 @@ int32_t sys_execute(const uint8_t* command)
     /* set location of program image */
     uint32_t prog_loc = USR_PRGRM_VIRT_LC;
     /* set up paging for process */
-    get_proc_page_dir(proc_page_dir, EIGHT_MB, MB_128);
-    set_CR3((uint32_t)proc_page_dir);
+    get_proc_page_dir(proc_page_dir[curprocess], EIGHT_MB, MB_128);
+    set_CR3((uint32_t)proc_page_dir[curprocess]);
     /* load file into contiguous memory */
     int8_t* mycommand[MAX_ARG_BUFFER];
     uint8_t temp_size;
@@ -220,7 +220,9 @@ int32_t sys_open(const uint8_t* filename)
     //failed to find empty file descriptor
     if(fd == -1)
         return -1;
-    read_dentry_by_name(filename, &myfiledentry);
+
+    if(-1 == read_dentry_by_name(filename, &myfiledentry))
+        return -1;
     switch(myfiledentry.ftype)
     {
         case TYPE_USER:
