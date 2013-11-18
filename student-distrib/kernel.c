@@ -226,9 +226,14 @@ entry (unsigned long magic, unsigned long addr)
 #endif
 
     /* Execute the first program (`shell') ... */
-    clear();
-    uint8_t* command = (uint8_t*) "shell";
-    test_execute(command);
+    // Ensure you can never escape the almighty shell!
+    while(1)
+    {
+        clear();
+        reset_screen_pos();
+        uint8_t* command = (uint8_t*) "shell";
+        test_execute(command);
+    }
 
     /* Spin (nicely, so we don't chew up cycles) */
     asm volatile(".1: hlt; jmp .1;");
