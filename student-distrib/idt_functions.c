@@ -7,6 +7,7 @@
 #include "lib.h"
 #include "idt_functions.h"
 #include "types.h"
+#include "test_syscalls.h"
 //#include "syscalls.h"
 
 /*

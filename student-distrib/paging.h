@@ -17,7 +17,7 @@
 #define PG_DIR_ALIGN            0x1000
 
 #define FOUR_MB                 0x400000
-#define EIGHT_MB                800000
+#define EIGHT_MB                0x800000
 #define EIGHT_KB                0x2000
 #define FOUR_GB                 0x100000000
 
