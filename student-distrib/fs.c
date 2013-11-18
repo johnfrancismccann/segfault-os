@@ -256,7 +256,7 @@ int32_t fs_close_dir()
  *
  * 
  */
-int32_t load_file(const uint8_t* filename, void* buf, int32_t nbytes)
+int32_t load_file(const int8_t* filename, void* buf, int32_t nbytes)
 {
     int32_t bytes_read;
     dentry_t dentry;
@@ -270,7 +270,7 @@ int32_t load_file(const uint8_t* filename, void* buf, int32_t nbytes)
         return -1;
 
     /* try finding inode number of passed file */
-    search_res = read_dentry_by_name(filename, &dentry);
+    search_res = read_dentry_by_name((uint8_t*)filename, &dentry);
     if(!search_res) {
         /* check if filename is name of a directory */
         if(dentry.ftype == TYPE_DIR)
