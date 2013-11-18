@@ -147,7 +147,7 @@ SOLUTION:   In modifying the rtc, terminal the module was loaded at a different
             problem.
             
 16.
-SYMPTON:    It appeared as if the last bytes in a non-text file, grep, were read
+SYMPTOM:    It appeared as if the last bytes in a non-text file, grep, were read
             incorrectly beacause they appeared not to match with the end of the grep
             file in the filesystem hex dump
 TIME SPENT: 2 hours
@@ -159,10 +159,18 @@ SOLUTION:   It was forgotten that grep is larger than one filesystem block and t
             being read correctly.
 
 17.
-SYMPTON:
+SYMPTOM:    Attempting to execute a non-executable file would result in either a
+            shell crash or a page fault.
+TIME SPENT: 15 minutes
+SOLUTION:   We were checking the magic number after loading the file, which could
+            result in the non-executable retaining some information from the most
+            recently run executable file.  By checking the magic number immediately
+            following the parsing of the command string, we are able to exit
+            on bad files.
+
+18.
+SYMPTOM:
 TIME SPENT:
 SOLUTION:
-
-
 
 
