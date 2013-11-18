@@ -281,6 +281,8 @@ void kbd_handle()
 int32_t get_read_buf(void* ptr, int32_t bytes) {
     while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
+    if(bytes > buf_idx)
+        bytes = buf_idx;
     memcpy(ptr, (void*) read_buf, bytes);
     sti();
     return bytes;
