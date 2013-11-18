@@ -23,8 +23,8 @@
 
 extern void init_paging();
 uint32_t get_proc_page_dir(uint32_t* proc_page_dir, 
-                                                     uint32_t phys_addr,
-                                                     uint32_t virt_addr);
+                           uint32_t phys_addr,
+                           uint32_t virt_addr);
 
 void set_CR3(uint32_t page_dir_address);
 
