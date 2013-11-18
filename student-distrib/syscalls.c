@@ -24,12 +24,14 @@ void parse_command(int8_t* command, int8_t* args, uint8_t* size);
 
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_halt
+ *   DESCRIPTION: Ends current process and returns to parent process.
+ *   INPUTS:    status: Return value for the corresponding execute.
+ *                      Should be 0-255 for normal exits, 256 for
+ *                      faults
+ *   OUTPUTS:   NONE
+ *   RETURN VALUE: returns -1 on failure, doesn't return on success.
+ *   SIDE EFFECTS: kills current process.
  */
 int32_t sys_halt(uint8_t status)
 {
@@ -46,12 +48,15 @@ uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_D
 #define ELF_MAG_NUM         0x464C457F
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_execute
+ *   DESCRIPTION: Runs user-level program
+ *   INPUTS:    command: string containing program name and any
+ *                       arguments.
+ *   OUTPUTS:   NONE
+ *   RETURN VALUE: returns the exit code from the cooresponding
+ *                 halt call for the process. -1 on error.
+ *   SIDE EFFECTS: starts new user-level program, switches stacks,
+ *                 creates new process/task.
  */
 int32_t sys_execute(const uint8_t* command)
 {
@@ -68,8 +73,6 @@ int32_t sys_execute(const uint8_t* command)
         return -1;
     else if(curprocess == 0);
 
-
-
     /* testing code below now */
     //Return error on invalid argument
     if(command == NULL)
@@ -78,9 +81,7 @@ int32_t sys_execute(const uint8_t* command)
 
     /* set location of program image */
     uint32_t prog_loc = USR_PRGRM_VIRT_LC;
-    /* set up paging for process */
-    get_proc_page_dir(proc_page_dir[curprocess], EIGHT_MB, MB_128);
-    set_CR3((uint32_t)proc_page_dir[curprocess]);
+
     /* load file into contiguous memory */
     int8_t* mycommand[MAX_ARG_BUFFER];
     uint8_t temp_size;
@@ -88,7 +89,29 @@ int32_t sys_execute(const uint8_t* command)
     strcpy((int8_t*)mycommand, (const int8_t*)command);
     strip_buf_whitespace((int8_t*)mycommand, &temp_size);
     parse_command((int8_t*)mycommand, (int8_t*)arguments, &temp_size);
-    load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ);
+
+    //Error on inability to open filename
+    file_desc_t temp_file;
+    cur_file = &temp_file;
+    if(-1 == fs_open_file((uint8_t*)command))
+        return -1;
+
+    //Error on inability to read file
+    uint8_t* tempbuf[4];
+    if(-1 == fs_read_file((void*)tempbuf, 4))
+        return -1;
+
+    //Error on no executable magic number
+    if(((uint32_t*)tempbuf)[0] != ELF_MAG_NUM)
+        return -1;
+
+    /* set up paging for process */
+    get_proc_page_dir(proc_page_dir[curprocess], EIGHT_MB, MB_128);
+    set_CR3((uint32_t)proc_page_dir[curprocess]);
+    
+    //Error on failed load
+    if(-1 ==load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ))
+        return -1;
 
     /* check for magic constant indicating executable file */
     if(((uint32_t*)prog_loc)[0] != ELF_MAG_NUM) {
@@ -111,7 +134,7 @@ int32_t sys_execute(const uint8_t* command)
     pcbs[curprocess]->file_desc_arr[STDOUT].flags = 1;
     pcbs[curprocess]->file_desc_arr[STDIN].flags = 1;
     /* initialize kernel stack for when user program makes system call */
-    tss.esp0 = 0x7FFFFC; 
+    tss.esp0 = 0x7FFFFC;
     tss.ss0 =  KERNEL_DS;
     
     /* pass location of user program's first instruction to be executed 
@@ -127,8 +150,18 @@ int32_t sys_execute(const uint8_t* command)
     return -1;
 }
 
-/* read, write functions don't do anything until current_pcb is initialized in
-   sys_open */
+/*
+ * sys_read
+ *   DESCRIPTION: runs the read fops function for a given file
+ *   INPUTS:    fd: file descriptor assigned for the current
+ *                  file opened by process.
+ *              buf: buffer to read bytes into.
+ *              nbytes: number of bytes requested to read.
+ *   OUTPUTS: outputs data to the provided buffer
+ *   RETURN VALUE: returns the number of bytes successfully read.
+ *                 -1 on error.
+ *   SIDE EFFECTS: None.
+ */
 int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
 {
     //Return error on invalid argument
@@ -155,12 +188,16 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_write
+ *   DESCRIPTION: runs the write fops function for a given file
+ *   INPUTS:    fd: file descriptor assigned for the current
+ *                  file opened by process.
+ *              buf: buffer to write bytes from.
+ *              nbytes: number of bytes requested to write.
+ *   OUTPUTS: None.
+ *   RETURN VALUE: returns number of bytes written or -1 on error.
+ *   SIDE EFFECTS: may modify files/hardware depending on the
+ *                 specific write function.
  */
 int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 {
@@ -188,12 +225,13 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_open
+ *   DESCRIPTION: Opens a file for a process and assigns
+ *                a unique file identifier number.
+ *   INPUTS:    filename: string name of the file to open.
+ *   OUTPUTS: NONE
+ *   RETURN VALUE: returns file descriptor or -1 on failure.
+ *   SIDE EFFECTS: adds file to open file table of process.
  */
 int32_t sys_open(const uint8_t* filename)
 {
@@ -261,12 +299,15 @@ int32_t sys_open(const uint8_t* filename)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_close
+ *   DESCRIPTION: closes open file owned by process and frees
+ *                that file's file descriptor index.
+ *   INPUTS:    fd: the file descriptor index of the file to
+ *                  be closed.
+ *   OUTPUTS: NONE
+ *   RETURN VALUE: returns 0 on success, 1 on failure.
+ *   SIDE EFFECTS: closes an open file making it unavailable to
+ *                 the process until re-opened.
  */
 int32_t sys_close(int32_t fd)
 {
@@ -296,12 +337,15 @@ int32_t sys_close(int32_t fd)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_getargs
+ *   DESCRIPTION: returns the arguments supplied to a program
+ *                when it was first executed.
+ *   INPUTS:    buf: buffer into which to pass the arguments
+ *              nbytes: maximum number of bytes to copy into the
+ *                      buffer.
+ *   OUTPUTS: Sends out the buffer with arguments
+ *   RETURN VALUE: 0 on success, -1 on failure
+ *   SIDE EFFECTS: None.
  */
 int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
 {
@@ -323,12 +367,13 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_vidmap
+ *   DESCRIPTION: maps video memory for user program use.
+ *   INPUTS:    screen_start: address to pass the pointer to the
+ *                            video memory to?
+ *   OUTPUTS: screen_start.
+ *   RETURN VALUE: 0 on success, -1 on failure
+ *   SIDE EFFECTS: None.
  */
 int32_t sys_vidmap(uint8_t** screen_start)
 {
@@ -342,12 +387,13 @@ int32_t sys_vidmap(uint8_t** screen_start)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_set_handler
+ *   DESCRIPTION: Sets handler for signal
+ *   INPUTS:    signum: Signal number to be handled.
+ *              handler_address: address of handler function.
+ *   OUTPUTS: None.
+ *   RETURN VALUE: 0 on success, -1 on failure
+ *   SIDE EFFECTS: Sets new signal handler.
  */
 int32_t sys_set_handler(int32_t signum, void* handler_address)
 {
@@ -359,12 +405,12 @@ int32_t sys_set_handler(int32_t signum, void* handler_address)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * sys_sigreturn
+ *   DESCRIPTION: sends signal?
+ *   INPUTS: NONE
+ *   OUTPUTS: NONE
+ *   RETURN VALUE: -1 on failure
+ *   SIDE EFFECTS: NONE
  */ 
 int32_t sys_sigreturn(void)
 {
@@ -373,12 +419,14 @@ int32_t sys_sigreturn(void)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * strip_buf_whitespace
+ *   DESCRIPTION: removes spaces from beginning of string.
+ *   INPUTS:    buf: string for which you desire spaces
+ *                   to be stripped.
+ *              size: size of output buffer
+ *   OUTPUTS: outputs the two inputs.
+ *   RETURN VALUE: None
+ *   SIDE EFFECTS: None
  */
 void strip_buf_whitespace(int8_t* buf, uint8_t* size)
 {
@@ -413,12 +461,16 @@ void strip_buf_whitespace(int8_t* buf, uint8_t* size)
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ * parse_command
+ *   DESCRIPTION: Splits an input command string for execute
+ *                into a command word and the arguments.
+ *   INPUTS:    command: the input full execute command string
+ *                       which becomes the command word output.
+ *              args: the arguments from the command string.
+ *              size: the size of the arguments string.
+ *   OUTPUTS: outputs all inputs.
+ *   RETURN VALUE: NONE
+ *   SIDE EFFECTS: NONE
  */
 void parse_command(int8_t* command, int8_t* args, uint8_t* size)
 {
