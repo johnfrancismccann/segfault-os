@@ -393,6 +393,7 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
  */
 int32_t sys_vidmap(uint8_t** screen_start)
 {
+    if(screen_start == NULL) return -1;
     uint32_t video_virt_addr = (uint32_t) VID_VIRT_ADDR; //virtual address of video memory
 
     vid_pg_tbl[0] = VIDEO | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
