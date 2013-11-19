@@ -14,6 +14,9 @@
 #include "lib.h"
 #include "types.h"
 
+ #include "test_syscalls.h"
+
+
 static const char KBD_MAP[KBD_MAP_SIZE] =
 {0x00, 0x1B, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x2D, 0X3D, 0x08, 0x09,  //0x0F
  0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69, 0x6F, 0x70, 0x5B, 0x5D, 0x0A, 0x00, 0x61, 0x73,  //0x1F 0x00 is left control
@@ -196,12 +199,14 @@ void kbd_handle()
         print_idx = 0; //reset print location to top left corner
         update_cursor(0);
         send_eoi(KBD_IRQ_NUM);
+        test_halt(0);
         return;
     }
 
     /* print to screen and add to buffer */
     if(KBD_MAP[scancode] != 0 && scancode != CTRL_PRS && scancode != B_SPACE && scancode != LSHIFT_PRS && scancode != RSHIFT_PRS && scancode != CAPS) { //only register characters (including enter and tab)
-        if(buf_idx < BUF_SIZE-1) { //don't take any more characters if the buffer is full, "-1" is because final element of buffer is reserved for enter (newline)
+        if(scancode != ENTER && buf_idx == BUF_SIZE-2); //reserve last element in buffer for newline character
+        else if(buf_idx < BUF_SIZE-1) { //don't take any more characters if the buffer is full, "-1" is because final element of buffer is reserved for enter (newline)
             int capital = OFF; //should be capital letter if 1
             if((caps_lock == ON) ^ (shift_flag == ON)){capital = ON;} //set capital flag
             if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z')
@@ -279,6 +284,7 @@ void kbd_handle()
   *   SIDE EFFECTS: none
   */
 int32_t get_read_buf(void* ptr, int32_t bytes) {
+    clear_read_buf();
     while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
     if(bytes > buf_idx)
