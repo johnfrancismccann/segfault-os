@@ -48,9 +48,8 @@ int32_t sys_sigreturn(void);
 int32_t sys_halt(uint8_t status)
 {
     test_execute((uint8_t*)"shell");
-    // printf("This is the %s call\n",__func__);
-    while(1);
-    return -1;
+    //printf("This is the %s call\n",__func__);
+    return 0;
 }
 
 uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
