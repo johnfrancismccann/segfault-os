@@ -177,11 +177,24 @@ SOLUTION:   When mapping a page to the physical address of video memory, an inco
             and never to be printed to the screen.
 
 19.
+SYMPTOM:    Attempting to run 'rtc' as the first program doesn't write
+            the bad file error message.
+TIME SPENT: 30 minutes
+SOLUTION:   We checked file type as ==directory is a problem, but we needed
+            !=regular file causes an error.  Changing the compare in fs.c fixed
+            the bug.
+
+20.
 SYMPTOM:
 TIME SPENT:
 SOLUTION:
 
-20.
+21.
+SYMPTOM:
+TIME SPENT:
+SOLUTION:
+
+22.
 SYMPTOM:
 TIME SPENT:
 SOLUTION:
