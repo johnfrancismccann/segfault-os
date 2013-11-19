@@ -185,9 +185,15 @@ SOLUTION:   We checked file type as ==directory is a problem, but we needed
             the bug.
 
 20.
-SYMPTOM:
-TIME SPENT:
-SOLUTION:
+SYMPTOM:    Backspacing deleted "391OS>" when running "shell".
+TIME SPENT: 20 min
+SOLUTION:   This issue was caused when running the "counter" program and typing while
+            the program is running. This is because, whenever the user types on the
+            keyboard (even while it is running), the buffer is being filled with those
+            characters. Therefore, because the buffer is non-empty, backspacing is
+            possible to delete characters in the buffer, but this deletes characters
+            from the screen, which happen to be "391OS>" since the actual characters
+            typed are not displayed while a long program like "counter" is executing.
 
 21.
 SYMPTOM:
@@ -197,4 +203,4 @@ SOLUTION:
 22.
 SYMPTOM:
 TIME SPENT:
-SOLUTION:
+SOLUTION
