@@ -178,3 +178,8 @@ do_iret:
      movl $USER_DS,%eax
      movl %eax, %ds
      iret
+#ret_from_exec:
+# restore parent kernel stack
+# 
+# restore parent paging 
+
