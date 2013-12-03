@@ -54,13 +54,20 @@ typedef struct
 
 #define MAX_OPEN_FILES 8
 #define MAX_ARG_BUFFER 128
-typedef struct //pcb_t
+typedef struct pcb_t //pcb_t
 {
   file_desc_t     file_desc_arr[MAX_OPEN_FILES];
   uint8_t         available_fds; //bit vector 0 = available, 1 = used
-  uint32_t*       page_dir;
-  struct pcb_t*   parent_pcb;
-  uint32_t*       parent_kstack;
+  struct pcb_t*   par_proc;
+
+  uint32_t        pid;
+  uint32_t        par_page_dir;
+  uint32_t        par_kstack;
+  uint32_t        top_kstack;
+  uint32_t*        page_dir;
+  uint32_t        stack_ptr;
+  uint32_t        tss_kstack;
+
   struct pcb_t*   child_pcb;
   uint8_t         arg_buffer[MAX_ARG_BUFFER];
   uint8_t         arg_buffer_size;
