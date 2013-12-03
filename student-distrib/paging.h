@@ -21,6 +21,7 @@
 #define EIGHT_MB                0x800000
 #define EIGHT_KB                0x2000
 #define FOUR_GB                 0x100000000
+#define BYTE					0x4
 
 extern void init_paging();
 uint32_t get_proc_page_dir(uint32_t* proc_page_dir, 

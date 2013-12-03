@@ -69,7 +69,9 @@ int32_t fs_open_file(const uint8_t* filename)
     /* try finding inode number of passed file */
     search_res = read_dentry_by_name(filename, &dentry);
     
+
     if(!search_res) {
+        /* file with name filename was found */
         /* check if filename is name of a directory */
         if(dentry.ftype == TYPE_DIR)
             /* if so, return failure */
@@ -79,7 +81,7 @@ int32_t fs_open_file(const uint8_t* filename)
         cur_file->file_pos = 0;
     }
     else if(search_res == -1)
-        /* return failure if not found */
+        /* file with name filename was not found. return failure */
         return -1;
 
     return 0;
