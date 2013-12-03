@@ -11,14 +11,14 @@
 //#define VID_VIRT_ADDR           0x10000000 //256 MB
 #define VID_VIRT_ADDR 0x8400000 //132MB
 
-/*track current process.*/
-pcb_t* pcbs[MAX_PROCESSES];
-int32_t curprocess = -1;
-pcb_t blahprocess;
+/* pointer to current pcb */
+pcb_t* cur_proc = NULL;
+/* number of processes */
+uint32_t num_proc = 0;
+/* return value of user level program */
+int32_t proc_retval;
 
-// pcbs[0] = (pcb_t*)(EIGHT_MB - sizeof(pcb_t));
-// pcbs[1] = (pcb_t*)(pcbs[0] - EIGHT_KB - sizeof(pcb_t));
-
+file_desc_t cur_file_obj;
 file_desc_t* cur_file = NULL;
 
 void strip_buf_whitespace(int8_t* buf, uint8_t* size);
@@ -35,6 +35,8 @@ int32_t sys_vidmap(uint8_t** screen_start);
 int32_t sys_set_handler(int32_t signum, void* handler_address);
 int32_t sys_sigreturn(void);
 
+
+
 /*
  * sys_halt
  *   DESCRIPTION: Ends current process and returns to parent process.
@@ -47,7 +49,26 @@ int32_t sys_sigreturn(void);
  */
 int32_t sys_halt(uint8_t status)
 {
-    test_execute((uint8_t*)"shell");
+
+    num_proc--;
+    if(num_proc) {
+        /* restore parent process' kernel stack and jump back to execute */
+        proc_retval = (int32_t)status;
+        asm volatile(
+            //"movl %%ebx,%0\n\t"
+            "movl %0, %%ebp\n\t"
+            "jmp ret_from_user\n\t"
+            :
+            :"r"(cur_proc->par_proc->top_kstack)
+            //:"=r"(status)
+            );
+    }
+    else 
+        /* no process left to resume. restart shell */
+        test_execute((uint8_t*)"shell");
+
+
+
     //printf("This is the %s call\n",__func__);
     return 0;
 }
@@ -57,6 +78,7 @@ uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_D
 #define USR_PRGRM_VIRT_LC   MB_128+0x48000
 #define MAX_PRGRM_SZ        FOUR_MB
 #define ELF_MAG_NUM         0x464C457F
+#define KERNEL_STACK_SZ     EIGHT_KB
 
 /*
  * sys_execute
@@ -71,94 +93,98 @@ uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_D
  */
 int32_t sys_execute(const uint8_t* command)
 {
-    /* can be used later */
-    //Set up process out of nowhere!
-    if(1)
-    {
-        curprocess = 0;
-        pcbs[curprocess] = &blahprocess;
-        pcbs[curprocess]->available_fds = 3;
-    }
-    //Already have both processes running
-    if(curprocess == 1)
-        return -1;
-    else if(curprocess == 0);
-
-    /* testing code below now */
-    //Return error on invalid argument
+    /* check for invalid argument */
     if(command == NULL)
         return -1;
-    // printf("This is the %s call\n",__func__);
+    /* check that max number of processes isn't exceeded */
+    if(num_proc >= MAX_PROCESSES)
+        return -1;
 
-    /* set location of program image */
-    uint32_t prog_loc = USR_PRGRM_VIRT_LC;
-
-    /* load file into contiguous memory */
+    /* extract filename from command */
     int8_t* mycommand[MAX_ARG_BUFFER];
     uint8_t temp_size;
     int8_t* arguments[MAX_ARG_BUFFER];
     strcpy((int8_t*)mycommand, (const int8_t*)command);
     strip_buf_whitespace((int8_t*)mycommand, &temp_size);
     parse_command((int8_t*)mycommand, (int8_t*)arguments, &temp_size);
-
-    //Error on inability to open filename
+    /* although temp_file is allocated on stack, only needs to exist for 
+       the two subsequent fs_open_file, fs_read_file calls */
     file_desc_t temp_file;
     cur_file = &temp_file;
+    /* try to open extracted filename */
     if(-1 == fs_open_file((uint8_t*)mycommand))
         return -1;
-
-    //Error on inability to read file
+    /* read extracted file's first 4 bytes that will be checked for magic
+       constant */
     uint8_t* tempbuf[4];
     if(-1 == fs_read_file((void*)tempbuf, 4))
         return -1;
-
-    //Error on no executable magic number
+    /* check that extracted file is an executable */
     if(((uint32_t*)tempbuf)[0] != ELF_MAG_NUM)
         return -1;
 
-    /* set up paging for process */
-    get_proc_page_dir(proc_page_dir[curprocess], EIGHT_MB, MB_128);
-    set_CR3((uint32_t)proc_page_dir[curprocess]);
-    
-    //Error on failed load
-    if(-1 ==load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ))
-        return -1;
-
-    /* check for magic constant indicating executable file */
-    if(((uint32_t*)prog_loc)[0] != ELF_MAG_NUM) {
-        // printf("Magic number not found\n");
+    /* all checks now passed to attempt to create new child process */
+    num_proc++;
+    /* create new pcb for child in memory */
+    pcb_t* child_proc = (pcb_t*)(EIGHT_MB-(num_proc)*KERNEL_STACK_SZ);
+    child_proc->pid = num_proc-1;
+    child_proc->par_proc = cur_proc;
+    child_proc->available_fds = 3;
+    /* store child's arguments */
+    strcpy((int8_t*)child_proc->arg_buffer, (const int8_t*)arguments);
+    child_proc->arg_buffer_size = temp_size;
+    /* set up child's paging. set processor to child's page directory */
+    child_proc->page_dir = proc_page_dir[child_proc->pid];
+    get_proc_page_dir(child_proc->page_dir, EIGHT_MB+(num_proc-1)*FOUR_MB,
+                      MB_128);
+    set_CR3((uint32_t)child_proc->page_dir);
+    /* set base location of child's program image */
+    uint32_t prog_loc = USR_PRGRM_VIRT_LC;
+    /* load child's executable into contiguous memory at base location */
+    if(-1 ==load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ)) {
+        /* on unsuccessful load, set page directory back to current process
+           and return failure */
+        set_CR3((uint32_t)cur_proc->page_dir);
+        num_proc--;
         return -1;
     }
-    else {
-        // printf("Magic number: %u\n", ((uint32_t*)prog_loc)[0]);
-        // printf("Bytes read: %u\n", bytes_read);
+    /* init child's standard i/o */
+    child_proc->file_desc_arr[STDOUT].file_ops_table = termfops_table;
+    child_proc->file_desc_arr[STDIN].file_ops_table = termfops_table;
+    child_proc->file_desc_arr[STDOUT].flags = 1;
+    child_proc->file_desc_arr[STDIN].flags = 1;
+    /* save parent's kernel stack ptr on entry to this function in parent's pcb
+       if child process isn't shell */
+    if(cur_proc) {
+        asm volatile(
+                    "movl %%ebp, %0\n\t"
+                    :"=r"(cur_proc->top_kstack)
+                    );
     }
-
-    //store arguments
-    strcpy((int8_t*)pcbs[curprocess]->arg_buffer, (const int8_t*)arguments);
-    pcbs[curprocess]->arg_buffer_size = temp_size;
-
-    /* initialize standard output */
-    pcbs[curprocess]->file_desc_arr[STDOUT].file_ops_table = termfops_table;
-    pcbs[curprocess]->file_desc_arr[STDIN].file_ops_table = termfops_table;
-    pcbs[curprocess]->available_fds = 3;
-    pcbs[curprocess]->file_desc_arr[STDOUT].flags = 1;
-    pcbs[curprocess]->file_desc_arr[STDIN].flags = 1;
-    /* initialize kernel stack for when user program makes system call */
-    tss.esp0 = 0x7FFFFC;
+    /* set child's initial kernel stack in pcb and in tss */
+    child_proc->tss_kstack = EIGHT_MB-(num_proc-1)*KERNEL_STACK_SZ-BYTE;
+    tss.esp0 = child_proc->tss_kstack;
     tss.ss0 =  KERNEL_DS;
-
-    /* pass location of user program's first instruction to be executed 
-       and jump to procedure to issue iret */
+    /* finally, set the child process as the current process */
+    cur_proc = child_proc;        
+    /* begin execution of new process with first program instruction */
     asm volatile(
         "movl %0, %%eax\n\t"
         "jmp do_iret\n\t"
+        "ret_from_user:\n\t"
         :
         :"r" (*((uint32_t*)(prog_loc+24))) /* location of first instruction */
         :"%eax"
         );
 
-    return -1;
+    /* execution of child process completed. null par_proc handled in halt. 
+       restore child's parent process to be current process */
+    cur_proc = child_proc->par_proc;
+    /* restore parent process' initial kernel stack location in tss */
+    tss.esp0 = cur_proc->tss_kstack;
+    /* restore parent process' paging */
+    set_CR3((uint32_t)cur_proc->page_dir);
+    return proc_retval;
 }
 
 /*
@@ -182,18 +208,18 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
     if(fd < 0 || fd >= MAX_OPEN_FILES)
         return -1;
     //Error on invalid PCB for process
-    if(pcbs[curprocess] == NULL)
+    if(cur_proc == NULL)
         return -1;
     //Error on unopened file
-    if((pcbs[curprocess]->available_fds & (1 << fd)) == 0)
+    if((cur_proc->available_fds & (1 << fd)) == 0)
         return -1;
     //Error on negative number of bytes
     if(nbytes < 0)
         return -1;
     //Set current file for read function to use
-    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
+    cur_file = &(cur_proc->file_desc_arr[fd]);
     //Call read function
-    return((syscall_read_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_READ]))
+    return((syscall_read_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_READ]))
             (buf,nbytes);
     // printf("This is the %s call\n",__func__);
 }
@@ -219,18 +245,18 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
     if(fd < 0 || fd >= MAX_OPEN_FILES)
         return -1;
     //Error on invalid PCB for process
-    if(pcbs[curprocess] == NULL)
+    if(cur_proc == NULL)
         return -1;
     //Error on unopened file
-    if((pcbs[curprocess]->available_fds & (1 << fd)) == 0)
+    if((cur_proc->available_fds & (1 << fd)) == 0)
         return -1;
     //Error on negative number of bytes
     if(nbytes < 0)
         return -1;
     //Set current file for read function to use
-    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
+    cur_file = &(cur_proc->file_desc_arr[fd]);
     //Call read function
-    return((syscall_write_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_WRITE]))
+    return((syscall_write_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_WRITE]))
             (buf,nbytes);
     // printf("This is the %s call\n",__func__);
 }
@@ -249,20 +275,20 @@ int32_t sys_open(const uint8_t* filename)
     dentry_t myfiledentry;
     // printf("This is the %s call\n",__func__);
     //Return error on invalid argument
-    if(filename == NULL || curprocess < 0 || curprocess > MAX_PROCESSES)
+    if(filename == NULL || !num_proc || num_proc > MAX_PROCESSES)
         return -1;
     //Error on invalid PCB for process
-    if(pcbs[(uint32_t)curprocess] == NULL)
+    if(cur_proc == NULL)
         return -1;
     int i;
     int32_t fd = -1;
-    uint8_t available = pcbs[curprocess]->available_fds;
+    uint8_t available = cur_proc->available_fds;
     for (i = 0; i < MAX_OPEN_FILES; i++)
     {
         if(!(available & (1 << i)))
         {
             fd = i;
-            pcbs[curprocess]->available_fds |= (1 << i);
+            cur_proc->available_fds |= (1 << i);
             break;
         }
     }
@@ -275,37 +301,37 @@ int32_t sys_open(const uint8_t* filename)
     switch(myfiledentry.ftype)
     {
         case TYPE_USER:
-            pcbs[curprocess]->file_desc_arr[fd].file_ops_table = rtcfops_table;
+            cur_proc->file_desc_arr[fd].file_ops_table = rtcfops_table;
             // printf("RTC file\n");
             break;
         case TYPE_DIR:
-            pcbs[curprocess]->file_desc_arr[fd].file_ops_table = dirfops_table;
+            cur_proc->file_desc_arr[fd].file_ops_table = dirfops_table;
             // printf("Directory file \n");
             break;
         case TYPE_REG:
-            pcbs[curprocess]->file_desc_arr[fd].file_ops_table = filefops_table;
+            cur_proc->file_desc_arr[fd].file_ops_table = filefops_table;
             // printf("Regular file \n");
             break;
         default:
             // printf("INVALID FILE!\n");
             //free assigned fd
-            pcbs[curprocess]->available_fds &= (!(1 << fd));
+            cur_proc->available_fds &= (!(1 << fd));
             return -1;
     }
     //Attempt to open file
-    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
-    int32_t retval = ((syscall_open_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_OPEN]))
+    cur_file = &(cur_proc->file_desc_arr[fd]);
+    int32_t retval = ((syscall_open_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_OPEN]))
                      (filename);
     if(retval == -1)
     {
         //on failure, release assigned fd and return error.
-        pcbs[curprocess]->available_fds &= (~(1 << fd));
+        cur_proc->available_fds &= (~(1 << fd));
         return -1;
     }
     //Set iNode, beginning of file, and in use
-    pcbs[curprocess]->file_desc_arr[fd].inode_ptr = myfiledentry.index_node;
-    pcbs[curprocess]->file_desc_arr[fd].file_pos = 0;
-    pcbs[curprocess]->file_desc_arr[fd].flags = 1;
+    cur_proc->file_desc_arr[fd].inode_ptr = myfiledentry.index_node;
+    cur_proc->file_desc_arr[fd].file_pos = 0;
+    cur_proc->file_desc_arr[fd].flags = 1;
     return fd;
 }
 
@@ -327,23 +353,23 @@ int32_t sys_close(int32_t fd)
     if(fd < 0 || fd >= MAX_OPEN_FILES)
         return -1;
     //Error on invalid PCB for process
-    if(pcbs[curprocess] == NULL)
+    if(cur_proc == NULL)
         return -1;
     //Error on unopened file
-    if((pcbs[curprocess]->available_fds & (1 << fd)) == 0)
+    if((cur_proc->available_fds & (1 << fd)) == 0)
         return -1;
-    pcbs[curprocess]->available_fds &= (~(1 << fd));
-    cur_file = &(pcbs[curprocess]->file_desc_arr[fd]);
-    int32_t retval = ((syscall_close_t)(pcbs[curprocess]->file_desc_arr[fd].file_ops_table[FOPS_CLOSE]))
+    cur_proc->available_fds &= (~(1 << fd));
+    cur_file = &(cur_proc->file_desc_arr[fd]);
+    int32_t retval = ((syscall_close_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_CLOSE]))
                       (fd);
     //Error on failed close; must undo mark as available fd
     if(retval == -1)
     {
-        pcbs[curprocess]->available_fds |= (1 << fd);
+        cur_proc->available_fds |= (1 << fd);
         return -1;
     }
     //mark as unused
-    pcbs[curprocess]->file_desc_arr[fd].flags = 0;
+    cur_proc->file_desc_arr[fd].flags = 0;
     return retval;
 }
 
@@ -364,18 +390,20 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
     if(buf == NULL)
         return -1;
     //Error on invalid PCB for process
-    if(pcbs[curprocess] == NULL)
+    if(cur_proc == NULL)
         return -1;
     //Prep buffer for delivery by removing preceding whitespace
     //and counting size of buffer
-    strip_buf_whitespace((int8_t*)pcbs[curprocess]->arg_buffer, &pcbs[curprocess]->arg_buffer_size);
+    strip_buf_whitespace((int8_t*)cur_proc->arg_buffer, &cur_proc->arg_buffer_size);
     //Error on larger buffer than can fit
-    if(pcbs[curprocess]->arg_buffer_size > nbytes)
+    if(cur_proc->arg_buffer_size > nbytes)
         return -1;
-    strcpy((int8_t*) buf, (int8_t*) pcbs[curprocess]->arg_buffer);
+    strcpy((int8_t*) buf, (int8_t*) cur_proc->arg_buffer);
     // printf("This is the %s call\n",__func__);
     return 0;   
 }
+
+
 
 /* page directory memory */
     uint32_t vid_pg_dir_ent;
@@ -402,7 +430,9 @@ int32_t sys_vidmap(uint8_t** screen_start)
     vid_pg_dir_ent = (uint32_t)vid_pg_tbl;
     vid_pg_dir_ent |= (SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER);
 
-    proc_page_dir[curprocess][video_virt_addr/FOUR_MB] = (uint32_t) vid_pg_dir_ent;
+
+    (cur_proc->page_dir)[video_virt_addr/FOUR_MB] = (uint32_t) vid_pg_dir_ent;
+
 
     *screen_start = (uint8_t*) VID_VIRT_ADDR;
 
