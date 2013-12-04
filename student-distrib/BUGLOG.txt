@@ -127,7 +127,7 @@ SOLUTION:   I declared the pointer for the term_read for copy the character buff
 14.
 SYMPTOM:    When testing the read_dentry_by_index function for index 0, the dentry
             struct was filled so that the filename was "." Because inodes are ignored
-            for directories, this is obviouslyincorrect behavior.
+            for directories, this is obviously incorrect behavior.
 TIME SPENT: 30 minutes
 SOLUTION:   The source of the problem was that in iterating through the directory
             entries, looking for a matching indoe, the entry was not discarded if
@@ -157,6 +157,18 @@ SOLUTION:   It was forgotten that grep is larger than one filesystem block and t
             filesystem block and, thus, a completely different location in the hex
             dump.  When this was considered, the last bytes in grep were actually
             being read correctly.
+
+I will add in more detailed descriptions for these later. Just wrote them down here so I don't
+forget.
+
+Execute 
+  1) wrong beginning address
+  2) system call jump table 1 too high
+  3) syserr 4
+  4) cat not printing abnormal failure
+Halt
+  1) crashing system bc of page dir assignment from invalid pointer in pcb
+  2) page fault after halt
 
 17.
 SYMPTOM:    Attempting to execute a non-executable file would result in either a
