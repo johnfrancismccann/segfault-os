@@ -44,6 +44,12 @@
 #define LSHIFT_RLS 0xAA //left shift released
 #define RSHIFT_RLS 0xB6 //right shift released
 #define CAPS 0x3A //caps lock pressed
+#define ALT_PRS		0x38
+#define ALT_RLS		0xB8
+/* ALT_FX found on stanislavs.org/helppc/scan_codes.html */
+ #define F1		0x3B 
+ #define F2		0x3C
+ #define F3		0x3D
 
 #define KBD_MAP_SIZE 256
 #define BUF_SIZE 128
@@ -56,7 +62,7 @@ void kbd_handle();
 
 void update_cursor(int index);
 
-void check_scroll(int print_index);
+//void check_scroll(int print_index);
 
 int32_t get_read_buf(void* buf, int32_t bytes);
 
