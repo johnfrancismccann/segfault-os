@@ -53,16 +53,18 @@ static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //0xEF
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //0xFF
 
-static char read_buf[BUF_SIZE]; //buffer to store characters typed in from user
-static uint8_t scancode; //make this with file scope so can check for enter in get_read_buf (for term_read)
+// display parameters
 static char* video_mem = (char *)VIDEO;
-static uint16_t buf_idx; //index for storing characters in buffer
 static uint16_t print_idx; //index for printing characters to screen (video memory offset)
+// input parameters
+static uint8_t scancode; //make this with file scope so can check for enter in get_read_buf (for term_read)
+static char last_char = '\0';
+static char read_buf[BUF_SIZE]; //buffer to store characters typed in from user
+static uint16_t buf_idx; //index for storing characters in buffer
+// flags
 static int ctrl_flag; //flag to indicate if control key currently pressed or not (1 is yes, 0 is no)
 static int shift_flag; //indicates if shift is pressed or not
 static int caps_lock; //indicates if caps lock is enabled/disabled
-static int prev_loc[NUM_ROWS]; //gives location before hitting enter
-static int prev_idx; //index of previous location
 
 /*
  * init_kbd()
@@ -77,7 +79,6 @@ void init_kbd()
     buf_idx = 0;
     read_buf[buf_idx] = '\0';
     print_idx = 0;
-    prev_idx = 0;
     ctrl_flag = OFF; //initialize to control unpressed
     shift_flag = OFF; //init to shift unpressed
     caps_lock = OFF; //init to caps off
@@ -89,6 +90,9 @@ void init_kbd()
     set_interrupt_gate(KBD_IDT_NUM, kbd_wrapper);
     enable_irq(KBD_IRQ_NUM);
 }
+
+// function declarations
+void check_scroll();
 
 /*
  * kbd_handle()
@@ -179,8 +183,6 @@ void kbd_handle()
                         print_idx -= TAB_LEN;
                         break;
                     case ENT_ASC: //for backspacing after new line
-                        print_idx = prev_loc[--prev_idx];
-                        prev_loc[prev_idx] = 0;
                         break;
                     default: //for backspacing regular characters
                         *(uint8_t *)(video_mem + (--print_idx << 1)) = ' '; //delete character and move print index back 1 char
@@ -192,7 +194,7 @@ void kbd_handle()
             return;
     }
 
-    /* clear screen */
+    // clear screen 
     if (ctrl_flag == ON && scancode == L_KEY) { //ctrl+L
         clear();
         clear_read_buf();
@@ -203,31 +205,43 @@ void kbd_handle()
         return;
     }
 
-    /* print to screen and add to buffer */
-    if(KBD_MAP[scancode] != 0 && scancode != CTRL_PRS && scancode != B_SPACE && scancode != LSHIFT_PRS && scancode != RSHIFT_PRS && scancode != CAPS) { //only register characters (including enter and tab)
-        if(scancode != ENTER && buf_idx == BUF_SIZE-2); //reserve last element in buffer for newline character
-        else if(buf_idx < BUF_SIZE-1) { //don't take any more characters if the buffer is full, "-1" is because final element of buffer is reserved for enter (newline)
+    // print to screen and add to buffer 
+    //only register characters (including enter and tab)
+    if(KBD_MAP[scancode] != 0 && scancode != CTRL_PRS && scancode != B_SPACE && scancode != LSHIFT_PRS && scancode != RSHIFT_PRS && scancode != CAPS) { 
+        //reserve last element in buffer for newline character
+        if(scancode != ENTER && buf_idx == BUF_SIZE-2); 
+        // don't take any more characters if the buffer is full, "-1" is 
+        // because final element of buffer is reserved for enter (newline) 
+        else if(buf_idx < BUF_SIZE-1) { 
             int capital = OFF; //should be capital letter if 1
-            if((caps_lock == ON) ^ (shift_flag == ON)){capital = ON;} //set capital flag
-            if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z')
-                read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET; //add character to buffer (accounting for case) and increment index
+            // check capital flag
+            if((caps_lock == ON) ^ (shift_flag == ON))
+                capital = ON; //set capital flag
+            // add character to buffer (accounting for case) and increment index
+            if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z') {
+                //read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET; 
+                last_char = read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET;
+            }
+                //read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET; 
             else if(capital == ON)
-                read_buf[buf_idx++] = KBD_MAP_SHIFT[scancode]; //add character to buffer (accounting for case) and increment index
+                //read_buf[buf_idx++] = KBD_MAP_SHIFT[scancode];
+                last_char = read_buf[buf_idx++] = KBD_MAP_SHIFT[scancode];
             else
-                read_buf[buf_idx++] = KBD_MAP[scancode]; //add character to buffer (accounting for case) and increment index
+                //read_buf[buf_idx++] = KBD_MAP[scancode];
+                last_char = read_buf[buf_idx++] = KBD_MAP[scancode];             
             read_buf[buf_idx] = '\0'; //set end of string
+            // either handle tab, handle enter, or display to screen
             switch(scancode) {
                 case TAB:
                     print_idx += TAB_LEN; //add 5 spaces/tab
                     break;
                 case ENTER:
-                    prev_loc[prev_idx++] = print_idx; //set previous location
                     print_idx += NUM_COLS - (print_idx % NUM_COLS); //add number of characters between current position and new line
                     break;
                 default: //for regular characters (only increment print index)
-                    *(uint8_t *)(video_mem + (print_idx++ << 1)) = read_buf[buf_idx-1]; // "<< 1" because each character is 2 bytes
+                    *(uint8_t *)(video_mem + (print_idx++ << 1)) = last_char;
             }
-            check_scroll(print_idx);
+            check_scroll();
             update_cursor(print_idx);
         }
     }
@@ -237,7 +251,7 @@ void kbd_handle()
  /*
   * update_cursor(int index), adapted from wiki.osdev.org (by Dark Fiber)
   *   DESCRIPTION: moves blinking cursor to designated row and column when characters typed/deleted or tab/enter
-  *   INPUTS: none
+  *   INPUTS: index-- index in video memory
   *   OUTPUTS: none
   *   RETURN VALUE: none
   *   SIDE EFFECTS: cursor moves
@@ -249,31 +263,27 @@ void kbd_handle()
     outb((unsigned char)((index >> 8) & 0xFF), VGA_HIGH);
  }
 
- /*
-  * check_scroll(int tmp_index)
-  *   DESCRIPTION: checks if have passed lower screen boundary and scrolls down one line if have
-  *   INPUTS: index of next location for character to be printed
-  *   OUTPUTS: none
-  *   RETURN VALUE: none
-  *   SIDE EFFECTS: video memory shifted up 1 row (through copying)
-  */
- void check_scroll(int tmp_index) {
-    int i; //loop iterator
-    if(tmp_index >= NUM_COLS*NUM_ROWS) { //check if outside screen boundary
-        for(i = 0; i < NUM_COLS*(NUM_ROWS-1); i++) { //move screen up 1 line by copying
-            *(uint8_t *)(video_mem + (i << 1)) = *(video_mem + ((i + NUM_COLS) << 1));
-        }
-        for(i = 0; i < NUM_COLS; i++) { //clear newly inserted line
+/* 
+ *
+ *
+ *
+ */
+void check_scroll()
+{
+    uint32_t i;
+    // check if the print location has run past the end display 
+    if(print_idx >= NUM_COLS*NUM_ROWS) {
+        // copy every row to the row above it 
+        for(i=0; i<(NUM_ROWS-1); i++)
+            memcpy(video_mem+(2*i*NUM_COLS), video_mem+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
+         // clear newly inserted line 
+        for(i=0; i < NUM_COLS; i++) {
             *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';   
         }
+        // begin printing at left-most position of lowest row 
         print_idx -= NUM_COLS;
-        for(i = 1; i < 25; i++) { //update array of previous locations for newlines
-            prev_loc[i-1] = prev_loc[i]; //scrolling down 1 line means don't need 1st previous location
-            prev_loc[i-1] -= NUM_COLS;
-        }
-        prev_idx--;
     }
- }
+}
 
  /*
   * get_read_buf()
@@ -284,9 +294,13 @@ void kbd_handle()
   *   SIDE EFFECTS: none
   */
 int32_t get_read_buf(void* ptr, int32_t bytes) {
+    int dummy=0;
     clear_read_buf();
-    while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
+    //while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
+    while(last_char != '\n')
+        dummy++; //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
+    last_char = '\0';
     if(bytes > buf_idx)
         bytes = buf_idx;
     memcpy(ptr, (void*) read_buf, bytes);
@@ -335,7 +349,7 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
                 *(uint8_t *)(video_mem + (print_idx << 1)) = buf[i]; // "<< 1" because each character is 2 bytes
                 print_idx++;
         }
-        check_scroll(print_idx);
+        check_scroll();
     }
     sti();
     update_cursor(print_idx);

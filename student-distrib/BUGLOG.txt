@@ -170,6 +170,10 @@ Halt
   1) crashing system bc of page dir assignment from invalid pointer in pcb
   2) page fault after halt
 
+Commands
+   1) changing locations of globals in keyboard.c crashes shell
+   2) can't execute two ls commands upon booting shell
+
 17.
 SYMPTOM:    Attempting to execute a non-executable file would result in either a
             shell crash or a page fault.

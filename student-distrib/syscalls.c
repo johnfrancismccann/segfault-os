@@ -533,7 +533,7 @@ void parse_command(int8_t* command, int8_t* args, uint8_t* size)
     (*size) = 0;
     int i=0;
     //First word becomes command
-    while(command[i] != ' ' && command[i] != '\n') i++;
+    while(command[i] != ' ' && command[i] != '\n' && command[i] != '\0') i++;
     //copy up to MAX_ARG_BUFFER characters into temporary buffer
     //starting after preceding spaces.
     while(i < MAX_ARG_BUFFER)
