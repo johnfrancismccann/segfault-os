@@ -169,6 +169,7 @@ void kbd_handle()
                                 break;
                             default: //for regular characters (only increment print index)
                                 *(uint8_t *)(video_mem + (print_idx << 1)) = read_buf[buf_idx - num_to_print + i]; // "<< 1" because each character is 2 bytes
+                                *(uint8_t *)(video_mem + (print_idx << 1) + 1) = TEXT_COLOR; //change text color (accessing attribute byte)
                                 print_idx++;
                         }
                     }
@@ -185,7 +186,9 @@ void kbd_handle()
                     case ENT_ASC: //for backspacing after new line
                         break;
                     default: //for backspacing regular characters
-                        *(uint8_t *)(video_mem + (--print_idx << 1)) = ' '; //delete character and move print index back 1 char
+                        print_idx--;
+                        *(uint8_t *)(video_mem + (print_idx << 1)) = ' '; //delete character and move print index back 1 char
+                        *(uint8_t *)(video_mem + (print_idx << 1) + 1) = TEXT_COLOR; //clear character's attribute byte
                 }
                 read_buf[buf_idx] = '\0'; //remove character from buffer
             }
@@ -239,7 +242,9 @@ void kbd_handle()
                     print_idx += NUM_COLS - (print_idx % NUM_COLS); //add number of characters between current position and new line
                     break;
                 default: //for regular characters (only increment print index)
-                    *(uint8_t *)(video_mem + (print_idx++ << 1)) = last_char;
+                    *(uint8_t *)(video_mem + (print_idx << 1)) = last_char;
+                    *(uint8_t *)(video_mem + (print_idx << 1) + 1) = TEXT_COLOR;
+                    print_idx++;
             }
             check_scroll();
             update_cursor(print_idx);
@@ -261,6 +266,7 @@ void kbd_handle()
     outb((unsigned char)(index & 0xFF), VGA_HIGH);
     outb(0x0E, VGA_LOW);
     outb((unsigned char)((index >> 8) & 0xFF), VGA_HIGH);
+    *(uint8_t *)(video_mem + ((index << 1) + 1)) = CURSOR_COLOR;
  }
 
 /* 
@@ -276,9 +282,11 @@ void check_scroll()
         // copy every row to the row above it 
         for(i=0; i<(NUM_ROWS-1); i++)
             memcpy(video_mem+(2*i*NUM_COLS), video_mem+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
+            memcpy(video_mem+(2*i*NUM_COLS+1), video_mem+(2*(i+1)*NUM_COLS+1), 2*NUM_COLS);
          // clear newly inserted line 
         for(i=0; i < NUM_COLS; i++) {
-            *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';   
+            *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
+            *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) = TEXT_COLOR;
         }
         // begin printing at left-most position of lowest row 
         print_idx -= NUM_COLS;
@@ -347,6 +355,7 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
                 break;
             default: //for regular characters (only increment print index)
                 *(uint8_t *)(video_mem + (print_idx << 1)) = buf[i]; // "<< 1" because each character is 2 bytes
+                *(uint8_t *)(video_mem + ((print_idx << 1) + 1)) = PROG_COLOR;
                 print_idx++;
         }
         check_scroll();

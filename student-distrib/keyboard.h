@@ -10,6 +10,28 @@
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 
+#define TEXT_COLOR CYAN
+#define PROG_COLOR GREEN //program color
+#define CURSOR_COLOR GREEN
+
+//text color codes for text-mode VGA attribute byte (LT == light, DK == dark)
+#define BLACK 0
+#define BLUE 1
+#define GREEN 2
+#define CYAN 3
+#define RED 4
+#define MAGENTA 5
+#define BROWN 6
+#define LT_GREY 7
+#define DK_GREY 8
+#define LT_BLUE 9
+#define LT_GREEN 10
+#define LT_CYAN 11
+#define LT_RED 12
+#define LT_MAGENTA 13
+#define LT_BROWN 14
+#define WHITE 15
+
 #ifndef OFF
 #define OFF 0
 #endif
