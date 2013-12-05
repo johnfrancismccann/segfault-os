@@ -212,7 +212,7 @@ SOLUTION:   This issue was caused when running the "counter" program and typing 
             typed are not displayed while a long program like "counter" is executing.
 
 21.
-SYMPTOM:
+SYMPTOM:    
 TIME SPENT:
 SOLUTION:
 
