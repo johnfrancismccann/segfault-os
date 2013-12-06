@@ -55,7 +55,8 @@ static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
 
 #define TEST_MULT_TERM 1
 #define NUM_TERMS 3
-#define CHAR_DIS_SZ 2
+#define CHAR_DIS_SZ 2 
+
 
 // display parameters
 //static char* video_mem = (char *)VIDEO;
