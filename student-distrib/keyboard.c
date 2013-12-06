@@ -53,18 +53,51 @@ static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //0xEF
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //0xFF
 
+#define TEST_MULT_TERM 1
+#define NUM_TERMS 3
+#define CHAR_DIS_SZ 2
+
 // display parameters
-static char* video_mem = (char *)VIDEO;
-static uint16_t print_idx; //index for printing characters to screen (video memory offset)
-// input parameters
-static uint8_t scancode; //make this with file scope so can check for enter in get_read_buf (for term_read)
-static char last_char = '\0';
-static char read_buf[BUF_SIZE]; //buffer to store characters typed in from user
-static uint16_t buf_idx; //index for storing characters in buffer
+//static char* video_mem = (char *)VIDEO;
+static uint8_t* video_mem = (uint8_t *)VIDEO;
+
+/* terminal to which open, read, write, and close are performed on */
+static uint32_t act_ops_term = 0;
+/* terminal whose contents are currently displayed on screen */
+static uint32_t act_disp_term = 0;
+/* bufferes that are written to by a terminal when that terminal is not the 
+   active display terminal */
+static uint8_t stores[NUM_TERMS][NUM_COLS*NUM_ROWS*CHAR_DIS_SZ];    
+/* holds the position of the cursor in the store for each terminal */
+static uint32_t cursors[NUM_TERMS];
+
+/* pointers to buffers to write to for each terminal */
+static uint8_t* write_buffs[NUM_TERMS];
+
+static uint16_t print_inds[NUM_TERMS];
+
+static uint8_t scancodes[NUM_TERMS];
+/* odn't forgot to init to \0 */
+static uint8_t last_chars[NUM_TERMS];  
+static uint8_t read_buffs[NUM_TERMS][BUF_SIZE];
+static uint16_t buff_inds[NUM_TERMS];
+
 // flags
-static int ctrl_flag; //flag to indicate if control key currently pressed or not (1 is yes, 0 is no)
-static int shift_flag; //indicates if shift is pressed or not
-static int caps_lock; //indicates if caps lock is enabled/disabled
+/* indicates whether or not each terminal's virtual display has been
+   mapped for a user program */
+static uint32_t vid_mapped[NUM_TERMS];
+static int alt_flag;
+static int ctrl_flag; 
+static int shift_flag; 
+static int caps_lock;
+
+
+// function declarations
+void check_scroll();
+void check_term_switch();
+void set_display_term(uint32_t term_index);
+void update_hw_cursor(uint32_t curs_pos);
+void set_term_mapped(uint32_t term_index);
 
 /*
  * init_kbd()
@@ -76,23 +109,37 @@ static int caps_lock; //indicates if caps lock is enabled/disabled
  */
 void init_kbd()
 {
-    buf_idx = 0;
-    read_buf[buf_idx] = '\0';
-    print_idx = 0;
-    ctrl_flag = OFF; //initialize to control unpressed
-    shift_flag = OFF; //init to shift unpressed
-    caps_lock = OFF; //init to caps off
-
-    update_cursor(0); //initialize cursor to top left corner
-
-    printf("I LOVE ");
-
+    uint32_t i,j;
+    /* initialize settings for eeach terminal */
+    for(i=0; i<NUM_TERMS; i++) {
+        /* set terminals' stores to be black, blank */
+        for(j=0; j<NUM_COLS*NUM_ROWS*CHAR_DIS_SZ; j+=2) {
+            stores[i][j] = ' ';
+            stores[i][j+1] = BLACK;
+        }
+        /* set terminals to write to respective stores */
+        write_buffs[i] = stores[i];
+        /* set terminals' virtual display memory as unmapped */
+        vid_mapped[i] = OFF;
+        /* set terminals' input buffers to be empty */
+        buff_inds[i] = 0;
+        read_buffs[i][buff_inds[i]] = '\0';
+        last_chars[i] = '\0';
+        /* set terminals to write at top left of display */
+        print_inds[i] = 0;
+    }
+    /* init the active display terminal to write to video memory */
+    write_buffs[act_disp_term] = (uint8_t*)video_mem;
+    /* set all modifier keys as not pressed */
+    ctrl_flag = OFF; 
+    shift_flag = OFF; 
+    caps_lock = OFF; 
+    /* initialize cursor to top left corner of video display */
+    update_cursor(0); 
+    /* init keyboard handler to echo incoming characters to display */
     set_interrupt_gate(KBD_IDT_NUM, kbd_wrapper);
     enable_irq(KBD_IRQ_NUM);
 }
-
-// function declarations
-void check_scroll();
 
 /*
  * kbd_handle()
@@ -104,14 +151,21 @@ void check_scroll();
  */
 void kbd_handle()
 {
-    scancode = inb(KBD_PORT); //get key press
+    scancodes[act_ops_term] = inb(KBD_PORT); //get key press
+
     int16_t i;
 
-    if(print_idx == 0) {
+    if(print_inds[act_ops_term] == 0) {
         clear();
     }
 
-    switch(scancode) {
+    switch(scancodes[act_ops_term]) {
+        case ALT_PRS:
+            alt_flag = ON;
+            break;
+        case ALT_RLS:
+            alt_flag = OFF;
+            break;
         case CTRL_PRS:
             ctrl_flag = ON; //set control flag
             break;
@@ -130,9 +184,9 @@ void kbd_handle()
             caps_lock ^= 1; //invert value of caps lock
             break;
         case B_SPACE:
-            if(print_idx == 0) 
+            if(print_inds[act_ops_term] == 0) 
             { //can't backspace if at first location of video memory and buffer empty
-                if(buf_idx == 0)
+                if(buff_inds[act_ops_term] == 0)
                 {   
                     send_eoi(KBD_IRQ_NUM);
                     return;
@@ -141,15 +195,15 @@ void kbd_handle()
                 else
                 {
                     //Remove last entry (a new line '\n') and set to endline
-                    read_buf[--buf_idx] = '\0';
+                    read_buffs[act_ops_term][--buff_inds[act_ops_term]] = '\0';
                     int num_to_print = 0;
                     int char_to_print = 0;
 
                     //find how many characters make up the next block of characters
-                    while((read_buf[buf_idx - num_to_print] != ENT_ASC) && ((buf_idx - num_to_print) > 0) && (char_to_print < (NUM_COLS*NUM_ROWS)))
+                    while((read_buffs[act_ops_term][buff_inds[act_ops_term] - num_to_print] != ENT_ASC) && ((buff_inds[act_ops_term] - num_to_print) > 0) && (char_to_print < (NUM_COLS*NUM_ROWS)))
                     {
                         num_to_print++;
-                        if (read_buf[buf_idx - num_to_print] == TAB_ASC) {
+                        if (read_buffs[act_ops_term][buff_inds[act_ops_term] - num_to_print] == TAB_ASC) {
                             char_to_print += TAB_LEN; //increase number of chars to print by tab length
                         }
                         else {
@@ -157,51 +211,53 @@ void kbd_handle()
                         }
                     }
                     //write new line(s) at top of screen
-                    print_idx = 0;
+                    print_inds[act_ops_term] = 0;
                     //copy all characters for created line(s)
                     for(i = 0; i < num_to_print; i++)                               
                     {
-                        switch(read_buf[buf_idx - num_to_print + i]) {
+                        switch(read_buffs[act_ops_term][buff_inds[act_ops_term] - num_to_print + i]) {
                             case TAB_ASC:
-                                print_idx += TAB_LEN; //add 5 spaces/tab
+                                print_inds[act_ops_term] += TAB_LEN; //add 5 spaces/tab
                                 break;
                             case ENT_ASC:
                                 break;
                             default: //for regular characters (only increment print index)
-                                *(uint8_t *)(video_mem + (print_idx << 1)) = read_buf[buf_idx - num_to_print + i]; // "<< 1" because each character is 2 bytes
-                                *(uint8_t *)(video_mem + (print_idx << 1) + 1) = TEXT_COLOR; //change text color (accessing attribute byte)
-                                print_idx++;
+                                *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = read_buffs[act_ops_term][buff_inds[act_ops_term] - num_to_print + i]; // "<< 1" because each character is 2 bytes
+                                *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1) + 1) = TEXT_COLOR; //change text color (accessing attribute byte)
+                                print_inds[act_ops_term]++;
                         }
                     }
-                    update_cursor(print_idx);
+                    update_cursor(print_inds[act_ops_term]);
                     send_eoi(KBD_IRQ_NUM);
                     return;
                 }
             }
-            if(buf_idx > 0) { //make sure not accessing empty buffer, decrement buf_idx since deleted char
-                switch(read_buf[--buf_idx]) {
+            if(buff_inds[act_ops_term] > 0) { //make sure not accessing empty buffer, decrement buff_inds[act_ops_term] since deleted char
+                switch(read_buffs[act_ops_term][--buff_inds[act_ops_term]]) {
                     case TAB_ASC: //for backspacing after tab
-                        print_idx -= TAB_LEN;
+                        print_inds[act_ops_term] -= TAB_LEN;
                         break;
                     case ENT_ASC: //for backspacing after new line
                         break;
                     default: //for backspacing regular characters
-                        print_idx--;
-                        *(uint8_t *)(video_mem + (print_idx << 1)) = ' '; //delete character and move print index back 1 char
-                        *(uint8_t *)(video_mem + (print_idx << 1) + 1) = TEXT_COLOR; //clear character's attribute byte
+                        print_inds[act_ops_term]--;
+                        *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = ' '; //delete character and move print index back 1 char
+                        *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1) + 1) = TEXT_COLOR; //clear character's attribute byte
                 }
-                read_buf[buf_idx] = '\0'; //remove character from buffer
+                read_buffs[act_ops_term][buff_inds[act_ops_term]] = '\0'; //remove character from buffer
             }
-            update_cursor(print_idx);
+            update_cursor(print_inds[act_ops_term]);
             send_eoi(KBD_IRQ_NUM);
             return;
-    }
+    } /* switch end bracket */
+
+    check_term_switch();
 
     // clear screen 
-    if (ctrl_flag == ON && scancode == L_KEY) { //ctrl+L
+    if (ctrl_flag == ON && scancodes[act_ops_term] == L_KEY) { //ctrl+L
         clear();
         clear_read_buf();
-        print_idx = 0; //reset print location to top left corner
+        print_inds[act_ops_term] = 0; //reset print location to top left corner
         update_cursor(0);
         send_eoi(KBD_IRQ_NUM);
         test_halt(0);
@@ -210,47 +266,114 @@ void kbd_handle()
 
     // print to screen and add to buffer 
     //only register characters (including enter and tab)
-    if(KBD_MAP[scancode] != 0 && scancode != CTRL_PRS && scancode != B_SPACE && scancode != LSHIFT_PRS && scancode != RSHIFT_PRS && scancode != CAPS) { 
+    if(KBD_MAP[scancodes[act_ops_term]] != 0 && scancodes[act_ops_term] != CTRL_PRS && scancodes[act_ops_term] != B_SPACE && scancodes[act_ops_term] != LSHIFT_PRS && scancodes[act_ops_term] != RSHIFT_PRS && scancodes[act_ops_term] != CAPS) { 
         //reserve last element in buffer for newline character
-        if(scancode != ENTER && buf_idx == BUF_SIZE-2); 
+        if(scancodes[act_ops_term] != ENTER && buff_inds[act_ops_term] == BUF_SIZE-2); 
         // don't take any more characters if the buffer is full, "-1" is 
         // because final element of buffer is reserved for enter (newline) 
-        else if(buf_idx < BUF_SIZE-1) { 
+        else if(buff_inds[act_ops_term] < BUF_SIZE-1) { 
             int capital = OFF; //should be capital letter if 1
             // check capital flag
             if((caps_lock == ON) ^ (shift_flag == ON))
                 capital = ON; //set capital flag
             // add character to buffer (accounting for case) and increment index
-            if(KBD_MAP[scancode] >= 'a' && KBD_MAP[scancode] <= 'z') {
-                //read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET; 
-                last_char = read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET;
+            if(KBD_MAP[scancodes[act_ops_term]] >= 'a' && KBD_MAP[scancodes[act_ops_term]] <= 'z') {
+                //read_buffs[act_ops_term][buff_inds[act_ops_term]++] = KBD_MAP[scancodes[act_ops_term]] - capital*CAP_OFFSET; 
+                last_chars[act_ops_term] = read_buffs[act_ops_term][buff_inds[act_ops_term]++] = KBD_MAP[scancodes[act_ops_term]] - capital*CAP_OFFSET;
             }
-                //read_buf[buf_idx++] = KBD_MAP[scancode] - capital*CAP_OFFSET; 
+                //read_buffs[act_ops_term][buff_inds[act_ops_term]++] = KBD_MAP[scancodes[act_ops_term]] - capital*CAP_OFFSET; 
             else if(capital == ON)
-                //read_buf[buf_idx++] = KBD_MAP_SHIFT[scancode];
-                last_char = read_buf[buf_idx++] = KBD_MAP_SHIFT[scancode];
+                //read_buffs[act_ops_term][buff_inds[act_ops_term]++] = KBD_MAP_SHIFT[scancodes[act_ops_term]];
+                last_chars[act_ops_term] = read_buffs[act_ops_term][buff_inds[act_ops_term]++] = KBD_MAP_SHIFT[scancodes[act_ops_term]];
             else
-                //read_buf[buf_idx++] = KBD_MAP[scancode];
-                last_char = read_buf[buf_idx++] = KBD_MAP[scancode];             
-            read_buf[buf_idx] = '\0'; //set end of string
+                //read_buffs[act_ops_term][buff_inds[act_ops_term]++] = KBD_MAP[scancodes[act_ops_term]];
+                last_chars[act_ops_term] = read_buffs[act_ops_term][buff_inds[act_ops_term]++] = KBD_MAP[scancodes[act_ops_term]];             
+            read_buffs[act_ops_term][buff_inds[act_ops_term]] = '\0'; //set end of string
             // either handle tab, handle enter, or display to screen
-            switch(scancode) {
+            switch(scancodes[act_ops_term]) {
                 case TAB:
-                    print_idx += TAB_LEN; //add 5 spaces/tab
+                    print_inds[act_ops_term] += TAB_LEN; //add 5 spaces/tab
                     break;
                 case ENTER:
-                    print_idx += NUM_COLS - (print_idx % NUM_COLS); //add number of characters between current position and new line
+                    print_inds[act_ops_term] += NUM_COLS - (print_inds[act_ops_term] % NUM_COLS); //add number of characters between current position and new line
                     break;
                 default: //for regular characters (only increment print index)
-                    *(uint8_t *)(video_mem + (print_idx << 1)) = last_char;
-                    *(uint8_t *)(video_mem + (print_idx << 1) + 1) = TEXT_COLOR;
-                    print_idx++;
+                    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = last_chars[act_ops_term];
+                    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1) + 1) = TEXT_COLOR;
+                    print_inds[act_ops_term]++;
             }
             check_scroll();
-            update_cursor(print_idx);
+            update_cursor(print_inds[act_ops_term]);
         }
     }
     send_eoi(KBD_IRQ_NUM);
+}
+
+/* check to see if a terminal switch occurred */
+void check_term_switch()
+{
+    /* check that alt is pressed */
+    if (alt_flag == ON)  {
+        /* check if any of the first 3 function keys are pressed */
+        switch(scancodes[act_ops_term]) {
+            /* change display to correct terminal if any of the first
+               3 function keys are pressed */
+            case F1:
+                set_display_term(0);
+                break;
+            case F2:
+                set_display_term(1);
+                break;
+            case F3:
+                set_display_term(2);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+/* set a terminal as the active display terminal */
+void set_display_term(uint32_t term_index)
+{
+    /* copy video memory to old terminal's store */
+    memcpy(stores[act_disp_term], video_mem, NUM_COLS*NUM_ROWS*CHAR_DIS_SZ);
+    /* change old active terminal settings so that it writes to its store, 
+       not video memory  */
+    write_buffs[act_disp_term] = stores[act_disp_term];
+    /* set requsted terminal as active display terminal  */
+    act_disp_term = term_index;
+    /*  copy new active display terminal's store into video memory */
+    memcpy(video_mem, stores[act_disp_term], NUM_COLS*NUM_ROWS*CHAR_DIS_SZ);
+    /* set new active terminal settings so that it writes to video memory,
+       not its store */
+    write_buffs[act_disp_term] = video_mem; 
+    /* update video memory's cursor with saved viruatl, cursor */
+    update_hw_cursor(cursors[act_disp_term]); 
+
+    /* test multiple terminals */
+    act_ops_term = act_disp_term;
+}
+
+/* set term_index to be active operations terminal. all subsequent reads,
+   writes will be performed on this terminal */
+void set_act_ops_term(uint32_t term_index)
+{
+    act_ops_term = term_index;
+}
+
+/* get the active operations terminal's virtual display address */
+int32_t get_act_ops_disp(uint8_t** act_ops_display)
+{
+    /* check for invalid parameter */
+    if(!act_ops_display) {
+        *act_ops_display = write_buffs[act_ops_term];
+        /* mark active operations terminal as being video mapped */
+        vid_mapped[act_ops_term] = ON;
+        return 0;
+    }
+    else
+        return -1;
 }
 
  /*
@@ -261,13 +384,25 @@ void kbd_handle()
   *   RETURN VALUE: none
   *   SIDE EFFECTS: cursor moves
   */
- void update_cursor(int index) {
-    outb(0x0F, VGA_LOW);
-    outb((unsigned char)(index & 0xFF), VGA_HIGH);
-    outb(0x0E, VGA_LOW);
-    outb((unsigned char)((index >> 8) & 0xFF), VGA_HIGH);
-    *(uint8_t *)(video_mem + ((index << 1) + 1)) = CURSOR_COLOR;
+ void update_cursor(uint32_t curs_pos) {
+    /* update active ops terminal's virtual cursor */
+    cursors[act_ops_term] = curs_pos;
+    /* set the cursor color in active ops terminal's virtual display */
+    *(uint8_t *)(write_buffs[act_ops_term] + ((curs_pos << 1) + 1)) = CURSOR_COLOR;
+    /* update real cursor's location if the the active ops terminal is also the 
+       active display terminal */
+    if(act_ops_term == act_disp_term)
+        update_hw_cursor(curs_pos);
  }
+
+void update_hw_cursor(uint32_t curs_pos) 
+{
+    outb(0x0F, VGA_LOW);
+    outb((unsigned char)(curs_pos & 0xFF), VGA_HIGH);
+    outb(0x0E, VGA_LOW);
+    outb((unsigned char)((curs_pos >> 8) & 0xFF), VGA_HIGH);
+    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) = CURSOR_COLOR;
+}
 
 /* 
  *
@@ -278,23 +413,23 @@ void check_scroll()
 {
     uint32_t i;
     // check if the print location has run past the end display 
-    if(print_idx >= NUM_COLS*NUM_ROWS) {
+    if(print_inds[act_ops_term] >= NUM_COLS*NUM_ROWS) {
         // copy every row to the row above it 
         for(i=0; i<(NUM_ROWS-1); i++)
-            memcpy(video_mem+(2*i*NUM_COLS), video_mem+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
-            memcpy(video_mem+(2*i*NUM_COLS+1), video_mem+(2*(i+1)*NUM_COLS+1), 2*NUM_COLS);
+            memcpy(write_buffs[act_ops_term]+(2*i*NUM_COLS), write_buffs[act_ops_term]+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
+            memcpy(write_buffs[act_ops_term]+(2*i*NUM_COLS+1), write_buffs[act_ops_term]+(2*(i+1)*NUM_COLS+1), 2*NUM_COLS);
          // clear newly inserted line 
         for(i=0; i < NUM_COLS; i++) {
-            *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
-            *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) = TEXT_COLOR;
+            *(uint8_t *)(write_buffs[act_ops_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
+            *(uint8_t *)(write_buffs[act_ops_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) = TEXT_COLOR;
         }
         // begin printing at left-most position of lowest row 
-        print_idx -= NUM_COLS;
+        print_inds[act_ops_term] -= NUM_COLS;
     }
 }
 
  /*
-  * get_read_buf()
+  * get_read_buf[act_ops_term]()
   *   DESCRIPTION: give newline-terminated buffer to terminal
   *   INPUTS: pointer to copy character buffer typed in to
   *   OUTPUTS: number of bytes input from keyboard
@@ -304,20 +439,20 @@ void check_scroll()
 int32_t get_read_buf(void* ptr, int32_t bytes) {
     int dummy=0;
     clear_read_buf();
-    //while(read_buf[buf_idx-1] != ENT_ASC); //wait until enter key is pressed
-    while(last_char != '\n')
+    //while(read_buffs[act_ops_term][buff_inds[act_ops_term]-1] != ENT_ASC); //wait until enter key is pressed
+    while(last_chars[act_ops_term] != '\n')
         dummy++; //wait until enter key is pressed
     cli(); //make sure not to interrupt memcpy
-    last_char = '\0';
-    if(bytes > buf_idx)
-        bytes = buf_idx;
-    memcpy(ptr, (void*) read_buf, bytes);
+    last_chars[act_ops_term] = '\0';
+    if(bytes > buff_inds[act_ops_term])
+        bytes = buff_inds[act_ops_term];
+    memcpy(ptr, (void*) read_buffs[act_ops_term], bytes);
     sti();
     return bytes;
 }
 
  /*
-  * clear_read_buf()
+  * clear_read_buf[act_ops_term]()
   *   DESCRIPTION: clear the read buffer
   *   INPUTS: none
   *   OUTPUTS: none
@@ -326,8 +461,8 @@ int32_t get_read_buf(void* ptr, int32_t bytes) {
   */
 void clear_read_buf() {
     cli(); //make sure not writing to buffer while clearing it
-    buf_idx = 0; //reset buffer index
-    read_buf[0] = '\0'; //clear buffer
+    buff_inds[act_ops_term] = 0; //reset buffer index
+    read_buffs[act_ops_term][0] = '\0'; //clear buffer
     sti();
  }
 
@@ -348,19 +483,20 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
         switch(buf[i]) {
             case '\0': break;
             case TAB_ASC:
-                print_idx += TAB_LEN; //add 5 spaces/tab
+                print_inds[act_ops_term] += TAB_LEN; //add 5 spaces/tab
                 break;
             case ENT_ASC:
-                print_idx += NUM_COLS - (print_idx % NUM_COLS);
+                print_inds[act_ops_term] += NUM_COLS - (print_inds[act_ops_term] % NUM_COLS);
                 break;
             default: //for regular characters (only increment print index)
-                *(uint8_t *)(video_mem + (print_idx << 1)) = buf[i]; // "<< 1" because each character is 2 bytes
-                *(uint8_t *)(video_mem + ((print_idx << 1) + 1)) = PROG_COLOR;
-                print_idx++;
+                *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = buf[i]; // "<< 1" because each character is 2 bytes
+                *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) = PROG_COLOR;
+                print_inds[act_ops_term]++;
         }
         check_scroll();
     }
     sti();
-    update_cursor(print_idx);
+    update_cursor(print_inds[act_ops_term]);
     return bytes;
  }
+
