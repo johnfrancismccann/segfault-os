@@ -82,7 +82,7 @@ void init_kbd();
 
 void kbd_handle();
 
-void update_cursor(int index);
+void update_cursor(uint32_t index);
 
 //void check_scroll(int print_index);
 

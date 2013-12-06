@@ -61,14 +61,10 @@ typedef struct pcb_t //pcb_t
   struct pcb_t*   par_proc;
 
   uint32_t        pid;
-  uint32_t        par_page_dir;
-  uint32_t        par_kstack;
   uint32_t        top_kstack;
-  uint32_t*        page_dir;
-  uint32_t        stack_ptr;
+  uint32_t*       page_dir;
   uint32_t        tss_kstack;
 
-  struct pcb_t*   child_pcb;
   uint8_t         arg_buffer[MAX_ARG_BUFFER];
   uint8_t         arg_buffer_size;
 } pcb_t;
