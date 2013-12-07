@@ -54,7 +54,7 @@ typedef struct
 
 #define MAX_OPEN_FILES 8
 #define MAX_ARG_BUFFER 128
-typedef struct pcb_t //pcb_t
+typedef struct pcb_t
 {
   file_desc_t     file_desc_arr[MAX_OPEN_FILES];
   uint8_t         available_fds; //bit vector 0 = available, 1 = used
