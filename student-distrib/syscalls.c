@@ -60,6 +60,10 @@ int32_t sys_halt(uint8_t status)
     else if(num_proc) {
         /* restore parent process' kernel stack and jump back to execute */
         proc_retval = (int32_t)status;
+        //Make sure all opened files are closed
+        int i;
+        for(i=2; i < MAX_OPEN_FILES; i++)
+            sys_close(i);
         asm volatile(
             //"movl %%ebx,%0\n\t"
             "movl %0, %%ebp\n\t"
