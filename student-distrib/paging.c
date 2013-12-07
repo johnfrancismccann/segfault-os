@@ -1,6 +1,8 @@
 #include "paging.h"
 #include "lib.h"
 
+static uint32_t *cur_page_dir = NULL;
+
 /*
  * enable_paging
  *   DESCRIPTION: enables paging within the processor by utilizing
@@ -35,6 +37,7 @@ void enable_paging()
 
 void set_CR3(uint32_t page_dir_address)
 {
+    cur_page_dir = (uint32_t*)page_dir_address;
     asm volatile(
         /* load address of page directory into CR3 */
         "movl %0, %%cr3\n\t"
@@ -69,7 +72,7 @@ void init_paging()
         
     /* initialize first page to not present, but r/w */ 
     page_table[0] = SET_PAGE_RW;
-    /* initialize page_table to contain contiguous 4MB block of memory */
+    /* initialize page_table to contain cb ontiguous 4MB block of memory */
     for(i=1; i<PAGE_TABLE_SIZE; i++)
         page_table[i] = ((PAGE_SIZE_4K*i) | (SET_PAGE_PRES | SET_PAGE_RW));
 
@@ -94,6 +97,25 @@ void init_paging()
         
     /* enable paging by changing control register values */ 
     enable_paging();
+}
+
+/* map 4KB page at phys_addr to virt_addr. 
+   assumption: page at virt_addr is already mapped to phys. page */
+int32_t remap_4KB_user_page(uint32_t phys_addr, uint32_t virt_addr)
+{
+    uint32_t page_table;
+    /* check that input parameters are not invalid */
+    if(!phys_addr)
+        return -1;
+    if(!virt_addr)
+        return -1;
+    /* get page table for phys_addr  */
+    page_table = cur_page_dir[virt_addr>>22] & (0xFFFFF000);
+    /* set corresponding entry in page table to physical address provided */
+    ((uint32_t*)page_table)[(virt_addr>>12) & (0x3FF)] 
+    = phys_addr | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
+
+    return 0;
 }
 
 /*

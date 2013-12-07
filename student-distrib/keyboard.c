@@ -13,6 +13,7 @@
 #include "i8259.h"
 #include "lib.h"
 #include "types.h"
+ #include "paging.h"
 
 #include "test_syscalls.h"
 
@@ -57,10 +58,15 @@ static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
 // #define NUM_TERMS 3
 #define CHAR_DIS_SZ 2 
 
+//typedef uint8_t store_t[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+
 
 // display parameters
 //static char* video_mem = (char *)VIDEO;
 static uint8_t* video_mem = (uint8_t *)VIDEO;
+static uint8_t  store_0[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+static uint8_t  store_1[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+static uint8_t  store_2[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
 
 /* terminal to which open, read, write, and close are performed on */
 static uint32_t act_ops_term = 0;
@@ -68,7 +74,10 @@ static uint32_t act_ops_term = 0;
 static uint32_t act_disp_term = 0;
 /* bufferes that are written to by a terminal when that terminal is not the 
    active display terminal */
-static uint8_t stores[NUM_TERMS][NUM_COLS*NUM_ROWS*CHAR_DIS_SZ];    
+//static uint8_t stores[NUM_TERMS][NUM_COLS*NUM_ROWS*CHAR_DIS_SZ];    
+static uint8_t* stores[NUM_TERMS];    
+
+
 /* holds the position of the cursor in the store for each terminal */
 static uint32_t cursors[NUM_TERMS];
 
@@ -112,6 +121,10 @@ void init_kbd()
 {
     uint32_t i,j;
     /* initialize settings for eeach terminal */
+    stores[0] = store_0;
+    stores[1] = store_1;
+    stores[2] = store_2;
+
     for(i=0; i<NUM_TERMS; i++) {
         /* set terminals' stores to be black, blank */
         for(j=0; j<NUM_COLS*NUM_ROWS*CHAR_DIS_SZ; j+=2) {
@@ -339,18 +352,34 @@ void set_display_term(uint32_t term_index)
 {
     /* copy video memory to old terminal's store */
     memcpy(stores[act_disp_term], video_mem, NUM_COLS*NUM_ROWS*CHAR_DIS_SZ);
-    /* change old active terminal settings so that it writes to its store, 
-       not video memory  */
+    /* change old active display terminal settings so that it writes to its  
+       store, not video memory  */
     write_buffs[act_disp_term] = stores[act_disp_term];
+#if 0
+    /* check if old active display terminal is video mapped */ 
+    if(vid_mapped[act_disp_term]) 
+        /* if so, map virtual video memory to store */
+        remap_4KB_user_page((uint32_t)(write_buffs[act_disp_term]), 
+                            (uint32_t)VID_VIRT_ADDR);
+#endif
+
     /* set requsted terminal as active display terminal  */
     act_disp_term = term_index;
+
     /*  copy new active display terminal's store into video memory */
     memcpy(video_mem, stores[act_disp_term], NUM_COLS*NUM_ROWS*CHAR_DIS_SZ);
     /* set new active terminal settings so that it writes to video memory,
        not its store */
     write_buffs[act_disp_term] = video_mem; 
-    /* update video memory's cursor with saved viruatl, cursor */
-    update_hw_cursor(cursors[act_disp_term]); 
+#if 0
+    /* check if new active display terminal is video mapped */ 
+    if(vid_mapped[act_disp_term])
+        /* if so, map virtual video memory to video memory */
+        remap_4KB_user_page(((uint32_t)write_buffs[act_disp_term]),
+                            (uint32_t)VID_VIRT_ADDR);
+#endif
+    /* update video memory's cursor with saved virtual, cursor */
+    update_hw_cursor(cursors[act_disp_term]);
 
     /* test multiple terminals */
     act_ops_term = act_disp_term;
@@ -364,17 +393,11 @@ void set_act_ops_term(uint32_t term_index)
 }
 
 /* get the active operations terminal's virtual display address */
-int32_t get_act_ops_disp(uint8_t** act_ops_display)
+uint32_t get_act_ops_disp()
 {
-    /* check for invalid parameter */
-    if(!act_ops_display) {
-        *act_ops_display = write_buffs[act_ops_term];
-        /* mark active operations terminal as being video mapped */
-        vid_mapped[act_ops_term] = ON;
-        return 0;
-    }
-    else
-        return -1;
+    vid_mapped[act_ops_term] = ON;
+    return (uint32_t)(write_buffs[act_ops_term]);
+
 }
 
  /*
