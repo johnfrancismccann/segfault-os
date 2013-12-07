@@ -7,7 +7,7 @@
 #include "x86_desc.h"
 #include "test_syscalls.h"
 
-#define MAX_PROCESSES 2
+#define MAX_PROCESSES 30
 //#define VID_VIRT_ADDR           0x10000000 //256 MB
 #define VID_VIRT_ADDR 0x8400000 //132MB
 
@@ -51,7 +51,13 @@ int32_t sys_halt(uint8_t status)
 {
 
     num_proc--;
-    if(num_proc) {
+    if(cur_proc->par_proc == NULL)
+    {
+        term_write((void*)"Re-launching terminal\n", 22);
+        cur_proc = NULL;
+        test_execute((uint8_t*)"shell");
+    }
+    else if(num_proc) {
         /* restore parent process' kernel stack and jump back to execute */
         proc_retval = (int32_t)status;
         asm volatile(
