@@ -14,7 +14,7 @@
 #include "lib.h"
 #include "types.h"
 
- #include "test_syscalls.h"
+#include "test_syscalls.h"
 
 
 static const char KBD_MAP[KBD_MAP_SIZE] =
@@ -54,7 +54,7 @@ static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //0xFF
 
 #define TEST_MULT_TERM 1
-#define NUM_TERMS 3
+// #define NUM_TERMS 3
 #define CHAR_DIS_SZ 2 
 
 
@@ -467,14 +467,14 @@ void clear_read_buf() {
     sti();
  }
 
- /*
-  * print_write_buf(const void* wrt_buf)
-  *   DESCRIPTION: print a buffer to the screen at location given by cursor
-  *   INPUTS: pointer to buffer to be written
-  *   OUTPUTS: number of bytes written to terminal
-  *   RETURN VALUE: none
-  *   SIDE EFFECTS: none
-  */
+/*
+* print_write_buf(const void* wrt_buf)
+*   DESCRIPTION: print a buffer to the screen at location given by cursor
+*   INPUTS: pointer to buffer to be written
+*   OUTPUTS: number of bytes written to terminal
+*   RETURN VALUE: none
+*   SIDE EFFECTS: none
+*/
 int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     int i; //loop iterator
     char* buf = (char*) wrt_buf;
@@ -501,3 +501,15 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     return bytes;
  }
 
+/*
+* get_active_terminal
+*   DESCRIPTION: lets other functions determine active terminal
+*   INPUTS: none
+*   OUTPUTS: none
+*   RETURN VALUE: active terminal number
+*   SIDE EFFECTS: none
+*/
+uint32_t get_active_terminal()
+{
+    return act_ops_term;
+}
