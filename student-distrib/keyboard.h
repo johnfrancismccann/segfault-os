@@ -86,6 +86,8 @@ void kbd_handle();
 
 void update_cursor(uint32_t index);
 
+uint32_t get_act_ops_disp();
+
 //void check_scroll(int print_index);
 
 int32_t get_read_buf(void* buf, int32_t bytes);

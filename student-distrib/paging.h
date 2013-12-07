@@ -7,6 +7,7 @@
 #define PAGE_TABLE_SIZE         0x400
 #define PAGE_SIZE_4K            0x1000 //4kB
 #define KERNEL_LOAD_POINT       0x400000 //4MB
+#define VID_VIRT_ADDR 			0x8400000 //132MB
 
 #define SET_PAGE_GLOBAL         0x100
 #define SET_PAGE_4MB            0x80
@@ -29,6 +30,8 @@ uint32_t get_proc_page_dir(uint32_t* proc_page_dir,
                            uint32_t virt_addr);
 
 void set_CR3(uint32_t page_dir_address);
+
+int32_t remap_4KB_user_page(uint32_t phys_addr, uint32_t virt_addr);
 
 /* page directory memory */
 unsigned int page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
