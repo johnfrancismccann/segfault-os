@@ -27,11 +27,12 @@ uint32_t get_available_pid();
 
 /*
  * new_process
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Creates new process on active terminal.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: PID for new process, PID_ERR on failure
+ *   SIDE EFFECTS: creates new process and sets it as top process
+ *                 for active terminal.
  */
 uint32_t new_process()
 {
@@ -65,11 +66,12 @@ uint32_t new_process()
 
 /*
  * get_process
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Gives access to pcb of a given pid
+ *   INPUTS: pid- process id for desired process pcb
+ *   OUTPUTS: none
+ *   RETURN VALUE: pointer to pcb structure for process or
+ *                 NULL on error.
+ *   SIDE EFFECTS: none.
  */
 pcb_t* get_process(uint32_t pid)
 {
@@ -82,11 +84,12 @@ pcb_t* get_process(uint32_t pid)
 
 /*
  * get_curprocess
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Finds pid of top process on active terminal.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: returns PID of active terminal top process, 
+ *                 0 on error.
+ *   SIDE EFFECTS: none
  */
 uint32_t get_curprocess()
 {
@@ -101,11 +104,12 @@ uint32_t get_curprocess()
 
 /*
  * del_process
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Deletes top process on active terminal
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: returns new top process pid for active terminal,
+ *                 0 on error.
+ *   SIDE EFFECTS: removes one active process
  */
 uint32_t del_process()
 {
@@ -129,11 +133,12 @@ uint32_t del_process()
 
 /*
  * get_available_pid
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Finds lowest number available PID
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: returns lowest available PID, or PID_ERR
+ *                 if none are available.
+ *   SIDE EFFECTS: none
  */
 uint32_t get_available_pid()
 {
@@ -147,4 +152,18 @@ uint32_t get_available_pid()
     }
     //No available PIDs, return pid_err.
     return PID_ERR;
+}
+
+
+/*
+ * get_num_processes
+ *   DESCRIPTION: Gives external access to number of processes
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: returns number of processes
+ *   SIDE EFFECTS: none
+ */
+uint32_t get_num_processes()
+{
+    return num_proc;
 }
