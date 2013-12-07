@@ -13,10 +13,6 @@
 //#define VID_VIRT_ADDR           0x10000000 //256 MB
 #define VID_VIRT_ADDR 0x8400000 //132MB
 
-/* pointer to current pcb */
-// pcb_t* cur_proc = NULL;
-/* number of processes */
-// uint32_t num_proc = 0;
 /* return value of user level program */
 int32_t proc_retval;
 
@@ -123,20 +119,11 @@ int32_t sys_execute(const uint8_t* command)
         return -1;
     pcb_t* child_proc = get_process(pid);
 
-    /* all checks now passed to attempt to create new child process */
-    // num_proc++;
-    /* create new pcb for child in memory */
-    // pcb_t* child_proc = (pcb_t*)(EIGHT_MB-(num_proc)*KERNEL_STACK_SZ);
-    // child_proc->pid = num_proc-1;
-    // child_proc->par_proc = cur_proc;
     child_proc->available_fds = 3;
     /* store child's arguments */
     strcpy((int8_t*)child_proc->arg_buffer, (const int8_t*)arguments);
     child_proc->arg_buffer_size = temp_size;
     /* set up child's paging. set processor to child's page directory */
-    // child_proc->page_dir = proc_page_dir[child_proc->pid];
-    // get_proc_page_dir(child_proc->page_dir, EIGHT_MB+(num_proc-1)*FOUR_MB,
-    //                   MB_128);
     set_CR3((uint32_t)child_proc->page_dir);
     /* set base location of child's program image */
     uint32_t prog_loc = USR_PRGRM_VIRT_LC;
@@ -162,11 +149,8 @@ int32_t sys_execute(const uint8_t* command)
                     );
     }
     /* set child's initial kernel stack in pcb and in tss */
-    // child_proc->tss_kstack = EIGHT_MB-(num_proc-1)*KERNEL_STACK_SZ-BYTE;
     tss.esp0 = child_proc->tss_kstack;
     tss.ss0 =  KERNEL_DS;
-    /* finally, set the child process as the current process */
-    // cur_proc = child_proc;
     /* begin execution of new process with first program instruction */
     asm volatile(
         "movl %0, %%eax\n\t"
