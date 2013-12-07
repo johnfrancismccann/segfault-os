@@ -67,6 +67,7 @@ typedef struct pcb_t
 
   uint8_t         arg_buffer[MAX_ARG_BUFFER];
   uint8_t         arg_buffer_size;
+  uint32_t        term_num;
 } pcb_t;
 
 #endif /* ASM */
