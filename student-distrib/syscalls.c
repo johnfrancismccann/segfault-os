@@ -32,9 +32,6 @@ int32_t sys_vidmap(uint8_t** screen_start);
 int32_t sys_set_handler(int32_t signum, void* handler_address);
 int32_t sys_sigreturn(void);
 
-
-
-
 /*
  * sys_halt
  *   DESCRIPTION: Ends current process and returns to parent process.
@@ -50,7 +47,12 @@ int32_t sys_halt(uint8_t status)
 
     proc_retval = (int32_t)status;
 
+    /* process destroyed. current process is either parent
+       or new shell */
     destroy_proc();
+
+    /* reload new current process' ebp to return to its location
+       in the kernel */
     asm volatile(
         //"movl %%ebx,%0\n\t"
         "movl %0, %%ebp\n\t"
@@ -110,6 +112,7 @@ int32_t sys_execute(const uint8_t* command)
     if(((uint32_t*)tempbuf)[0] != ELF_MAG_NUM)
         return -1;
 
+    /* new child process created that is set as current process */
     if(-1 == create_proc())
         return -1;
 
@@ -137,6 +140,10 @@ int32_t sys_execute(const uint8_t* command)
         :"r" (*((uint32_t*)(prog_loc+24))) /* location of first instruction */
         :"%eax"
         );
+    /* the child process has finished execution, and the current process is the 
+       child's parent */
+
+    /* return to parent */
     return proc_retval;
 }
 
@@ -392,21 +399,27 @@ int32_t sys_vidmap(uint8_t** screen_start)
 
     pcb_t* cur_proc = get_cur_proc();
 
-    if(screen_start == NULL) return -1;
+    /* check input parameter */
+    if(screen_start == NULL) 
+        return -1;
+
+    /* set the address of virtual video memory */
     uint32_t video_virt_addr = (uint32_t) VID_VIRT_ADDR; //virtual address of video memory
+    /* get the video display memory from the keyboard driver. either video or store */
     uint32_t vid_phys_addr = get_act_ops_disp();
 
     //vid_pg_tbl[0] = VIDEO | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
+    /* map first entry of video page table to the video memory */
     vid_pg_tbl[0] = vid_phys_addr | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
 
-    /* add page mapping for video memory */
+    /* set corresponding page directory entry to video page table */
     vid_pg_dir_ent = (uint32_t)vid_pg_tbl;
     vid_pg_dir_ent |= (SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER);
-
-
     (cur_proc->page_dir)[video_virt_addr/FOUR_MB] = (uint32_t) vid_pg_dir_ent;
-
-
+    set_CR3((uint32_t)cur_proc->page_dir);
+    /* set the current process as video mapped */
+    cur_proc->vid_mapped = 1;
+    /* supply the location of virtual video memory to the user */
     *screen_start = (uint8_t*) VID_VIRT_ADDR;
 
     return 0;
