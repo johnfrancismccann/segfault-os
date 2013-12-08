@@ -1,174 +1,101 @@
-#include "types.h"
-#include "keyboard.h"
 #include "process.h"
-#include "error_codes.h"
+#include "x86_desc.h"
 #include "paging.h"
-#include "fs.h"
-#include "syscalls.h"
+#include "terminal.h"
+#include "test_syscalls.h"
+#include "lib.h"
 
-#define MAX_PROCESSES 30
-#define MB_128              0x8000000
-#define USR_PRGRM_VIRT_LC   MB_128+0x48000
-#define MAX_PRGRM_SZ        FOUR_MB
+#define MAX_PROCESSES 2
+static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
+
 #define ELF_MAG_NUM         0x464C457F
 #define KERNEL_STACK_SZ     EIGHT_KB
+#define MB_128              0x8000000
 
-uint32_t num_proc = 0;
+/* pointer to current pcb */
+static pcb_t* cur_proc = NULL;
+/* number of processes */
+static int32_t num_proc = 0;
 
-uint32_t proc_by_term[NUM_TERMS] = {0};
-
-pcb_t* term_top_proc[NUM_TERMS] = {NULL};
-
-pcb_t* processes[MAX_PROCESSES] = {NULL};
-
-uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
-
-uint32_t get_available_pid();
-
-/*
- * new_process
- *   DESCRIPTION: Creates new process on active terminal.
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: PID for new process, PID_ERR on failure
- *   SIDE EFFECTS: creates new process and sets it as top process
- *                 for active terminal.
- */
-uint32_t new_process()
+pcb_t* get_cur_proc()
 {
-    // If max processes exceded, don't make new process
-    if((num_proc + 1) > MAX_PROCESSES)
-        return PID_ERR;
-    num_proc++;
-    uint32_t curterm = get_active_terminal();
-    pcb_t* child_proc = (pcb_t*)(EIGHT_MB-(num_proc)*KERNEL_STACK_SZ);
-    uint32_t pid = get_available_pid();
-    // If no available PID, return error.
-    if(pid == PID_ERR)
-    {
-        num_proc --;
-        return PID_ERR;
-    }
-    processes[pid-1] = child_proc;
-    child_proc->term_num = curterm;
-    child_proc->pid = pid;
-    child_proc->par_proc = term_top_proc[curterm];
-    term_top_proc[curterm] = child_proc;
-    proc_by_term[curterm]++;
+    return cur_proc;
+}
 
-    child_proc->page_dir = proc_page_dir[child_proc->pid - 1];
+int32_t create_proc()
+{
+    /* check that max number of processes isn't exceeded */
+    if(num_proc >= MAX_PROCESSES)
+        return -1;
+    
+    num_proc++;
+    /* create new pcb for child in memory */
+    pcb_t* child_proc = (pcb_t*)(EIGHT_MB-(num_proc)*KERNEL_STACK_SZ);
+    child_proc->pid = num_proc-1;
+    child_proc->par_proc = cur_proc;
+    child_proc->available_fds = 3;
+
+    /* init child's standard i/o */
+    child_proc->file_desc_arr[STDOUT].file_ops_table = termfops_table;
+    child_proc->file_desc_arr[STDIN].file_ops_table = termfops_table;
+    child_proc->file_desc_arr[STDOUT].flags = 1;
+    child_proc->file_desc_arr[STDIN].flags = 1;
+
+    /* set up child's paging. set processor to child's page directory */
+    child_proc->page_dir = proc_page_dir[child_proc->pid];
     get_proc_page_dir(child_proc->page_dir, EIGHT_MB+(num_proc-1)*FOUR_MB,
                       MB_128);
+    set_CR3((uint32_t)child_proc->page_dir);
+
+    /* set child's initial kernel stack in pcb and in tss */
     child_proc->tss_kstack = EIGHT_MB-(num_proc-1)*KERNEL_STACK_SZ-BYTE;
+    tss.esp0 = child_proc->tss_kstack;
+    tss.ss0 =  KERNEL_DS;
 
-    print_status_bar(); //update number of processes on status bar
+    /* finally, set the child process as the current process */
+    cur_proc = child_proc; 
 
-    return pid;
+    return 0;
+
 }
 
-/*
- * get_process
- *   DESCRIPTION: Gives access to pcb of a given pid
- *   INPUTS: pid- process id for desired process pcb
- *   OUTPUTS: none
- *   RETURN VALUE: pointer to pcb structure for process or
- *                 NULL on error.
- *   SIDE EFFECTS: none.
- */
-pcb_t* get_process(uint32_t pid)
+void destroy_proc()
 {
-    // If too high number, return NULL
-    if(pid > MAX_PROCESSES)
-        return NULL;
-    // Else, return pointer to process if it exists
-    return processes[pid-1];
-}
 
-/*
- * get_curprocess
- *   DESCRIPTION: Finds pid of top process on active terminal.
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: returns PID of active terminal top process, 
- *                 0 on error.
- *   SIDE EFFECTS: none
- */
-uint32_t get_curprocess()
-{
-    uint32_t curterm = get_active_terminal();
-    //If no active process, return 0;
-    if(term_top_proc[curterm] == NULL)
-        return 0;
-    //Else return pid for current active process
-    return(term_top_proc[curterm]->pid);
-}
-
-
-/*
- * del_process
- *   DESCRIPTION: Deletes top process on active terminal
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: returns new top process pid for active terminal,
- *                 0 on error.
- *   SIDE EFFECTS: removes one active process
- */
-uint32_t del_process()
-{
-    // If no active processes, don't attempt deletion
-    if(num_proc == 0)
-        return 0;
-    uint32_t curterm = get_active_terminal();
-    // If no active processes on active terminal, don't attempt deletion
-    if(proc_by_term[curterm] == 0)
-        return 0;
-    proc_by_term[curterm]--;
     num_proc--;
-    pcb_t* curproc = term_top_proc[curterm];
-    term_top_proc[curterm] = curproc->par_proc;
-    processes[curproc->pid] = NULL;
-    if(term_top_proc[curterm] == NULL)
-        return 0;
+    if(cur_proc->par_proc) {
 
-    print_status_bar(); //update number of processes on status bar
-
-    return term_top_proc[curterm]->pid;
-}
-
-
-/*
- * get_available_pid
- *   DESCRIPTION: Finds lowest number available PID
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: returns lowest available PID, or PID_ERR
- *                 if none are available.
- *   SIDE EFFECTS: none
- */
-uint32_t get_available_pid()
-{
-    int i;
-    //Find first available PID.  0 is reserved for Kernel (unused)
-    for(i=1; i <= MAX_PROCESSES; i++)
-    {
-        //On first available PID, return PID number
-        if(processes[i-1] == NULL)
-            return i;
+        /* execution of child process completed. null par_proc handled in halt. 
+           restore child's parent process to be current process */
+        cur_proc = cur_proc->par_proc;
+        /* restore parent process' initial kernel stack location in tss */
+        tss.esp0 = cur_proc->tss_kstack;
+        /* restore parent process' paging */
+        set_CR3((uint32_t)cur_proc->page_dir);
     }
-    //No available PIDs, return pid_err.
-    return PID_ERR;
+    else {
+        /* no process left to resume */
+        cur_proc = NULL;
+        num_proc = 0;
+        /* restart shell */
+        test_execute((uint8_t*)"shell");
+    }
 }
 
-
-/*
- * get_num_processes
- *   DESCRIPTION: Gives external access to number of processes
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: returns number of processes
- *   SIDE EFFECTS: none
- */
-uint32_t get_num_processes()
+void set_arguments(const int8_t* arguments, uint8_t size)
 {
-    return num_proc;
+    strcpy((int8_t*)cur_proc->arg_buffer, arguments);
+    cur_proc->arg_buffer_size = size;
 }
+
+void set_par_ebp(uint32_t par_ebp)
+{
+    if(cur_proc->par_proc)
+        cur_proc->par_proc->top_kstack = par_ebp;
+}
+
+uint32_t get_ebp()
+{
+    return cur_proc->top_kstack;
+}
+
