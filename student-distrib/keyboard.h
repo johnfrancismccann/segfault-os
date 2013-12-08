@@ -38,40 +38,47 @@
 #define ON 1
 #endif
 
-//Keyboard is IRQ 1, IDT number 33, port 0x60
+/* Keyboard is IRQ 1, IDT number 33, port 0x60 */
 #define KBD_IRQ_NUM 1
 #define KBD_IDT_NUM 33
 #define KBD_PORT    0x60
 
-#define VGA_LOW 0x3D4 //low register of VGA port
-#define VGA_HIGH 0x3D5 //high register of VGA port
-#define CAP_OFFSET 0x20 //offset between lower case and upper case ASCII value
-#define TAB_LEN 5 //set tab length to 5 spaces
+/* VGA ports */
+#define VGA_LOW     0x3D4 //low register of VGA port
+#define VGA_HIGH    0x3D5 //high register of VGA port
+
+/* miscellaneous keyboard macros */
+#define CAP_OFFSET  0x20 //offset between lower case and upper case ASCII value
+#define TAB_LEN     5 //set tab length to 5 spaces
+#define UP          0 //for upper scroll store (previous data)
+#define DN          1 //for lower scroll store (current data)
 
 /* ASCII values */
-#define TAB_ASC 0x09 //tab key
-#define ENT_ASC 0x0A //enter key
-#define ONE_ASC 0x02 //#1
-#define ZERO_ASC 0x0B //#0
+#define TAB_ASC     0x09 //tab key
+#define ENT_ASC     0x0A //enter key
+#define ONE_ASC     0x02 //#1
+#define ZERO_ASC    0x0B //#0
 
 /* scancodes */
-#define CTRL_PRS 0x1D //left/right control press
-#define CTRL_RLS 0x9D //left/right control release
-#define L_KEY 0x26 //'L' pressed
-#define B_SPACE 0x0E //backspace pressed
-#define TAB 0x0F //tab pressed
-#define ENTER 0x1C //enter pressed
-#define LSHIFT_PRS 0x2A //left shift pressed
-#define RSHIFT_PRS 0x36 //right shift pressed
-#define LSHIFT_RLS 0xAA //left shift released
-#define RSHIFT_RLS 0xB6 //right shift released
-#define CAPS 0x3A //caps lock pressed
-#define ALT_PRS		0x38
-#define ALT_RLS		0xB8
+#define CTRL_PRS    0x1D //left/right control press
+#define CTRL_RLS    0x9D //left/right control release
+#define L_KEY       0x26 //'L' pressed
+#define B_SPACE     0x0E //backspace pressed
+#define TAB         0x0F //tab pressed
+#define ENTER       0x1C //enter pressed
+#define LSHIFT_PRS  0x2A //left shift pressed
+#define RSHIFT_PRS  0x36 //right shift pressed
+#define LSHIFT_RLS  0xAA //left shift released
+#define RSHIFT_RLS  0xB6 //right shift released
+#define CAPS        0x3A //caps lock pressed
+#define ALT_PRS     0x38
+#define ALT_RLS     0xB8
+#define PG_UP       0x49 //page up press
+#define PG_DN       0x51 //page down press
 /* ALT_FX found on stanislavs.org/helppc/scan_codes.html */
-#define F1		0x3B 
-#define F2		0x3C
-#define F3		0x3D
+#define F1          0x3B 
+#define F2          0x3C
+#define F3          0x3D
 
 //for changing color scheme
 #define NUM_SCANCODE_OFFSET 1 //1 has scancode 0x02, 2 is 0x03, etc.
@@ -85,7 +92,7 @@
 #define TXT_CLR_INFO_START NUM_ROWS*NUM_COLS+62 //starting print index of text color information
 
 #define KBD_MAP_SIZE 256
-#define BUF_SIZE 128
+#define BUF_SIZE     128
 
 #include "types.h"
 
