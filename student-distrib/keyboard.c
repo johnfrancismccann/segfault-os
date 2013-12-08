@@ -191,9 +191,11 @@ void kbd_handle()
     uint16_t i; //loop iterator
     uint8_t clr_combo; //color combination number
 
+#if 0
     if(print_inds[act_ops_term] == 0) {
         clear();
     }
+#endif
 
     //change background color with alt+num
     if (alt_flag == ON && ctrl_flag == OFF && (scancodes[act_ops_term] >= ONE_ASC && scancodes[act_ops_term] <= ZERO_ASC)) {
@@ -693,7 +695,8 @@ void print_status_bar() {
     // convert number to ASCII and copy to info buffer
     itoa(act_disp_term, term_char, (int32_t) 10);
     term_num_info = strcat(term_num_text, (char*) term_char);
-    itoa(get_num_processes(), processes_char, (int32_t) 10);
+    //itoa(get_num_processes(), processes_char, (int32_t) 10);
+    itoa(1, processes_char, (int32_t) 10);
     processes_info = strcat(processes_text, (char*) processes_char);
     itoa(bg_scheme[act_disp_term], bg_scheme_char, (int32_t) 10);
     bg_color_info = strcat(bg_color_text, (char*) bg_scheme_char);
@@ -763,5 +766,5 @@ char* strcat(char *dest, char *src)
 */
 uint32_t get_active_terminal()
 {
-    return act_ops_term;
+    return 0;
 }
