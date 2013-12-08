@@ -201,6 +201,7 @@ void do_idt_page_fault(uint32_t error_code_a, uint32_t error_code_b)
     clear();
     reset_screen_pos();
     printf("PAGE FAULT ERROR!\nERROR CODE 1: %x\nERROR CODE 2: %x\n", error_code_b, error_code_a);
+    while(1);
     test_halt(255);
 }
 
