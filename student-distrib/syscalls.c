@@ -6,10 +6,9 @@
 #include "paging.h"
 #include "x86_desc.h"
 #include "test_syscalls.h"
-#include "error_codes.h"
+#include "keyboard.h"
 #include "process.h"
 
-#define MAX_PROCESSES 30
 //#define VID_VIRT_ADDR           0x10000000 //256 MB
 #define VID_VIRT_ADDR 0x8400000 //132MB
 
@@ -35,6 +34,7 @@ int32_t sys_sigreturn(void);
 
 
 
+
 /*
  * sys_halt
  *   DESCRIPTION: Ends current process and returns to parent process.
@@ -47,32 +47,27 @@ int32_t sys_sigreturn(void);
  */
 int32_t sys_halt(uint8_t status)
 {
-    uint32_t pid = del_process();
-    if(pid == 0)
-    {
-        term_write((void*)"Re-launching terminal\n", 22);
-        test_execute((uint8_t*)"shell");
-    }
-    else{
-        /* restore parent process' kernel stack and jump back to execute */
-        proc_retval = (int32_t)status;
-         asm volatile(
-            //"movl %%ebx,%0\n\t"
-            "movl %0, %%ebp\n\t"
-            "jmp ret_from_user\n\t"
-            :
-            :"r"(get_process(pid)->top_kstack)
-            );
-    }
+
+    proc_retval = (int32_t)status;
+
+    destroy_proc();
+    asm volatile(
+        //"movl %%ebx,%0\n\t"
+        "movl %0, %%ebp\n\t"
+        "jmp ret_from_user\n\t"
+        :
+        :"r"(get_ebp())
+        //:"=r"(status)
+        );
+
     //printf("This is the %s call\n",__func__);
     return 0;
 }
 
+#define ELF_MAG_NUM         0x464C457F
 #define MB_128              0x8000000
 #define USR_PRGRM_VIRT_LC   MB_128+0x48000
 #define MAX_PRGRM_SZ        FOUR_MB
-#define ELF_MAG_NUM         0x464C457F
-#define KERNEL_STACK_SZ     EIGHT_KB
 
 /*
  * sys_execute
@@ -90,7 +85,8 @@ int32_t sys_execute(const uint8_t* command)
     /* check for invalid argument */
     if(command == NULL)
         return -1;
-    
+    /* check that max number of processes isn't exceeded */
+
     /* extract filename from command */
     int8_t* mycommand[MAX_ARG_BUFFER];
     uint8_t temp_size;
@@ -114,43 +110,24 @@ int32_t sys_execute(const uint8_t* command)
     if(((uint32_t*)tempbuf)[0] != ELF_MAG_NUM)
         return -1;
 
-    uint32_t pid = new_process();
-    if(pid == PID_ERR)
+    if(-1 == create_proc())
         return -1;
-    pcb_t* child_proc = get_process(pid);
 
-    child_proc->available_fds = 3;
-    /* store child's arguments */
-    strcpy((int8_t*)child_proc->arg_buffer, (const int8_t*)arguments);
-    child_proc->arg_buffer_size = temp_size;
-    /* set up child's paging. set processor to child's page directory */
-    set_CR3((uint32_t)child_proc->page_dir);
+    /* save parent's ebp */
+    uint32_t par_ebp;
+    asm volatile(
+                "movl %%ebp, %0\n\t"
+                :"=r"(par_ebp)
+                );
+
+    set_par_ebp(par_ebp);
+    set_arguments((const int8_t*)arguments, temp_size);
+
     /* set base location of child's program image */
     uint32_t prog_loc = USR_PRGRM_VIRT_LC;
     /* load child's executable into contiguous memory at base location */
-    if(-1 ==load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ)) {
-        /* on unsuccessful load, set page directory back to current process
-           and return failure */
-        del_process();
-        set_CR3((uint32_t)get_process(get_curprocess())->page_dir);
-        return -1;
-    }
-    /* init child's standard i/o */
-    child_proc->file_desc_arr[STDOUT].file_ops_table = termfops_table;
-    child_proc->file_desc_arr[STDIN].file_ops_table = termfops_table;
-    child_proc->file_desc_arr[STDOUT].flags = 1;
-    child_proc->file_desc_arr[STDIN].flags = 1;
-    /* save parent's kernel stack ptr on entry to this function in parent's pcb
-       if child process isn't shell */
-    if(child_proc->par_proc != NULL) {
-        asm volatile(
-                    "movl %%ebp, %0\n\t"
-                    :"=r"(child_proc->par_proc->top_kstack)
-                    );
-    }
-    /* set child's initial kernel stack in pcb and in tss */
-    tss.esp0 = child_proc->tss_kstack;
-    tss.ss0 =  KERNEL_DS;
+    load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ);
+
     /* begin execution of new process with first program instruction */
     asm volatile(
         "movl %0, %%eax\n\t"
@@ -160,14 +137,6 @@ int32_t sys_execute(const uint8_t* command)
         :"r" (*((uint32_t*)(prog_loc+24))) /* location of first instruction */
         :"%eax"
         );
-
-    /* execution of child process completed. null par_proc handled in halt. 
-       restore child's parent process to be current process */
-    pcb_t* cur_proc = get_process(get_curprocess());
-    /* restore parent process' initial kernel stack location in tss */
-    tss.esp0 = cur_proc->tss_kstack;
-    /* restore parent process' paging */
-    set_CR3((uint32_t)cur_proc->page_dir);
     return proc_retval;
 }
 
@@ -185,7 +154,9 @@ int32_t sys_execute(const uint8_t* command)
  */
 int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
 {
-    pcb_t* cur_proc = get_process(get_curprocess());
+
+    pcb_t* cur_proc = get_cur_proc();
+
     //Return error on invalid argument
     if(buf == NULL)
         return -1;
@@ -223,7 +194,9 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
  */
 int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 {
-    pcb_t* cur_proc = get_process(get_curprocess());
+
+    pcb_t* cur_proc = get_cur_proc();
+
     //Return error on invalid argument
     if(buf == NULL)
         return -1;
@@ -258,12 +231,15 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
  */
 int32_t sys_open(const uint8_t* filename)
 {
-    pcb_t* cur_proc = get_process(get_curprocess());
+    pcb_t* cur_proc = get_cur_proc();
+
     dentry_t myfiledentry;
     // printf("This is the %s call\n",__func__);
+
     //Return error on invalid argument
     if(filename == NULL)
-        return -1;
+        return -1; 
+
     //Error on invalid PCB for process
     if(cur_proc == NULL)
         return -1;
@@ -335,7 +311,8 @@ int32_t sys_open(const uint8_t* filename)
  */
 int32_t sys_close(int32_t fd)
 {
-    pcb_t* cur_proc = get_process(get_curprocess());
+
+    pcb_t* cur_proc = get_cur_proc();
     // printf("This is the %s call\n",__func__);
     //Error on out-of-range fd
     if(fd < 0 || fd >= MAX_OPEN_FILES)
@@ -374,7 +351,9 @@ int32_t sys_close(int32_t fd)
  */
 int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
 {
-    pcb_t* cur_proc = get_process(get_curprocess());
+
+    pcb_t* cur_proc = get_cur_proc();
+
     //Return error on invalid argument
     if(buf == NULL)
         return -1;
@@ -395,9 +374,9 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
 
 
 /* page directory memory */
-    uint32_t vid_pg_dir_ent;
-    /* page table for first 4MB of memory */
-    uint32_t vid_pg_tbl[PAGE_TABLE_SIZE] __attribute__((aligned(PG_TBL_ALIGN))); //needs to be static so can align properly (so that not placed on stack)
+uint32_t vid_pg_dir_ent;
+/* page table for first 4MB of memory */
+static uint32_t vid_pg_tbl[PAGE_TABLE_SIZE] __attribute__((aligned(PG_TBL_ALIGN))); //needs to be static so can align properly (so that not placed on stack)
 
 /*
  * sys_vidmap
@@ -410,11 +389,15 @@ int32_t sys_getargs(uint8_t* buf, int32_t nbytes)
  */
 int32_t sys_vidmap(uint8_t** screen_start)
 {
-    pcb_t* cur_proc = get_process(get_curprocess());
+
+    pcb_t* cur_proc = get_cur_proc();
+
     if(screen_start == NULL) return -1;
     uint32_t video_virt_addr = (uint32_t) VID_VIRT_ADDR; //virtual address of video memory
+    uint32_t vid_phys_addr = get_act_ops_disp();
 
-    vid_pg_tbl[0] = VIDEO | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
+    //vid_pg_tbl[0] = VIDEO | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
+    vid_pg_tbl[0] = vid_phys_addr | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
 
     /* add page mapping for video memory */
     vid_pg_dir_ent = (uint32_t)vid_pg_tbl;

@@ -73,7 +73,8 @@ int32_t fs_open_file(const uint8_t* filename)
     if(!search_res) {
         /* file with name filename was found */
         /* check if filename is name of a directory */
-        if(dentry.ftype == TYPE_DIR)
+        //if(dentry.ftype == TYPE_DIR)
+        if(dentry.ftype != TYPE_REG)
             /* if so, return failure */
             return -1;  
         /* otherwise, set inode number */
