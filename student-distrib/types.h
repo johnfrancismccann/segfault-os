@@ -65,6 +65,7 @@ typedef struct pcb_t
   uint32_t*       page_dir;
   uint32_t        tss_kstack;
 
+  uint32_t        vid_mapped;
   uint8_t         arg_buffer[MAX_ARG_BUFFER];
   uint8_t         arg_buffer_size;
   uint32_t        term_num;
