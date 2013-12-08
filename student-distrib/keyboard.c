@@ -16,6 +16,7 @@
 #include "paging.h"
 #include "process.h"
 #include "test_syscalls.h"
+#include "terminal.h"
 
 
 static const char KBD_MAP[KBD_MAP_SIZE] =
@@ -109,6 +110,12 @@ static const char BACKGROUND_COLOR[10] =  { BLACK,      WHITE,      DK_GREY,    
 static const char STATUS_BAR_COLOR[10] =  { WHITE,      BLACK,      WHITE,      BLACK,      BLACK,      BLACK,      BLACK,      BLACK,      BLACK,      BLACK};
 static const char SBAR_TEXT_COLOR[10] =   { BLACK,      WHITE,      BLACK,      WHITE,      WHITE,      WHITE,      WHITE,      WHITE,      WHITE,      WHITE};
 
+//Tab complete lookup array.  Static since overhead is nasty for dynamic generation.
+#define NUM_FILES 15
+static const int8_t* FILES[NUM_FILES] = {".","cat","counter","fish","frame0.txt","frame1.txt",
+                                         "grep","hello","ls","pingpong","shell","sigtest","syserr",
+                                         "testprint","verylargetxtwithverylongname.tx"};
+
 // function declarations
 void check_scroll();
 void change_text_colors(uint8_t color_combo);
@@ -117,6 +124,11 @@ void check_term_switch();
 void set_display_term(uint32_t term_index);
 void update_hw_cursor(uint32_t curs_pos);
 void set_term_mapped(uint32_t term_index);
+static void autocomplete();
+static uint8_t* get_prev_word(uint8_t endindex);
+static uint8_t partial_strcmp(uint8_t* partial, uint8_t* full);
+static void type_char(uint8_t input);
+static void type_str(uint8_t* input);
 
 /*
  * init_kbd()
@@ -258,6 +270,10 @@ void kbd_handle()
         case CAPS:
             caps_lock ^= 1; //invert value of caps lock
             break;
+        case TAB:
+            autocomplete();
+            send_eoi(KBD_IRQ_NUM);
+            return;
         case B_SPACE:
             if(print_inds[act_ops_term] == 0) 
             { //can't backspace if at first location of video memory and buffer empty
@@ -366,12 +382,7 @@ void kbd_handle()
                     print_inds[act_ops_term] += NUM_COLS - (print_inds[act_ops_term] % NUM_COLS); //add number of characters between current position and new line
                     break;
                 default: //for regular characters (only increment print index)
-                    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = last_chars[act_ops_term];
-                    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0xF0; //maintain background color
-                    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]];
-                    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0x0F; //clear background color
-                    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
-                    print_inds[act_ops_term]++;
+                    type_char(last_chars[act_ops_term]);
             }
             check_scroll();
             update_cursor(print_inds[act_ops_term]);
@@ -767,4 +778,186 @@ char* strcat(char *dest, char *src)
 uint32_t get_active_terminal()
 {
     return 0;
+}
+
+
+/*
+* autocomplete
+*   DESCRIPTION: implements tab completion of incomplete expressions
+*   INPUTS: none
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: changes terminal display, read buffer, and buffer size
+*/
+void autocomplete()
+{
+    //Can't do anything with blank buffer.  Otherwise implements ls
+    if(buff_inds[act_ops_term] == 0)
+        return;
+    //Find the last word in the buffer string
+    uint8_t* compstr = get_prev_word((uint8_t) buff_inds[act_ops_term]);
+    //Check to make sure a word was found
+    if(compstr == NULL)
+        return;
+    int i;
+    int nummatch = 0;
+    uint8_t* matches[NUM_FILES] = {NULL};
+    uint8_t match;
+    //Iterate through all possible complete file names to find
+    //possible matches
+    for(i = 0; i < NUM_FILES; i++)
+    {
+        //check partial string identicallness
+        match = partial_strcmp(compstr, (uint8_t*)FILES[i]);
+        //When potential match is found, add it to
+        //array of potential matches and increment
+        //the match count.
+        if(match == 1)
+        {
+            matches[nummatch] = (uint8_t*)FILES[i];
+            nummatch++;
+        }
+    }
+    //No matches found, do nothing.
+    if(nummatch == 0)
+        return;
+    //Multiple matches found.  Dumb completion is dumb.
+    //Gives up and spits out possible solutions without
+    //forcing user to do anything.
+    else if(nummatch > 1)
+    {
+        //Print out all possible matches
+        for(i = 0; i < nummatch; i++)
+        {
+            term_write((void*)"\n",1);
+            term_write((void*)matches[i], strlen((int8_t*)matches[i]));
+        }
+        //Make terminal header come back
+        term_write((void*)"\n391OS> ",8);
+        //Re-type previously typed characters
+        type_str(compstr);
+        return;
+    }
+    //Only one potential match found, so we'll assume
+    //user really wants that one!  Complete that bad boy.
+    else if(nummatch == 1)
+    {
+        i = strlen((int8_t*)compstr);
+        //Only you can prevent buffer overflow! -Smokey
+        if(strlen((int8_t*)&(matches[0][i])) > (BUF_SIZE - buff_inds[act_ops_term]))
+            return;
+        //Type out remaining characters in matched string
+        type_str(&(matches[0][i]));
+        //Add to buffer
+        int j;
+        for(j = 0; j < strlen((int8_t*)&(matches[0][i])); j++)
+            read_buffs[act_ops_term][buff_inds[act_ops_term]++] = matches[0][i+j];
+        return;
+    }
+}
+
+
+/*
+* get_prev_word
+*   DESCRIPTION: find last word in string
+*   INPUTS: end index of buffer to begin reverse traversal from
+*   OUTPUTS: none
+*   RETURN VALUE: returns pointer to beginning of last word string,
+*                 NULL on error or no string found.
+*   SIDE EFFECTS: none
+*/
+uint8_t* get_prev_word(uint8_t endindex)
+{
+    //Check for invalid
+    if(endindex >= BUF_SIZE)
+        return NULL;
+    //If reach beginning of buffer, that must be the beginning of word
+    if(endindex == 0)
+        return &read_buffs[act_ops_term][endindex];\
+    if(read_buffs[act_ops_term][endindex] == ' ')
+        return &read_buffs[act_ops_term][endindex + 1];
+    else
+        return get_prev_word(endindex - 1);
+}
+
+
+/*
+* partial_strcmp
+*   DESCRIPTION: determines if string partial is a match for
+*                the beginning of string full.  Only successfull
+*                iff partial is a substring of full.
+*   INPUTS: partial:    pointer to a string user wishes to see
+*                       if it's the beginning of full
+*           full:   pointer to a string of the full string that
+*                   may have a match.
+*   OUTPUTS: none
+*   RETURN VALUE: returns 1 for a match, 0 for no match
+*   SIDE EFFECTS: none.
+*/
+uint8_t partial_strcmp(uint8_t* partial, uint8_t* full)
+{
+    int i = 0;
+    //Loop through all characters in partial string
+    //to check if identical to full string
+    while(partial[i] != '\0')
+    {
+        //If full string terminates prematurely, no match
+        if(full[i] == '\0')
+            return 0;
+        //If characters don't match, no match
+        if(partial[i] != full[i])
+            return 0;
+        i++;
+    }
+    //partial is a substring of full that starts at the beginning
+    //of full, so return match.
+    return 1;
+}
+
+
+/*
+* type_char
+*   DESCRIPTION: helper function to write user-colored text to the
+*                terminal.  Writes a single character at the next
+*                appropriate position.
+*   INPUTS: input:  The character to write.
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: Writes a character to the terminal.  Cannot fail,
+*                 but may have to scroll terminal view to make space.
+*/
+void type_char(uint8_t input)
+{
+    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = input;
+    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0xF0; //maintain background color
+    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]];
+    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0x0F; //clear background color
+    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
+    print_inds[act_ops_term]++;
+    check_scroll();
+    update_cursor(print_inds[act_ops_term]);
+}
+
+
+/*
+* type_str
+*   DESCRIPTION: Encapsulation of type_char to write an
+*                entire null-terminated string to the terminal
+*                in user-colored text.
+*   INPUTS: input: pointer to the string to write.
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: Writes a string to the terminal.  May have
+*                 to scroll terminal view to make space.
+*/
+void type_str(uint8_t* input)
+{
+    int i = 0;
+    if(input == NULL)
+        return;
+    while(input[i] != '\0')
+    {
+        type_char(input[i]);
+        i++;
+    }
 }
