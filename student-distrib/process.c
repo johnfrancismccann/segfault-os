@@ -40,6 +40,8 @@ int32_t create_proc()
     child_proc->file_desc_arr[STDIN].file_ops_table = termfops_table;
     child_proc->file_desc_arr[STDOUT].flags = 1;
     child_proc->file_desc_arr[STDIN].flags = 1;
+    /* set child proc as not video mapped */
+    child_proc->vid_mapped = 0;
 
     /* set up child's paging. set processor to child's page directory */
     child_proc->page_dir = proc_page_dir[child_proc->pid];
@@ -94,8 +96,15 @@ void set_par_ebp(uint32_t par_ebp)
         cur_proc->par_proc->top_kstack = par_ebp;
 }
 
+/* get the current process' ebp */
 uint32_t get_ebp()
 {
     return cur_proc->top_kstack;
+}
+
+/* get the page directory of the process running in terminal term_ind */
+uint32_t get_page_dir(uint32_t term_ind)
+{
+    return (uint32_t)cur_proc->page_dir;
 }
 

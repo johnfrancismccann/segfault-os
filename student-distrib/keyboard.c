@@ -93,7 +93,7 @@ static uint16_t buff_inds[NUM_TERMS];
 
 /* indicates whether or not each terminal's virtual display has been
    mapped for a user program */
-static uint32_t vid_mapped[NUM_TERMS];
+//static uint32_t vid_mapped[NUM_TERMS];
 static int ctrl_flag; //flag to indicate if control key currently pressed or not (1 is yes, 0 is no)
 static int shift_flag; //indicates if shift is pressed or not
 static int alt_flag; //indicates if alt is pressed or not
@@ -143,7 +143,7 @@ void init_kbd()
         /* set terminals to write to respective stores */
         write_buffs[i] = stores[i];
         /* set terminals' virtual display memory as unmapped */
-        vid_mapped[i] = OFF;
+        //vid_mapped[i] = OFF;
         /* set terminals' input buffers to be empty */
         buff_inds[i] = 0;
         read_buffs[i][buff_inds[i]] = '\0';
@@ -456,7 +456,7 @@ void set_act_ops_term(uint32_t term_index)
 /* get the active operations terminal's virtual display address */
 uint32_t get_act_ops_disp()
 {
-    vid_mapped[act_ops_term] = ON;
+    //vid_mapped[act_ops_term] = ON;
     return (uint32_t)(write_buffs[act_ops_term]);
 
 }
