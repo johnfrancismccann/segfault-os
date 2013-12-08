@@ -107,4 +107,6 @@ void print_status_bar(); //need to print status bar upon creation of new process
 
 uint32_t get_active_terminal();
 
+uint32_t get_act_ops_disp();
+
 #endif

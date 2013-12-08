@@ -1,5 +1,6 @@
 #include "paging.h"
 #include "lib.h"
+//#include "process.h"
 
 static uint32_t *cur_page_dir = NULL;
 
@@ -44,6 +45,18 @@ void set_CR3(uint32_t page_dir_address)
         :
         : "r"(page_dir_address)
         );    
+}
+
+uint32_t get_CR3()
+{
+        uint32_t cr3_ptr;
+        asm volatile(
+        /* load address of page directory into CR3 */
+        "movl %%cr3,%0\n\t"
+        : "=r"(cr3_ptr)
+        : 
+        );
+        return cr3_ptr;  
 }
 
 /*
@@ -103,6 +116,10 @@ void init_paging()
    assumption: page at virt_addr is already mapped to phys. page */
 int32_t remap_4KB_user_page(uint32_t phys_addr, uint32_t virt_addr)
 {
+    //pcb_t* cur_pcb = get_process(get_curprocess());
+    /* debug current pointer in cr3 */
+    //uint32_t cur_CR3 = get_CR3();
+
     uint32_t page_table;
     /* check that input parameters are not invalid */
     if(!phys_addr)
@@ -110,10 +127,15 @@ int32_t remap_4KB_user_page(uint32_t phys_addr, uint32_t virt_addr)
     if(!virt_addr)
         return -1;
     /* get page table for phys_addr  */
-    page_table = cur_page_dir[virt_addr>>22] & (0xFFFFF000);
+    //page_table = cur_pcb->page_dir[virt_addr/FOUR_MB] & (0xFFFFF000);
+    page_table = cur_page_dir[virt_addr/FOUR_MB] & 0xFFFFF000;
+
     /* set corresponding entry in page table to physical address provided */
-    ((uint32_t*)page_table)[(virt_addr>>12) & (0x3FF)] 
+    //((uint32_t*)page_table)[(virt_addr>>12) & (0x3FF)] 
+    ((uint32_t*)page_table)[0]
     = phys_addr | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
+    //= phys_addr | SET_PAGE_RW | SET_PAGE_USER;
+    set_CR3((uint32_t)cur_page_dir);
 
     return 0;
 }
