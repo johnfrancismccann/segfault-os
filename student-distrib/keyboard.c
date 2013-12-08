@@ -195,8 +195,6 @@ void kbd_handle()
         clear();
     }
 
-    printf("%x\n", scancodes[act_ops_term]);
-
     //change background color with alt+num
     if (alt_flag == ON && ctrl_flag == OFF && (scancodes[act_ops_term] >= ONE_ASC && scancodes[act_ops_term] <= ZERO_ASC)) {
         if (scancodes[act_ops_term] == ZERO_ASC) clr_combo = 0;
