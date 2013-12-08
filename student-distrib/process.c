@@ -61,6 +61,8 @@ uint32_t new_process()
                       MB_128);
     child_proc->tss_kstack = EIGHT_MB-(num_proc-1)*KERNEL_STACK_SZ-BYTE;
 
+    print_status_bar(); //update number of processes on status bar
+
     return pid;
 }
 
@@ -127,6 +129,9 @@ uint32_t del_process()
     processes[curproc->pid] = NULL;
     if(term_top_proc[curterm] == NULL)
         return 0;
+
+    print_status_bar(); //update number of processes on status bar
+
     return term_top_proc[curterm]->pid;
 }
 

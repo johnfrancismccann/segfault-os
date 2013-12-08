@@ -10,27 +10,25 @@
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 
-#define TEXT_COLOR CYAN
-#define PROG_COLOR GREEN //program color
-#define CURSOR_COLOR GREEN
+#define NUM_TERMS 3 //number of available terminals
 
 //text color codes for text-mode VGA attribute byte (LT == light, DK == dark)
-#define BLACK 0
-#define BLUE 1
-#define GREEN 2
-#define CYAN 3
-#define RED 4
-#define MAGENTA 5
-#define BROWN 6
-#define LT_GREY 7
-#define DK_GREY 8
-#define LT_BLUE 9
-#define LT_GREEN 10
-#define LT_CYAN 11
-#define LT_RED 12
-#define LT_MAGENTA 13
-#define LT_BROWN 14
-#define WHITE 15
+#define BLACK       0
+#define BLUE        1
+#define GREEN       2
+#define CYAN        3
+#define RED         4
+#define MAGENTA     5
+#define BROWN       6
+#define LT_GREY     7
+#define DK_GREY     8
+#define LT_BLUE     9
+#define LT_GREEN    10
+#define LT_CYAN     11
+#define LT_RED      12
+#define LT_MAGENTA  13
+#define LT_BROWN    14
+#define WHITE       15
 
 #ifndef OFF
 #define OFF 0
@@ -53,6 +51,8 @@
 /* ASCII values */
 #define TAB_ASC 0x09 //tab key
 #define ENT_ASC 0x0A //enter key
+#define ONE_ASC 0x02 //#1
+#define ZERO_ASC 0x0B //#0
 
 /* scancodes */
 #define CTRL_PRS 0x1D //left/right control press
@@ -73,10 +73,19 @@
 #define F2		0x3C
 #define F3		0x3D
 
+//for changing color scheme
+#define NUM_SCANCODE_OFFSET 1 //1 has scancode 0x02, 2 is 0x03, etc.
+
+//status bar macros
+#define STATUS_BAR_START   NUM_ROWS*NUM_COLS
+#define STATUS_BAR_END     (NUM_ROWS+1)*NUM_COLS-1 //also final terminal location
+#define TERM_INFO_START    NUM_ROWS*NUM_COLS //starting print index of terminal number information
+#define PROC_INFO_START    NUM_ROWS*NUM_COLS+18 //starting print index of process information
+#define BG_CLR_INFO_START  NUM_ROWS*NUM_COLS+37 //starting print index of background color information
+#define TXT_CLR_INFO_START NUM_ROWS*NUM_COLS+62 //starting print index of text color information
+
 #define KBD_MAP_SIZE 256
 #define BUF_SIZE 128
-
-#define NUM_TERMS 3
 
 #include "types.h"
 
@@ -86,15 +95,15 @@ void kbd_handle();
 
 void update_cursor(uint32_t index);
 
-uint32_t get_act_ops_disp();
-
-//void check_scroll(int print_index);
-
 int32_t get_read_buf(void* buf, int32_t bytes);
 
 void clear_read_buf();
 
 int32_t print_write_buf(const void* wrt_buf, int32_t bytes);
+
+char* strcat(char *dest, char *src); //standard string concatenation
+
+void print_status_bar(); //need to print status bar upon creation of new process
 
 uint32_t get_active_terminal();
 
