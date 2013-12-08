@@ -9,6 +9,7 @@
 #include "i8259.h"
 #include "pit_asm.h"
 
+
 #define MAX_PROCESSES 9
 static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
 
@@ -36,6 +37,7 @@ static int32_t active_term = -1;
 
 /* pointer to current pcb running in each terminal */
 static pcb_t* cur_proc[NUM_TERMS] = {NULL};
+
 /* total number of processes running */
 static uint32_t num_proc = 0;
 
@@ -55,10 +57,8 @@ void init_pit()
 
     /* load low byte reload value */
     outb(LATCH & 0xff, PIT_CHAN_0_PORT);
-    //nop();
     /* load high byte reload value */
     outb(LATCH >> 8, PIT_CHAN_0_PORT);
-    //nop();
 
     /* set up pit interrup in idt */
     set_interrupt_gate(PIT_IDT_NUM, pit_wrapper);
@@ -87,7 +87,7 @@ void schedul()
     if(active_term == NUM_TERMS)
         active_term = 0;
     /* set active operations terminal to terminal of new process */
-    //set_act_ops_term(active_term);
+    set_act_ops_term(active_term);
     /* get new process pcb */
     new_proc = cur_proc[active_term];
 
@@ -217,6 +217,37 @@ uint32_t get_ebp()
 uint32_t get_page_dir(uint32_t term_ind)
 {
     return (uint32_t)cur_proc[active_term]->page_dir;
+}
+
+uint32_t get_vid_mapped(uint32_t term_index)
+{
+    /* check if process in term_index exists */
+    if(cur_proc[term_index])
+        return cur_proc[term_index]->vid_mapped;
+    /* return not video mapped if nonexistent */
+    else
+        return 0;
+}
+
+/* map 4KB page at phys_addr to virt_addr. 
+   assumption: page at virt_addr is already mapped to phys. page */
+int32_t remap_4KB_user_page(uint32_t term_index, uint32_t phys_addr, uint32_t virt_addr)
+{
+    uint32_t page_table;
+    /* get page table for phys_addr  */
+
+    page_table = (cur_proc[term_index]->page_dir[virt_addr/FOUR_MB]) & 0xFFFFF000;
+    //page_table = cur_page_dir[virt_addr/FOUR_MB] & 0xFFFFF000;
+
+    /* set corresponding entry in page table to physical address provided */
+    ((uint32_t*)page_table)[(virt_addr>>12) & (0x3FF)] 
+    //((uint32_t*)page_table)[0]
+    = phys_addr | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
+    //= phys_addr | SET_PAGE_RW | SET_PAGE_USER;
+    /* just for testing */
+    //set_CR3((uint32_t)cur_proc[term_index]->page_dir);
+
+    return 0;
 }
 
 
