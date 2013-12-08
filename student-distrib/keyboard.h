@@ -116,4 +116,8 @@ uint32_t get_active_terminal();
 
 uint32_t get_act_ops_disp();
 
+void reset_print_inds();
+
+void remove_hw_cursor();
+
 #endif
