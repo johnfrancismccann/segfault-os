@@ -5,7 +5,7 @@
 #include "test_syscalls.h"
 #include "lib.h"
 
-#define MAX_PROCESSES 2
+#define MAX_PROCESSES 9
 static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
 
 #define ELF_MAG_NUM         0x464C457F
@@ -63,7 +63,6 @@ int32_t create_proc()
 
 void destroy_proc()
 {
-
     num_proc--;
     if(cur_proc->par_proc) {
 
