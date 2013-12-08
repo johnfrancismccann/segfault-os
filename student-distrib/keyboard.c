@@ -626,7 +626,7 @@ void scroll_up()
     max_lines_up[act_ops_term]--;
     if(max_lines_down[act_ops_term] < NUM_ROWS) max_lines_down[act_ops_term]++; //increment number of lines can scroll down
 
-    update_cursor(STATUS_BAR_END+1); //remove cursor while scrolling up
+    remove_hw_cursor(); //remove cursor while scrolling up
 
     return;
 }
@@ -1107,4 +1107,35 @@ void type_str(uint8_t* input)
         type_char(input[i]);
         i++;
     }
+}
+
+/*
+* reset_print_inds()
+*   DESCRIPTION: Reset print indices to ensure shell prints in correct location
+*   INPUTS: none
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: print indices of all terminals reset to 0
+*/
+void reset_print_inds()
+{
+    uint8_t i;
+    for(i=0; i<NUM_TERMS; i++)
+        print_inds[i] = 0;
+}
+
+/*
+* remove_hw_cursor() 
+*   DESCRIPTION: Delete cursor by printing it off-screen
+*   INPUTS: none
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: cursor gone
+*/
+void remove_hw_cursor() 
+{
+    outb(0x0F, VGA_LOW);
+    outb((unsigned char)((STATUS_BAR_END+1) & 0xFF), VGA_HIGH);
+    outb(0x0E, VGA_LOW);
+    outb((unsigned char)(((STATUS_BAR_END+1) >> 8) & 0xFF), VGA_HIGH);
 }
