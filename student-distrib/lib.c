@@ -32,6 +32,16 @@ reset_screen_pos(void)
 
 }
 
+void nop()
+{
+    asm volatile(
+        /* load address of page directory into CR3 */
+        "nop\n\t"
+        :
+        : 
+        ); 
+}
+
 /* Standard printf().
  * Only supports the following format strings:
  * %%  - print a literal '%' character

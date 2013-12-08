@@ -16,6 +16,7 @@
 #include "tests.h"
 #include "test_syscalls.h"
 #include "startup.h"
+#include "process.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -232,6 +233,7 @@ entry (unsigned long magic, unsigned long addr)
     test_sys_exec();
 #endif
 
+#if 0
     /* Execute the first program (`shell') ... */
     // Ensure you can never escape the almighty shell!
     while(1)
@@ -242,7 +244,11 @@ entry (unsigned long magic, unsigned long addr)
         uint8_t* command = (uint8_t*) "shell";
         test_execute(command);
     }
+#endif
 
+    clear();
+    reset_screen_pos();
+    launch_scheduler();
 
     /* Spin (nicely, so we don't chew up cycles) */
     asm volatile(".1: hlt; jmp .1;");
