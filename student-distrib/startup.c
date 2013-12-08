@@ -9,7 +9,7 @@
 
 
 uint16_t i, j; //loop iterators
-static uint8_t* video_mem = (uint8_t *)VIDEO;
+//static uint8_t* video_mem = (uint8_t *)VIDEO;
 char start_screen[NUM_ROWS+1][NUM_COLS]; //25 rows of 80 columns each
 
 /*
@@ -22,6 +22,7 @@ char start_screen[NUM_ROWS+1][NUM_COLS]; //25 rows of 80 columns each
 */
 void print_start_screen() {
 
+#if 0
     /* start screen */
     //change background color
     remove_hw_cursor();
@@ -70,5 +71,7 @@ void print_start_screen() {
     }
 
     for(i = 0; i < 5; i++) rtc_read(0, 0);
+
+#endif 
 
 }
