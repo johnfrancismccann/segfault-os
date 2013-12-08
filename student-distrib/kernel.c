@@ -15,7 +15,6 @@
 #include "fs.h"
 #include "tests.h"
 #include "test_syscalls.h"
-#include "startup.h"
 #include "process.h"
 
 /* Macros. */
@@ -175,15 +174,9 @@ entry (unsigned long magic, unsigned long addr)
      * PIC, any other initialization stuff... */
     init_idt();
 
-    rtc_open();
-
-    sti(); //enable rtc timing for start screen
-
-    print_start_screen();
-
-    cli(); //for other kernel initialization
-
     init_kbd();
+
+    rtc_open();
 
     term_open();
 
@@ -240,15 +233,16 @@ entry (unsigned long magic, unsigned long addr)
     {
         clear();
         reset_screen_pos();
-        reset_print_inds();
         uint8_t* command = (uint8_t*) "shell";
         test_execute(command);
     }
-#endif
-
+#else
     clear();
     reset_screen_pos();
     launch_scheduler();
+#endif
+
+
 
     /* Spin (nicely, so we don't chew up cycles) */
     asm volatile(".1: hlt; jmp .1;");
