@@ -31,7 +31,7 @@ uint32_t get_proc_page_dir(uint32_t* proc_page_dir,
 
 void set_CR3(uint32_t page_dir_address);
 
-int32_t remap_4KB_user_page(uint32_t phys_addr, uint32_t virt_addr);
+int32_t remap_4KB_user_page(pcb_t* proc, uint32_t phys_addr, uint32_t virt_addr);
 
 /* page directory memory */
 unsigned int page_dir[PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
