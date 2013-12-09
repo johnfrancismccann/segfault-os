@@ -21,7 +21,7 @@ static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((align
 #define SCED_ON 1
 
 /* program time slice in milliseconds */
-#define TIME_SLICE 20
+#define TIME_SLICE 50
 #define HZ (1000 / TIME_SLICE)
 #define CLOCK_TICK_RATE 1193182
 #define LATCH (CLOCK_TICK_RATE/HZ)
@@ -140,12 +140,14 @@ int32_t create_proc()
     /* check that max number of processes isn't exceeded */
     if(num_proc >= MAX_PROCESSES)
         return -1;
-    
+    int32_t flags;
+    cli_and_save(flags);
     num_proc++;
     /* create new pcb for child in memory */
     pcb_t* child_proc = (pcb_t*)(EIGHT_MB-(num_proc)*KERNEL_STACK_SZ);
     child_proc->pid = num_proc-1;
     child_proc->par_proc = cur_proc[active_term];
+    //Set keyboard/display as already used on fd 0 & 1
     child_proc->available_fds = 3;
 
     /* init child's standard i/o */
@@ -170,11 +172,14 @@ int32_t create_proc()
     /* finally, set the child process as the current process */
     cur_proc[active_term] = child_proc; 
 
+    restore_flags(flags);
     return 0;
 }
 
 void destroy_proc()
 {
+    int32_t flags;
+    cli_and_save(flags);
     num_proc--;
     if(cur_proc[active_term]->par_proc) {
 
@@ -185,12 +190,14 @@ void destroy_proc()
         tss.esp0 = cur_proc[active_term]->tss_kstack;
         /* restore parent process' paging */
         set_CR3((uint32_t)cur_proc[active_term]->page_dir);
+        restore_flags(flags);
     }
     else {
         /* no process left to resume */
         cur_proc[active_term] = NULL;
         //num_proc = 0;
         /* restart shell */
+        restore_flags(flags);
         test_execute((uint8_t*)"shell");
     }
 }
