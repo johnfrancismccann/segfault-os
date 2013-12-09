@@ -8,7 +8,7 @@
 //moved these definitions from lib.c
 #define VIDEO 0xB8000
 #define NUM_COLS 80
-#define NUM_ROWS 25 //save 1 row for status bar
+#define NUM_ROWS 24 //save 1 row for status bar
 
 #include "types.h"
 

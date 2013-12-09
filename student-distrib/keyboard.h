@@ -10,8 +10,7 @@
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 
-#define TEXT_COLOR CYAN
-#define PROG_COLOR GREEN //program color
+#define COLORS_ENABLED 1 //enable colors
 
 //text color codes for text-mode VGA attribute byte (LT == light, DK == dark)
 #define BLACK       0
@@ -127,5 +126,17 @@ void clear_read_buf();
 //int32_t get_act_ops_disp(uint8_t** act_ops_display);
 
 int32_t print_write_buf(const void* wrt_buf, int32_t bytes);
+
+void reset_print_inds();
+
+void remove_hw_cursor();
+
+#if COLORS_ENABLED
+char* strcat(char *dest, char *src); //standard string concatenation
+
+void print_status_bar(); //need to print status bar upon creation of new process
+
+void reset_print_inds();
+#endif
 
 #endif
