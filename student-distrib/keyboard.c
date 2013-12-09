@@ -300,14 +300,14 @@ void kbd_handle()
             //     printf("%d\"%s\"\n",k,cmd_hist[act_disp_term][k]);
             if((active_command[act_disp_term] + 1) < CMD_HIST_LEN)
             {
-                if(cmd_hist[act_disp_term][active_command[act_disp_term] + 1][0] == '\0')
-                {
-                    restore_flags(flags);
-                    send_eoi(KBD_IRQ_NUM);
-                    return;
-                }
+                // if(cmd_hist[act_disp_term][active_command[act_disp_term] + 1][0] == '\0')
+                // {
+                //     restore_flags(flags);
+                //     send_eoi(KBD_IRQ_NUM);
+                //     return;
+                // }
                 uint8_t numtodelete;
-                if(active_command[act_disp_term] == 0 && buff_inds == 0)
+                if(active_command[act_disp_term] == 0 && buff_inds[act_disp_term] == 0)
                     numtodelete = 0;
                 else
                 {
@@ -785,7 +785,6 @@ int32_t get_read_buf(void* ptr, int32_t bytes) {
     int32_t flags;
     int dummy=0;
     clear_read_buf();
-    //while(read_buffs[act_ops_term][buff_inds[act_ops_term]-1] != ENT_ASC); //wait until enter key is pressed
     while(last_chars[act_ops_term] != '\n')
         dummy++; //wait until enter key is pressed
     cli_and_save(flags); //make sure not to interrupt memcpy
@@ -794,8 +793,8 @@ int32_t get_read_buf(void* ptr, int32_t bytes) {
         bytes = buff_inds[act_ops_term];
     memcpy(ptr, (void*) read_buffs[act_ops_term], bytes);
     //Save command
-    if(read_buffs[act_ops_term][0] != '\0')
-        ins_cmd_hist(read_buffs[act_ops_term]);
+    ins_cmd_hist(read_buffs[act_disp_term]);
+    //Reset active command number
     restore_flags(flags);
     return bytes;
 }
@@ -1137,7 +1136,7 @@ uint8_t* get_prev_word(uint8_t endindex)
         return NULL;
     //If reach beginning of buffer, that must be the beginning of word
     if(endindex == 0)
-        return &read_buffs[act_disp_term][endindex];\
+        return &read_buffs[act_disp_term][endindex];
     if(read_buffs[act_disp_term][endindex] == ' ')
         return &read_buffs[act_disp_term][endindex + 1];
     else
@@ -1161,6 +1160,8 @@ uint8_t* get_prev_word(uint8_t endindex)
 uint8_t partial_strcmp(uint8_t* partial, uint8_t* full)
 {
     int i = 0;
+    if(partial == NULL || full == NULL)
+        return 0;
     //Loop through all characters in partial string
     //to check if identical to full string
     while(partial[i] != '\0')
@@ -1244,6 +1245,8 @@ void ins_cmd_hist(uint8_t* input)
 #if CMD_HIST_LEN < 2
     return;
 #else
+    if(buff_inds[act_disp_term] == 0)
+        return;
     newline_to_null(input);
     strcpy((int8_t*)cmd_hist[act_disp_term][0], (int8_t*)input);
     int i;
