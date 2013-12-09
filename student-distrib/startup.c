@@ -7,6 +7,10 @@
 #include "rtc.h"
 #include "keyboard.h"
 
+#define END1 8
+#define END2 15
+#define END3 21
+
 
 uint16_t i, j; //loop iterators
 static uint8_t* video_mem = (uint8_t *)VIDEO;
@@ -64,7 +68,31 @@ void print_start_screen() {
     }
 
     //print characters
-    for(i = 0; i <= NUM_ROWS; i++) {
+    for(i = 0; i < END1; i++) {
+        for(j = 0; j < NUM_COLS; j++) {
+            *(uint8_t *)(video_mem + ((i*NUM_COLS+j) << 1)) = start_screen[i][j];
+        }
+    }
+    //print characters
+    for(i = END3; i <= NUM_ROWS; i++) {
+        for(j = 0; j < NUM_COLS; j++) {
+            *(uint8_t *)(video_mem + ((i*NUM_COLS+j) << 1)) = start_screen[i][j];
+        }
+    }
+
+    rtc_read(0,0);
+
+    //print characters
+    for(i = END1; i < END2; i++) {
+        for(j = 0; j < NUM_COLS; j++) {
+            *(uint8_t *)(video_mem + ((i*NUM_COLS+j) << 1)) = start_screen[i][j];
+        }
+    }
+
+    rtc_read(0,0);
+
+    //print characters
+    for(i = END2; i < END3; i++) {
         for(j = 0; j < NUM_COLS; j++) {
             *(uint8_t *)(video_mem + ((i*NUM_COLS+j) << 1)) = start_screen[i][j];
         }
