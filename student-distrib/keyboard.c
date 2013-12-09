@@ -15,9 +15,8 @@
 #include "types.h"
 #include "process.h"
 #include "paging.h"
-
- #include "test_syscalls.h"
-
+#include "test_syscalls.h"
+#include "terminal.h"
 
 static const char KBD_MAP[KBD_MAP_SIZE] =
 {0x00, 0x1B, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x2D, 0X3D, 0x08, 0x09,  //0x0F
@@ -96,6 +95,21 @@ static int ctrl_flag;
 static int shift_flag; 
 static int caps_lock;
 
+//color scheme variables
+static uint8_t color_scheme[NUM_TERMS]; //index to color arrays for typed color, printed color, and cursor color
+static uint32_t bg_scheme[NUM_TERMS]; //index for background color scheme
+static const char TYPED_COLOR[10] =       { GREEN,      BLACK,      WHITE,      BROWN,      BLUE,       MAGENTA,    BLACK,      RED,        LT_CYAN,    LT_BROWN};
+static const char PRINTED_COLOR[10] =     { GREEN,      BLACK,      WHITE,      RED,        LT_BLUE,    LT_MAGENTA, RED,        BLUE,       LT_MAGENTA, MAGENTA};
+static const char CURSOR_COLOR[10] =      { GREEN,      BLACK,      WHITE,      RED,        LT_BLUE,    LT_MAGENTA, RED,        BLUE,       LT_GREEN,   LT_RED};
+static const char BACKGROUND_COLOR[10] =  { BLACK,      WHITE,      DK_GREY,    LT_GREY,    LT_BLUE,    LT_GREEN,   LT_CYAN,    LT_RED,     LT_MAGENTA, LT_BROWN};
+static const char STATUS_BAR_COLOR[10] =  { WHITE,      BLACK,      WHITE,      BLACK,      BLACK,      BLACK,      BLACK,      BLACK,      BLACK,      BLACK};
+static const char SBAR_TEXT_COLOR[10] =   { BLACK,      WHITE,      BLACK,      WHITE,      WHITE,      WHITE,      WHITE,      WHITE,      WHITE,      WHITE};
+
+//Tab complete lookup array.  Static since overhead is nasty for dynamic generation.
+#define NUM_FILES 15
+static const int8_t* FILES[NUM_FILES] = {".","cat","counter","fish","frame0.txt","frame1.txt",
+                                         "grep","hello","ls","pingpong","shell","sigtest","syserr",
+                                         "testprint","verylargetxtwithverylongname.tx"};
 
 // function declarations
 void check_scroll(uint32_t term_index);
@@ -104,6 +118,14 @@ void set_display_term(uint32_t term_index);
 void update_hw_cursor(uint32_t curs_pos);
 void set_term_mapped(uint32_t term_index);
 void update_cursor(uint32_t curs_pos, uint32_t term_index);
+static void autocomplete();
+static uint8_t* get_prev_word(uint8_t endindex);
+static uint8_t partial_strcmp(uint8_t* partial, uint8_t* full);
+static void type_char(uint8_t input);
+static void type_str(uint8_t* input);
+static void ins_cmd_hist(uint8_t* input);
+static void update_cmd_hist(uint8_t* input, uint32_t index);
+static void newline_to_null(uint8_t* input);
 
 /*
  * init_kbd()
@@ -195,6 +217,11 @@ void kbd_handle()
         case CAPS:
             caps_lock ^= 1; //invert value of caps lock
             break;
+        case TAB:
+            autocomplete();
+            restore_flags(flags);
+            send_eoi(KBD_IRQ_NUM);
+            return;
         case B_SPACE:
             if(print_inds[act_disp_term] == 0) 
             { //can't backspace if at first location of video memory and buffer empty
@@ -420,7 +447,7 @@ uint32_t get_act_ops_disp()
     /* update active ops terminal's virtual cursor */
     cursors[term_index] = curs_pos;
     /* set the cursor color in active ops terminal's virtual display */
-    *(uint8_t *)(write_buffs[term_index] + ((curs_pos << 1) + 1)) = CURSOR_COLOR;
+    *(uint8_t *)(write_buffs[term_index] + ((curs_pos << 1) + 1)) = CURSOR_COLOR[0];
     /* update real cursor's location if term_index is also the 
        active display terminal */
     if(term_index == act_disp_term)
@@ -434,7 +461,7 @@ void update_hw_cursor(uint32_t curs_pos)
     outb((unsigned char)(curs_pos & 0xFF), VGA_HIGH);
     outb(0x0E, VGA_LOW);
     outb((unsigned char)((curs_pos >> 8) & 0xFF), VGA_HIGH);
-    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) = CURSOR_COLOR;
+    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) = CURSOR_COLOR[0];
 }
 
 /* 
@@ -538,4 +565,195 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     restore_flags(flags);
     return bytes;
  }
+
+/*
+* autocomplete
+*   DESCRIPTION: implements tab completion of incomplete expressions
+*   INPUTS: none
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: changes terminal display, read buffer, and buffer size
+*/
+void autocomplete()
+{
+    //Can't do anything with blank buffer.  Otherwise implements ls
+    if(buff_inds[act_disp_term] == 0)
+        return;
+    //Find the last word in the buffer string
+    uint8_t* compstr = get_prev_word((uint8_t) buff_inds[act_disp_term]);
+    //Check to make sure a word was found
+    if(compstr == NULL)
+        return;
+    int i;
+    int nummatch = 0;
+    uint8_t* matches[NUM_FILES] = {NULL};
+    uint8_t match;
+    //Iterate through all possible complete file names to find
+    //possible matches
+    for(i = 0; i < NUM_FILES; i++)
+    {
+        //check partial string identicallness
+        match = partial_strcmp(compstr, (uint8_t*)FILES[i]);
+        //When potential match is found, add it to
+        //array of potential matches and increment
+        //the match count.
+        if(match == 1)
+        {
+            matches[nummatch] = (uint8_t*)FILES[i];
+            nummatch++;
+        }
+    }
+    //No matches found, do nothing.
+    if(nummatch == 0)
+        return;
+    //Multiple matches found.  Dumb completion is dumb.
+    //Gives up and spits out possible solutions without
+    //forcing user to do anything.
+    else if(nummatch > 1)
+    {
+        //Print out all possible matches
+        uint32_t prev_act_ops_term = act_ops_term;
+        act_ops_term = act_disp_term;
+        for(i = 0; i < nummatch; i++)
+        {
+            term_write((void*)"\n",1);
+            term_write((void*)matches[i], strlen((int8_t*)matches[i]));
+        }
+        //Make terminal header come back
+        //Disabled since tab complete works everywhere, not just shell
+        // term_write((void*)"\n391OS> ",8);
+        //Re-type previously typed characters on new line
+        term_write((void*)"\n",1);
+        type_str(read_buffs[act_ops_term]);
+        act_ops_term = prev_act_ops_term;
+        return;
+    }
+    //Only one potential match found, so we'll assume
+    //user really wants that one!  Complete that bad boy.
+    else if(nummatch == 1)
+    {
+        i = strlen((int8_t*)compstr);
+        //Only you can prevent buffer overflow! -Smokey
+        if(strlen((int8_t*)&(matches[0][i])) > (BUF_SIZE - buff_inds[act_disp_term]))
+            return;
+        //Type out remaining characters in matched string
+        type_str(&(matches[0][i]));
+        //Add to buffer
+        int j;
+        for(j = 0; j < strlen((int8_t*)&(matches[0][i])); j++)
+            read_buffs[act_disp_term][buff_inds[act_disp_term]++] = matches[0][i+j];
+        return;
+    }
+}
+
+
+/*
+* get_prev_word
+*   DESCRIPTION: find last word in string.  Recursively searches
+*                from end of string.  Recursion may not be most
+*                efficient (haven't analyzed), but I feel smart when
+*                I can actually write a working recursive function.
+*   INPUTS: end index of buffer to begin reverse traversal from
+*   OUTPUTS: none
+*   RETURN VALUE: returns pointer to beginning of last word string,
+*                 NULL on error or no string found.
+*   SIDE EFFECTS: none
+*/
+uint8_t* get_prev_word(uint8_t endindex)
+{
+    //Check for invalid
+    if(endindex >= BUF_SIZE)
+        return NULL;
+    //If reach beginning of buffer, that must be the beginning of word
+    if(endindex == 0)
+        return &read_buffs[act_disp_term][endindex];\
+    if(read_buffs[act_disp_term][endindex] == ' ')
+        return &read_buffs[act_disp_term][endindex + 1];
+    else
+        return get_prev_word(endindex - 1);
+}
+
+
+/*
+* partial_strcmp
+*   DESCRIPTION: determines if string partial is a match for
+*                the beginning of string full.  Only successfull
+*                iff partial is a substring of full.
+*   INPUTS: partial:    pointer to a string user wishes to see
+*                       if it's the beginning of full
+*           full:   pointer to a string of the full string that
+*                   may have a match.
+*   OUTPUTS: none
+*   RETURN VALUE: returns 1 for a match, 0 for no match
+*   SIDE EFFECTS: none.
+*/
+uint8_t partial_strcmp(uint8_t* partial, uint8_t* full)
+{
+    int i = 0;
+    //Loop through all characters in partial string
+    //to check if identical to full string
+    while(partial[i] != '\0')
+    {
+        //If full string terminates prematurely, no match
+        if(full[i] == '\0')
+            return 0;
+        //If characters don't match, no match
+        if(partial[i] != full[i])
+            return 0;
+        i++;
+    }
+    //partial is a substring of full that starts at the beginning
+    //of full, so return match.
+    return 1;
+}
+
+
+/*
+* type_char
+*   DESCRIPTION: helper function to write user-colored text to the
+*                terminal.  Writes a single character at the next
+*                appropriate position.
+*   INPUTS: input:  The character to write.
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: Writes a character to the terminal.  Cannot fail,
+*                 but may have to scroll terminal view to make space.
+*/
+void type_char(uint8_t input)
+{
+    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = input;
+    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
+    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]];
+    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0x0F; //clear background color
+    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
+    if(input != '\0')
+        print_inds[act_disp_term]++;
+    check_scroll(act_disp_term);
+    update_cursor(print_inds[act_disp_term], act_disp_term);
+}
+
+
+/*
+* type_str
+*   DESCRIPTION: Encapsulation of type_char to write an
+*                entire null-terminated string to the terminal
+*                in user-colored text.
+*   INPUTS: input: pointer to the string to write.
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: Writes a string to the terminal.  May have
+*                 to scroll terminal view to make space.
+*/
+void type_str(uint8_t* input)
+{
+    int i = 0;
+    if(input == NULL)
+        return;
+    while(input[i] != '\0')
+    {
+        type_char(input[i]);
+        i++;
+    }
+    type_char('\0');
+}
 
