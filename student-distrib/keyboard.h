@@ -107,7 +107,7 @@
 
 #define NUM_TERMS 3
 
-#define CMD_HIST_LEN 8
+#define CMD_HIST_LEN 16
 
 #include "types.h"
 
