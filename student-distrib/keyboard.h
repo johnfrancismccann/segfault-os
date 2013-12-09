@@ -47,6 +47,8 @@
 #define VGA_HIGH 0x3D5 //high register of VGA port
 #define CAP_OFFSET 0x20 //offset between lower case and upper case ASCII value
 #define TAB_LEN 5 //set tab length to 5 spaces
+#define UP          0 //for upper scroll store (previous data)
+#define DN          1 //for lower scroll store (current data)
 
 /* ASCII values */
 #define TAB_ASC 0x09 //tab key

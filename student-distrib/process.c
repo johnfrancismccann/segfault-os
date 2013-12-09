@@ -174,6 +174,9 @@ int32_t create_proc()
     cur_proc[active_term] = child_proc; 
 
     restore_flags(flags);
+
+    print_status_bar();
+
     return 0;
 }
 
@@ -208,6 +211,8 @@ void destroy_proc()
         restore_flags(flags);
         test_execute((uint8_t*)"shell");
     }
+
+    print_status_bar();
 }
 
 void set_arguments(const int8_t* arguments, uint8_t size)
