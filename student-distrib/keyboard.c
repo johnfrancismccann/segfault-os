@@ -111,6 +111,9 @@ static const int8_t* FILES[NUM_FILES] = {".","cat","counter","fish","frame0.txt"
                                          "grep","hello","ls","pingpong","shell","sigtest","syserr",
                                          "testprint","verylargetxtwithverylongname.tx"};
 
+static uint8_t cmd_hist[NUM_TERMS][CMD_HIST_LEN][BUF_SIZE] = {{{'\0'}}}; //gcc bug #53119 fix
+static int32_t active_command[NUM_TERMS] = {0};
+
 // function declarations
 void check_scroll(uint32_t term_index);
 void check_term_switch();
@@ -125,6 +128,9 @@ static uint8_t* get_prev_word(uint8_t endindex);
 static uint8_t partial_strcmp(uint8_t* partial, uint8_t* full);
 static void type_char(uint8_t input);
 static void type_str(uint8_t* input);
+static void ins_cmd_hist(uint8_t* input);
+static void newline_to_null(uint8_t* input);
+
 
 /*
  * init_kbd()
@@ -259,6 +265,76 @@ void kbd_handle()
             break;
         case TAB:
             autocomplete();
+            restore_flags(flags);
+            send_eoi(KBD_IRQ_NUM);
+            return;
+        case K_UP:
+            // reset_screen_pos();
+            // int k;
+            // for(k=0; k<CMD_HIST_LEN; k++)
+            //     printf("%d\"%s\"\n",k,cmd_hist[act_disp_term][k]);
+            if((active_command[act_disp_term] + 1) < CMD_HIST_LEN)
+            {
+                if(cmd_hist[act_disp_term][active_command[act_disp_term] + 1][0] == '\0')
+                {
+                    restore_flags(flags);
+                    send_eoi(KBD_IRQ_NUM);
+                    return;
+                }
+                uint8_t numtodelete;
+                if(active_command[act_disp_term] == 0 && buff_inds == 0)
+                    numtodelete = 0;
+                else
+                {
+                    // update_cmd_hist(read_buffs[act_disp_term], active_command[act_disp_term]);
+                    numtodelete = buff_inds[act_disp_term];//strlen((int8_t*)read_buffs[act_disp_term]);
+                }
+                active_command[act_disp_term]++;
+                int i;
+                for(i = 0; i < numtodelete; i++)
+                {
+                    print_inds[act_disp_term]--;
+                    buff_inds[act_disp_term]--;
+                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = ' '; //delete character and move print index back 1 char
+                    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
+                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]]; //clear character's attribute byte
+                    if(buff_inds[act_disp_term] == 0)
+                        break;
+                }
+                buff_inds[act_disp_term] = 0;
+                type_str(cmd_hist[act_disp_term][active_command[act_disp_term]]);
+                for(i = 0; i < strlen((int8_t*)cmd_hist[act_disp_term][active_command[act_disp_term]]); i++)
+                {
+                    read_buffs[act_disp_term][buff_inds[act_disp_term]++] = cmd_hist[act_disp_term][active_command[act_disp_term]][i];
+                }
+            }
+            restore_flags(flags);
+            send_eoi(KBD_IRQ_NUM);
+            return;
+        case K_DOWN:
+            if(active_command[act_disp_term] > 0)
+            {
+                // update_cmd_hist(read_buffs[act_disp_term], active_command[act_disp_term]);
+                uint8_t numtodelete = buff_inds[act_disp_term];//strlen((int8_t*)read_buffs[act_disp_term]);
+                active_command[act_disp_term]--;
+                int i;
+                for(i = 0; i < numtodelete; i++)
+                {
+                    print_inds[act_disp_term]--;
+                    buff_inds[act_disp_term]--;
+                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = ' '; //delete character and move print index back 1 char
+                    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
+                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]]; //clear character's attribute byte
+                    if(buff_inds[act_disp_term] == 0)
+                        break;
+                }
+                // buff_inds[act_disp_term] = 0;
+                type_str(cmd_hist[act_disp_term][active_command[act_disp_term]]);
+                for(i = 0; i < strlen((int8_t*)cmd_hist[act_disp_term][active_command[act_disp_term]]); i++)
+                {
+                    read_buffs[act_disp_term][buff_inds[act_disp_term]++] = cmd_hist[act_disp_term][active_command[act_disp_term]][i];
+                }
+            }
             restore_flags(flags);
             send_eoi(KBD_IRQ_NUM);
             return;
@@ -577,6 +653,9 @@ int32_t get_read_buf(void* ptr, int32_t bytes) {
     if(bytes > buff_inds[act_ops_term])
         bytes = buff_inds[act_ops_term];
     memcpy(ptr, (void*) read_buffs[act_ops_term], bytes);
+    //Save command
+    if(read_buffs[act_ops_term][0] != '\0')
+        ins_cmd_hist(read_buffs[act_ops_term]);
     restore_flags(flags);
     return bytes;
 }
@@ -742,8 +821,8 @@ void print_status_bar() {
     // convert number to ASCII and copy to info buffer
     itoa(act_disp_term, term_char, (int32_t) 10);
     term_num_info = strcat(term_num_text, (char*) term_char);
-    // itoa(get_num_processes(), processes_char, (int32_t) 10);
-    itoa(1, processes_char, (int32_t) 10);
+    itoa(get_num_processes(), processes_char, (int32_t) 10);
+    // itoa(1, processes_char, (int32_t) 10);
     processes_info = strcat(processes_text, (char*) processes_char);
     itoa(bg_scheme[act_disp_term], bg_scheme_char, (int32_t) 10);
     bg_color_info = strcat(bg_color_text, (char*) bg_scheme_char);
@@ -973,14 +1052,15 @@ uint8_t partial_strcmp(uint8_t* partial, uint8_t* full)
 */
 void type_char(uint8_t input)
 {
-    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = input;
-    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0xF0; //maintain background color
-    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]];
-    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0x0F; //clear background color
-    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
-    print_inds[act_ops_term]++;
+    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = input;
+    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
+    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]];
+    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0x0F; //clear background color
+    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
+    if(input != '\0')
+        print_inds[act_disp_term]++;
     check_scroll(act_disp_term);
-    update_cursor(print_inds[act_ops_term], act_ops_term);
+    update_cursor(print_inds[act_disp_term], act_disp_term);
 }
 
 /*
@@ -1005,4 +1085,54 @@ void type_str(uint8_t* input)
         i++;
     }
     type_char('\0');
+}
+
+
+/*
+* ins_cmd_hist
+*   DESCRIPTION: Inserts a command into the command history array
+*                and advances the array like a queue.
+*   INPUTS: input: string to insert as most recent command
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: completely changes the command history array
+*                 queue.
+*/
+void ins_cmd_hist(uint8_t* input)
+{
+    if(input == NULL)
+        return;
+#if CMD_HIST_LEN < 2
+    return;
+#else
+    newline_to_null(input);
+    strcpy((int8_t*)cmd_hist[act_disp_term][0], (int8_t*)input);
+    int i;
+    for(i = (CMD_HIST_LEN - 2); i >= 0; i--)
+    {
+        strcpy((int8_t*)cmd_hist[act_disp_term][i+1], (int8_t*)cmd_hist[act_disp_term][i]);
+    }
+    active_command[act_disp_term] = 0;
+    cmd_hist[act_disp_term][0][0] = '\0';
+#endif
+}
+
+
+/*
+* newline_to_null
+*   DESCRIPTION: Converts the first newline in a string to a
+*                null character, unless a null character
+*                terminates the string first.
+*   INPUTS: input: string to mess arround with
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: modifies string provided.
+*/
+void newline_to_null(uint8_t* input)
+{
+    if(input == NULL)
+        return;
+    int i = 0;
+    while(input[i] != '\n' && input[i] != '\0') i++;
+    input[i] = '\0';
 }

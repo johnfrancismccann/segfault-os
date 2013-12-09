@@ -24,4 +24,6 @@ uint32_t get_vid_mapped(uint32_t term_index);
 /* remap 4k page of process running in term_index */
 int32_t remap_4KB_user_page(uint32_t term_index, uint32_t phys_addr, uint32_t virt_addr);
 
+uint32_t get_num_processes();
+
 #endif
