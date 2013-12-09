@@ -18,6 +18,7 @@
 #include "test_syscalls.h"
 #include "terminal.h"
 
+//mapping of scancodes to ASCII characters
 static const char KBD_MAP[KBD_MAP_SIZE] =
 {0x00, 0x1B, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x2D, 0X3D, 0x08, 0x09,  //0x0F
  0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69, 0x6F, 0x70, 0x5B, 0x5D, 0x0A, 0x00, 0x61, 0x73,  //0x1F 0x00 is left control
@@ -36,6 +37,7 @@ static const char KBD_MAP[KBD_MAP_SIZE] =
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //0xEF
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //0xFF
 
+//mapping of scancodes to capital ASCII characters (only for letters)
 static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
 {0x00, 0x1B, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5E, 0x26, 0x2A, 0x28, 0x29, 0x5F, 0X2B, 0x08, 0x09,  //0x0F
  0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69, 0x6F, 0x70, 0x7B, 0x7D, 0x0A, 0x00, 0x61, 0x73,  //0x1F 0x00 is left control
@@ -75,8 +77,7 @@ static uint8_t* scroll_stores[NUM_TERMS][2]; //1 for up scroll store and 1 for d
 static uint8_t max_lines_up[NUM_TERMS]; //maximum number of lines can scroll up
 static uint8_t max_lines_down[NUM_TERMS]; //max lines to scroll down
 
-// display parameters
-//static char* video_mem = (char *)VIDEO;
+/* display parameters */
 static uint8_t* video_mem = (uint8_t *)VIDEO;
 
 /* terminal to which open, read, write, and close are performed on */
@@ -85,7 +86,6 @@ static uint32_t act_ops_term = 0;
 static uint32_t act_disp_term = 0;
 /* bufferes that are written to by a terminal when that terminal is not the 
    active display terminal */
-//static uint8_t stores[NUM_TERMS][NUM_COLS*NUM_ROWS*CHAR_DIS_SZ];    
 /* holds the position of the cursor in the store for each terminal */
 static uint32_t cursors[NUM_TERMS];
 
@@ -95,7 +95,7 @@ static uint8_t* write_buffs[NUM_TERMS];
 static uint16_t print_inds[NUM_TERMS];
 
 static uint8_t scancodes[NUM_TERMS];
-/* odn't forgot to init to \0 */
+/* don't forget to init to \0 */
 static uint8_t last_chars[NUM_TERMS];  
 static uint8_t read_buffs[NUM_TERMS][BUF_SIZE];
 static uint16_t buff_inds[NUM_TERMS];
@@ -196,10 +196,8 @@ void init_kbd()
     caps_lock = OFF; 
     /* initialize cursor to top left corner of video display */
     update_cursor(0, act_disp_term); 
-    /* init keyboard handler to echo incoming characters to display */
     //initialize color schemes and status bar
 
-#if COLORS_ENABLED
     for(i=0; i<NUM_TERMS; i++) {
         bg_scheme[i] = 0;
         color_scheme[i] = 0;
@@ -210,7 +208,6 @@ void init_kbd()
     change_background(bg_scheme[act_disp_term]); //initialize background to default color
     change_text_colors(color_scheme[act_disp_term]); //initialize keyboard color
     print_status_bar();
-#endif
 
     set_interrupt_gate(KBD_IDT_NUM, kbd_wrapper);
     enable_irq(KBD_IRQ_NUM);
@@ -230,17 +227,8 @@ void kbd_handle()
     scancodes[act_disp_term] = inb(KBD_PORT); //get key press
     cli_and_save(flags);
     int16_t i;
-// #if COLORS_ENABLED
     uint8_t clr_combo; //color combination number
-// #endif
 
-#if 0
-    if(print_inds[act_disp_term] == 0) {
-        clear();
-    }
-#endif
-
-// #if C0LORS_ENABLED
     //change background color with alt+num
     if (alt_flag == ON && ctrl_flag == OFF && (scancodes[act_disp_term] >= ONE_ASC && scancodes[act_disp_term] <= ZERO_ASC)) {
         if (scancodes[act_disp_term] == ZERO_ASC) clr_combo = 0;
@@ -260,7 +248,6 @@ void kbd_handle()
         send_eoi(KBD_IRQ_NUM);
         return;
     }
-// #endif
 
     switch(scancodes[act_disp_term]) {
         case ALT_PRS:
@@ -294,10 +281,6 @@ void kbd_handle()
             send_eoi(KBD_IRQ_NUM);
             return;
         case K_UP:
-            // reset_screen_pos();
-            // int k;
-            // for(k=0; k<CMD_HIST_LEN; k++)
-            //     printf("%d\"%s\"\n",k,cmd_hist[act_disp_term][k]);
             if((active_command[act_disp_term] + 1) < CMD_HIST_LEN)
             {
                 // if(cmd_hist[act_disp_term][active_command[act_disp_term] + 1][0] == '\0')
@@ -311,7 +294,6 @@ void kbd_handle()
                     numtodelete = 0;
                 else
                 {
-                    // update_cmd_hist(read_buffs[act_disp_term], active_command[act_disp_term]);
                     numtodelete = buff_inds[act_disp_term];//strlen((int8_t*)read_buffs[act_disp_term]);
                 }
                 active_command[act_disp_term]++;
@@ -339,7 +321,6 @@ void kbd_handle()
         case K_DOWN:
             if(active_command[act_disp_term] > 0)
             {
-                // update_cmd_hist(read_buffs[act_disp_term], active_command[act_disp_term]);
                 uint8_t numtodelete = buff_inds[act_disp_term];//strlen((int8_t*)read_buffs[act_disp_term]);
                 active_command[act_disp_term]--;
                 int i;
@@ -353,7 +334,6 @@ void kbd_handle()
                     if(buff_inds[act_disp_term] == 0)
                         break;
                 }
-                // buff_inds[act_disp_term] = 0;
                 type_str(cmd_hist[act_disp_term][active_command[act_disp_term]]);
                 for(i = 0; i < strlen((int8_t*)cmd_hist[act_disp_term][active_command[act_disp_term]]); i++)
                 {
@@ -450,12 +430,10 @@ void kbd_handle()
     if (ctrl_flag == ON && scancodes[act_disp_term] == L_KEY) { //ctrl+L
         clear();
         clear_read_buf();
-        #if COLORS_ENABLED
         for(i = 0; i < STATUS_BAR_START; i++) { //reset screen to background color
             *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) &= 0x0F;
             *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4);
         }
-        #endif
         print_inds[act_disp_term] = 0; //reset print location to top left corner
         max_lines_up[act_disp_term] = 0; //can no longer scroll up
         max_lines_down[act_disp_term] = 0; //can no longer scroll up
@@ -514,7 +492,14 @@ void kbd_handle()
     restore_flags(flags);
 }
 
-/* check to see if a terminal switch occurred */
+ /*
+  * check_term_switch()
+  *   DESCRIPTION: check to see if a terminal switch occurred
+  *   INPUTS: none
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: none
+  */
 void check_term_switch()
 {
     int32_t flags;
@@ -541,7 +526,14 @@ void check_term_switch()
     restore_flags(flags);
 }
 
-/* set a terminal as the active display terminal */
+ /*
+  * set_display_term(uint32_t term_index)
+  *   DESCRIPTION: set a terminal as the active display terminal
+  *   INPUTS: index of terminal to set display
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: none
+  */
 void set_display_term(uint32_t term_index)
 {
     int32_t flags;
@@ -575,22 +567,25 @@ void set_display_term(uint32_t term_index)
     /* update video memory's cursor with saved viruatl, cursor */
     update_hw_cursor(cursors[act_disp_term]); 
 
-    /* test multiple terminals */
-    //act_ops_term = act_disp_term;
     //if have scrolled up, scroll back down to typing location
     while(max_lines_down[act_disp_term] > 0) scroll_down();
 
-#if COLORS_ENABLED
     change_background(bg_scheme[act_disp_term]); //initialize background to default color
     change_text_colors(color_scheme[act_disp_term]); //initialize keyboard color
     print_status_bar();
-#endif
 
     restore_flags(flags);
 }
 
-/* set term_index to be active operations terminal. all subsequent reads,
-   writes will be performed on this terminal */
+ /*
+  * set_act_ops_term(uint32_t term_index)
+  *   DESCRIPTION: set term_index to be active operations terminal. all subsequent reads,
+  *                writes will be performed on this terminal
+  *   INPUTS: terminal number to set
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: none
+  */
 void set_act_ops_term(uint32_t term_index)
 {
     int32_t flags;
@@ -599,7 +594,14 @@ void set_act_ops_term(uint32_t term_index)
     restore_flags(flags);
 }
 
-/* get the active operations terminal's virtual display address */
+ /*
+  * get_act_ops_disp()
+  *   DESCRIPTION: get the active operations terminal's virtual display address
+  *   INPUTS: none
+  *   OUTPUTS: none
+  *   RETURN VALUE: operations terminal's virtual display address
+  *   SIDE EFFECTS: none
+  */
 uint32_t get_act_ops_disp()
 {
     return (uint32_t)write_buffs[act_ops_term];
@@ -628,6 +630,14 @@ uint32_t get_act_ops_disp()
     restore_flags(flags);
  }
 
+ /*
+  * update_hw_cursor(uint32_t curs_pos) 
+  *   DESCRIPTION: move currently displayed cursor to given position
+  *   INPUTS: new cursor position
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: cursor updated on display terminal
+  */
 void update_hw_cursor(uint32_t curs_pos) 
 {
     outb(0x0F, VGA_LOW);
@@ -636,17 +646,18 @@ void update_hw_cursor(uint32_t curs_pos)
     outb((unsigned char)((curs_pos >> 8) & 0xFF), VGA_HIGH);
     *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) &= 0xF0; //maintain background color
     *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) = CURSOR_COLOR[color_scheme[act_disp_term]];
-#if COLORS_ENABLED
     *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) &= 0x0F; //clear background color
     *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
-#endif
 }
 
-/* 
- *
- *
- *
- */
+ /*
+  * check_scroll()
+  *   DESCRIPTION: check if necessary to scroll down (reached bottom of display) and do so if it is
+  *   INPUTS: index of terminal to check scrolling on
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: terminal display has scrolled down 1 line
+  */
 void check_scroll(uint32_t term_index)
 {
     int32_t flags;
@@ -669,10 +680,8 @@ void check_scroll(uint32_t term_index)
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) &= 0xF0; //maintain background color
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) |= TYPED_COLOR[color_scheme[term_index]];
-        #if COLORS_ENABLED
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) &= 0x0F; //clear background color
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[term_index]] << 4); //change to new background color
-        #endif
         }
         // begin printing at left-most position of lowest row 
         print_inds[term_index] -= NUM_COLS;
@@ -774,11 +783,11 @@ void scroll_down()
 }
 
  /*
-  * get_read_buf[act_ops_term]()
+  * get_read_buf(void* ptr, int32_t bytes)
   *   DESCRIPTION: give newline-terminated buffer to terminal
-  *   INPUTS: pointer to copy character buffer typed in to
-  *   OUTPUTS: number of bytes input from keyboard
-  *   RETURN VALUE: none
+  *   INPUTS: pointer to copy character buffer typed into and number of bytes
+  *   OUTPUTS: none
+  *   RETURN VALUE: number of bytes input from keyboard
   *   SIDE EFFECTS: none
   */
 int32_t get_read_buf(void* ptr, int32_t bytes) {
@@ -816,11 +825,11 @@ void clear_read_buf() {
  }
 
  /*
-  * print_write_buf(const void* wrt_buf)
+  * print_write_buf(const void* wrt_buf, int32_t bytes)
   *   DESCRIPTION: print a buffer to the screen at location given by cursor
-  *   INPUTS: pointer to buffer to be written
-  *   OUTPUTS: number of bytes written to terminal
-  *   RETURN VALUE: none
+  *   INPUTS: pointer to buffer to be written and number of bytes
+  *   OUTPUTS: none
+  *   RETURN VALUE: number of bytes written to terminal
   *   SIDE EFFECTS: none
   */
 int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
@@ -833,31 +842,25 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
         switch(buf[i]) {
             case '\0': break;
             case TAB_ASC:
-                #if COLORS_ENABLED
                 for(j = print_inds[act_ops_term]; j < TAB_LEN; j++) {
                     *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) &= 0x0F; //clear background color
                     *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_ops_term]] << 4); //change to new background color
                 }
-                #endif
                 print_inds[act_ops_term] += TAB_LEN; //add 5 spaces/tab
                 break;
             case ENT_ASC:
-            #if COLORS_ENABLED
                 for(j = 0; j < (NUM_COLS - (print_inds[act_ops_term] % NUM_COLS)); j++) {
                     *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) &= 0x0F; //clear background color
                     *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_ops_term]] << 4); //change to new background color
                 }
-            #endif
                 print_inds[act_ops_term] += NUM_COLS - (print_inds[act_ops_term] % NUM_COLS);
                 break;
             default: //for regular characters (only increment print index)
                 *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = buf[i]; // "<< 1" because each character is 2 bytes
                 *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0xF0; //maintain background color
                 *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) = PRINTED_COLOR[color_scheme[act_ops_term]];
-            #if COLORS_ENABLED
                 *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0x0F;
                 *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_ops_term]] << 4);
-            #endif
                 print_inds[act_ops_term]++;
         }
         check_scroll(act_ops_term);
@@ -960,7 +963,6 @@ void print_status_bar() {
     itoa(act_disp_term, term_char, (int32_t) 10);
     term_num_info = strcat(term_num_text, (char*) term_char);
     itoa(get_num_processes(), processes_char, (int32_t) 10);
-    // itoa(1, processes_char, (int32_t) 10);
     processes_info = strcat(processes_text, (char*) processes_char);
     itoa(bg_scheme[act_disp_term], bg_scheme_char, (int32_t) 10);
     bg_color_info = strcat(bg_color_text, (char*) bg_scheme_char);
@@ -971,28 +973,24 @@ void print_status_bar() {
     for(i = STATUS_BAR_START; i < (STATUS_BAR_START+strlen(os_name)); i++) {
         *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = os_name[i-STATUS_BAR_START];
     }
-
-    j = 0;
+    j = 0; //reset iterator
     //print terminal number
     for(i = TERM_INFO_START; i < (TERM_INFO_START+strlen(term_num_info)); i++) {
         *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = term_num_info[j];
         j++;
     }
-
     j = 0;
     //print number of running processes
     for(i = PROC_INFO_START; i < (PROC_INFO_START+strlen(processes_info)); i++) {
         *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = processes_info[j];
         j++;
     }
-
     j = 0;
     //print background color scheme number
     for(i = BG_CLR_INFO_START; i < (BG_CLR_INFO_START+strlen(bg_color_info)); i++) {
         *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = bg_color_info[j];
         j++;
     }
-
     j = 0;
     //print text color scheme number
     for(i = TXT_CLR_INFO_START; i < (TXT_CLR_INFO_START+strlen(text_color_info)); i++) {
@@ -1001,7 +999,7 @@ void print_status_bar() {
     }
  }
 
-  /*
+/*
   * strcat(char *dest, char *src)
   *   DESCRIPTION: concatenates 2 strings, adapted from http://stackoverflow.com/questions/2488563/strcat-implementation
   *   INPUTS: dest is string that will end up first, src is string that will end up second
@@ -1089,9 +1087,6 @@ void autocomplete()
             term_write((void*)"\n",1);
             term_write((void*)matches[i], strlen((int8_t*)matches[i]));
         }
-        //Make terminal header come back
-        //Disabled since tab complete works everywhere, not just shell
-        // term_write((void*)"\n391OS> ",8);
         //Re-type previously typed characters on new line
         term_write((void*)"\n",1);
         type_str(read_buffs[act_ops_term]);
@@ -1115,7 +1110,6 @@ void autocomplete()
         return;
     }
 }
-
 
 /*
 * get_prev_word
@@ -1142,7 +1136,6 @@ uint8_t* get_prev_word(uint8_t endindex)
     else
         return get_prev_word(endindex - 1);
 }
-
 
 /*
 * partial_strcmp
