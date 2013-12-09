@@ -36,17 +36,6 @@ void enable_paging()
 }
 
 /*
- * 
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
- *
- */
-
-
-/*
  * set_CR3
  *   DESCRIPTION: Uses inline assembly to set the processor's control 
  *                register 3 to the value supplied by the caller
@@ -135,7 +124,6 @@ void init_paging()
  */
 uint32_t get_proc_page_dir(uint32_t* proc_page_dir, uint32_t phys_addr, uint32_t virt_addr)
 {
-#if 1
     uint32_t i;
     /* perform checks on input */
     if(proc_page_dir == NULL || phys_addr < 0 || virt_addr < 0)
@@ -149,16 +137,6 @@ uint32_t get_proc_page_dir(uint32_t* proc_page_dir, uint32_t phys_addr, uint32_t
     /* init new page as 4MB page, user, present, r/w */
     phys_addr |= (SET_PAGE_4MB | SET_PAGE_USER | SET_PAGE_PRES | SET_PAGE_RW);
     proc_page_dir[virt_addr/FOUR_MB] = phys_addr;
-
-#endif
-
-#if 0
-    proc_page_dir[0] = page_dir[0];
-    proc_page_dir[1] = page_dir[1];
-    int i;
-    for(i=2; i<PAGE_DIR_SIZE; i++)
-        proc_page_dir[i] = page_dir[i];
-#endif
 
     return 0;
 }

@@ -41,8 +41,13 @@ typedef struct
 #define FOPS_WRITE 2
 #define FOPS_CLOSE 3
 
-#define STDIN   0
-#define STDOUT  1
+#define STDIN        0
+#define STDOUT       1
+#define STDIN_MSK    0x1
+#define STDOUT_MSK   0x2
+#define FL_IN_USE    1
+#define FL_N_IN_USE  0
+
 
 typedef struct
 {
