@@ -61,6 +61,20 @@ static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
 static uint8_t store[NUM_TERMS][NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
 static uint8_t* stores[NUM_TERMS];
 
+/* stores for scrolling */
+//stores for previous data to access when scrolling up
+static uint8_t  up_store_0[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+static uint8_t  up_store_1[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+static uint8_t  up_store_2[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+//store for most recent data to acess when scrolling down after scrolling up
+static uint8_t  dn_store_0[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+static uint8_t  dn_store_1[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+static uint8_t  dn_store_2[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
+/* scrolling variables */
+static uint8_t* scroll_stores[NUM_TERMS][2]; //1 for up scroll store and 1 for down
+static uint8_t max_lines_up[NUM_TERMS]; //maximum number of lines can scroll up
+static uint8_t max_lines_down[NUM_TERMS]; //max lines to scroll down
+
 // display parameters
 //static char* video_mem = (char *)VIDEO;
 static uint8_t* video_mem = (uint8_t *)VIDEO;
@@ -128,6 +142,8 @@ static uint8_t* get_prev_word(uint8_t endindex);
 static uint8_t partial_strcmp(uint8_t* partial, uint8_t* full);
 static void type_char(uint8_t input);
 static void type_str(uint8_t* input);
+void scroll_up();
+void scroll_down();
 static void ins_cmd_hist(uint8_t* input);
 static void newline_to_null(uint8_t* input);
 
@@ -145,6 +161,13 @@ void init_kbd()
     uint32_t i,j;
     for(i=0; i<NUM_TERMS; i++)
         stores[i] = store[i];
+
+    scroll_stores[0][UP] = up_store_0;
+    scroll_stores[0][DN] = dn_store_0;
+    scroll_stores[1][UP] = up_store_1;
+    scroll_stores[1][DN] = dn_store_1;
+    scroll_stores[2][UP] = up_store_2;
+    scroll_stores[2][DN] = dn_store_2;
 
     /* initialize settings for eeach terminal */
     for(i=0; i<NUM_TERMS; i++) {
@@ -180,8 +203,8 @@ void init_kbd()
     for(i=0; i<NUM_TERMS; i++) {
         bg_scheme[i] = 0;
         color_scheme[i] = 0;
-        // max_lines_up[i] = 0;
-        // max_lines_down[i] = 0;
+        max_lines_up[i] = 0;
+        max_lines_down[i] = 0;
     }
 
     change_background(bg_scheme[act_disp_term]); //initialize background to default color
@@ -264,6 +287,8 @@ void kbd_handle()
             caps_lock ^= 1; //invert value of caps lock
             break;
         case TAB:
+            //if have scrolled up, scroll back down to typing location
+            while(max_lines_down[act_disp_term] > 0) scroll_down();
             autocomplete();
             restore_flags(flags);
             send_eoi(KBD_IRQ_NUM);
@@ -297,7 +322,7 @@ void kbd_handle()
                     buff_inds[act_disp_term]--;
                     *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = ' '; //delete character and move print index back 1 char
                     *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
-                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]]; //clear character's attribute byte
+                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]]; //clear character's attribute byte
                     if(buff_inds[act_disp_term] == 0)
                         break;
                 }
@@ -324,7 +349,7 @@ void kbd_handle()
                     buff_inds[act_disp_term]--;
                     *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = ' '; //delete character and move print index back 1 char
                     *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
-                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]]; //clear character's attribute byte
+                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]]; //clear character's attribute byte
                     if(buff_inds[act_disp_term] == 0)
                         break;
                 }
@@ -409,6 +434,14 @@ void kbd_handle()
             send_eoi(KBD_IRQ_NUM);
             restore_flags(flags);
             return;
+        case PG_UP:
+            scroll_up();
+            send_eoi(KBD_IRQ_NUM);
+            return;
+        case PG_DN:
+            scroll_down();
+            send_eoi(KBD_IRQ_NUM);
+            return;
     } /* switch end bracket */
 
     check_term_switch();
@@ -424,6 +457,8 @@ void kbd_handle()
         }
         #endif
         print_inds[act_disp_term] = 0; //reset print location to top left corner
+        max_lines_up[act_disp_term] = 0; //can no longer scroll up
+        max_lines_down[act_disp_term] = 0; //can no longer scroll up
         update_cursor(0, act_disp_term);
         send_eoi(KBD_IRQ_NUM);
         restore_flags(flags);
@@ -434,6 +469,9 @@ void kbd_handle()
     // print to screen and add to buffer 
     //only register characters (including enter and tab)
     if(KBD_MAP[scancodes[act_disp_term]] != 0 && scancodes[act_disp_term] != CTRL_PRS && scancodes[act_disp_term] != B_SPACE && scancodes[act_disp_term] != LSHIFT_PRS && scancodes[act_disp_term] != RSHIFT_PRS && scancodes[act_disp_term] != CAPS) { 
+        //if have scrolled up, scroll back down to typing location
+        while(max_lines_down[act_disp_term] > 0) scroll_down();
+
         //reserve last element in buffer for newline character
         if(scancodes[act_disp_term] != ENTER && buff_inds[act_disp_term] == BUF_SIZE-2); 
         // don't take any more characters if the buffer is full, "-1" is 
@@ -539,6 +577,8 @@ void set_display_term(uint32_t term_index)
 
     /* test multiple terminals */
     //act_ops_term = act_disp_term;
+    //if have scrolled up, scroll back down to typing location
+    while(max_lines_down[act_disp_term] > 0) scroll_down();
 
 #if COLORS_ENABLED
     change_background(bg_scheme[act_disp_term]); //initialize background to default color
@@ -613,7 +653,14 @@ void check_scroll(uint32_t term_index)
     cli_and_save(flags);
     uint32_t i;
     // check if the print location has run past the end display 
-    if(print_inds[term_index] >= NUM_COLS*NUM_ROWS) {
+    if(print_inds[term_index] >= STATUS_BAR_START) {
+        //copy every row (except top one) in scroll up store to row above it
+        for(i=0; i<(NUM_ROWS-1); i++) {
+            memcpy(scroll_stores[term_index][UP]+(CHAR_DIS_SZ*i*NUM_COLS), scroll_stores[term_index][UP]+(2*(i+1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+        }
+        // copy top row (which disappears) to lowest row of up scroll store
+        memcpy(scroll_stores[term_index][UP]+(CHAR_DIS_SZ*(NUM_ROWS-1)*NUM_COLS), write_buffs[term_index], CHAR_DIS_SZ*NUM_COLS);
+
         // copy every row to the row above it 
         for(i=0; i<(NUM_ROWS-1); i++)
             memcpy(write_buffs[term_index]+(2*i*NUM_COLS), write_buffs[term_index]+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
@@ -621,16 +668,109 @@ void check_scroll(uint32_t term_index)
         for(i=0; i < NUM_COLS; i++) {
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) &= 0xF0; //maintain background color
-            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]];
+            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) |= TYPED_COLOR[color_scheme[term_index]];
         #if COLORS_ENABLED
-            *(uint8_t *)(write_buffs[act_disp_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) &= 0x0F; //clear background color
-            *(uint8_t *)(write_buffs[act_disp_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
+            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) &= 0x0F; //clear background color
+            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[term_index]] << 4); //change to new background color
         #endif
         }
         // begin printing at left-most position of lowest row 
         print_inds[term_index] -= NUM_COLS;
+        if(max_lines_up[term_index] < NUM_ROWS) max_lines_up[term_index]++; //increment number of lines can scroll up
     }
     restore_flags(flags);
+}
+
+ /*
+  * scroll_up()
+  *   DESCRIPTION: scroll up 1 line to view the last line that disappeared from the top of the terminal
+  *   INPUTS: none
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: terminal scrolls up 1 line
+  */
+void scroll_up()
+{
+    uint32_t i; //iterator
+
+    if(max_lines_up[act_disp_term] == 0) return; //haven't scrolled down so can't scroll up
+
+    //move scroll down store rows down
+    for(i=NUM_ROWS-1; i>0; i--) {
+        memcpy(scroll_stores[act_disp_term][DN]+(CHAR_DIS_SZ*i*NUM_COLS), scroll_stores[act_disp_term][DN]+(CHAR_DIS_SZ*(i-1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    }
+    //copy lowest row of terminal to top row of down scroll store
+    memcpy(scroll_stores[act_disp_term][DN], write_buffs[act_disp_term]+(CHAR_DIS_SZ*(NUM_ROWS-1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    //move every terminal row down
+    for(i=NUM_ROWS-1; i>0; i--) {
+        memcpy(write_buffs[act_disp_term]+(CHAR_DIS_SZ*i*NUM_COLS), write_buffs[act_disp_term]+(CHAR_DIS_SZ*(i-1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    }
+    //copy lowest row of up scroll store to top row of terminal
+    memcpy(write_buffs[act_disp_term], scroll_stores[act_disp_term][UP]+(CHAR_DIS_SZ*(NUM_ROWS-1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    //move scroll up store rows down
+    for(i=NUM_ROWS-1; i>0; i--) {
+        memcpy(scroll_stores[act_disp_term][UP]+(CHAR_DIS_SZ*i*NUM_COLS), scroll_stores[act_disp_term][UP]+(CHAR_DIS_SZ*(i-1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    }
+
+    //set background color of new line
+    for(i=0; i<NUM_COLS; i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1) + 1) &= 0x0F;
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1) + 1) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4);
+    }
+
+    max_lines_up[act_disp_term]--;
+    if(max_lines_down[act_disp_term] < NUM_ROWS) max_lines_down[act_disp_term]++; //increment number of lines can scroll down
+
+    remove_hw_cursor(); //remove cursor while scrolling up
+
+    return;
+}
+
+  /*
+  * scroll_down()
+  *   DESCRIPTION: scroll down 1 line to view the last line that disappeared from the bottom of the terminal;
+                   can only scroll down after scrolling up
+  *   INPUTS: none
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: terminal scrolls down 1 line
+  */
+void scroll_down()
+{
+    uint32_t i; //iterator
+
+    if(max_lines_down[act_disp_term] == 0) {
+        update_cursor(print_inds[act_disp_term], act_disp_term); //redisplay cursor
+        return; //haven't scrolled up so can't scroll down
+    }
+
+    //move scroll up store rows up
+    for(i=0; i<(NUM_ROWS-1); i++) {
+        memcpy(scroll_stores[act_disp_term][UP]+(CHAR_DIS_SZ*i*NUM_COLS), scroll_stores[act_disp_term][UP]+(CHAR_DIS_SZ*(i+1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    }
+    //copy top row of terminal to lowest row of up scroll store
+    memcpy(scroll_stores[act_disp_term][UP]+(CHAR_DIS_SZ*(NUM_ROWS-1)*NUM_COLS), write_buffs[act_disp_term], CHAR_DIS_SZ*NUM_COLS);
+    //move every terminal row up
+    for(i=0; i<(NUM_ROWS-1); i++) {
+        memcpy(write_buffs[act_disp_term]+(CHAR_DIS_SZ*i*NUM_COLS), write_buffs[act_disp_term]+(CHAR_DIS_SZ*(i+1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    }
+    //copy top row of down scroll store to bottom row of terminal
+    memcpy(write_buffs[act_disp_term]+(CHAR_DIS_SZ*(NUM_ROWS-1)*NUM_COLS), scroll_stores[act_disp_term][DN], CHAR_DIS_SZ*NUM_COLS);
+    //move scroll down store rows up
+    for(i=0; i<(NUM_ROWS-1); i++) {
+        memcpy(scroll_stores[act_disp_term][DN]+(CHAR_DIS_SZ*i*NUM_COLS), scroll_stores[act_disp_term][DN]+(CHAR_DIS_SZ*(i+1)*NUM_COLS), CHAR_DIS_SZ*NUM_COLS);
+    }
+
+    //set background color of new line
+    for(i=0; i<NUM_COLS; i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + (CHAR_DIS_SZ*(NUM_ROWS-1)*NUM_COLS) + (i << 1) + 1) &= 0x0F;
+        *(uint8_t *)(write_buffs[act_disp_term] + (CHAR_DIS_SZ*(NUM_ROWS-1)*NUM_COLS) + (i << 1) + 1) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4);
+    }
+
+    max_lines_down[act_disp_term]--;
+    if(max_lines_down[act_disp_term] < NUM_ROWS) max_lines_up[act_disp_term]++; //increment number of lines can scroll up
+    
+    return;
 }
 
  /*
@@ -739,8 +879,7 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
 void change_text_colors(uint8_t color_combo) {
     if (color_combo > 9) return; //must be 1-digit number
     color_scheme[act_disp_term] = color_combo;
-    update_cursor(print_inds[act_disp_term], act_disp_term); //update cursor with new color ///
-    // if(max_lines_down[act_disp_term] == 0) update_cursor(print_inds[act_disp_term], act_disp_term); //update cursor with new color ///
+    if(max_lines_down[act_disp_term] == 0) update_cursor(print_inds[act_disp_term], act_disp_term); //update cursor with new color
  }
 
  /*
