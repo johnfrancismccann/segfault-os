@@ -164,8 +164,9 @@ void init_kbd()
  */
 void kbd_handle()
 {
+    int32_t flags;
     scancodes[act_disp_term] = inb(KBD_PORT); //get key press
-
+    cli_and_save(flags);
     int16_t i;
 
 #if 0
@@ -204,6 +205,7 @@ void kbd_handle()
                 if(buff_inds[act_disp_term] == 0)
                 {   
                     send_eoi(KBD_IRQ_NUM);
+                    restore_flags(flags);
                     return;
                 }
                 //Scroll up to reveal previous command
@@ -244,6 +246,7 @@ void kbd_handle()
                     }
                     update_cursor(print_inds[act_disp_term], act_disp_term);
                     send_eoi(KBD_IRQ_NUM);
+                    restore_flags(flags);
                     return;
                 }
             }
@@ -263,6 +266,7 @@ void kbd_handle()
             }
             update_cursor(print_inds[act_disp_term], act_disp_term);
             send_eoi(KBD_IRQ_NUM);
+            restore_flags(flags);
             return;
     } /* switch end bracket */
 
@@ -275,7 +279,8 @@ void kbd_handle()
         print_inds[act_disp_term] = 0; //reset print location to top left corner
         update_cursor(0, act_disp_term);
         send_eoi(KBD_IRQ_NUM);
-        test_halt(0);
+        restore_flags(flags);
+        // test_halt(0);
         return;
     }
 
@@ -318,11 +323,14 @@ void kbd_handle()
         }
     }
     send_eoi(KBD_IRQ_NUM);
+    restore_flags(flags);
 }
 
 /* check to see if a terminal switch occurred */
 void check_term_switch()
 {
+    int32_t flags;
+    cli_and_save(flags);
     /* check that alt is pressed */
     if (alt_flag == ON)  {
         /* check if any of the first 3 function keys are pressed */
@@ -342,11 +350,14 @@ void check_term_switch()
                 break;
         }
     }
+    restore_flags(flags);
 }
 
 /* set a terminal as the active display terminal */
 void set_display_term(uint32_t term_index)
 {
+    int32_t flags;
+    cli_and_save(flags);
     /* copy video memory to old terminal's store */
     memcpy(stores[act_disp_term], video_mem, NUM_COLS*NUM_ROWS*CHAR_DIS_SZ);
     /* change old active terminal settings so that it writes to its store, 
@@ -378,19 +389,24 @@ void set_display_term(uint32_t term_index)
 
     /* test multiple terminals */
     //act_ops_term = act_disp_term;
+
+    restore_flags(flags);
 }
 
 /* set term_index to be active operations terminal. all subsequent reads,
    writes will be performed on this terminal */
 void set_act_ops_term(uint32_t term_index)
 {
+    int32_t flags;
+    cli_and_save(flags);
     act_ops_term = term_index;
+    restore_flags(flags);
 }
 
 /* get the active operations terminal's virtual display address */
 uint32_t get_act_ops_disp()
 {
-        return (uint32_t)write_buffs[act_ops_term];
+    return (uint32_t)write_buffs[act_ops_term];
 }
 
  /*
@@ -402,6 +418,8 @@ uint32_t get_act_ops_disp()
   *   SIDE EFFECTS: cursor moves
   */
  void update_cursor(uint32_t curs_pos, uint32_t term_index) {
+    int32_t flags;
+    cli_and_save(flags);
     /* update active ops terminal's virtual cursor */
     cursors[term_index] = curs_pos;
     /* set the cursor color in active ops terminal's virtual display */
@@ -410,6 +428,7 @@ uint32_t get_act_ops_disp()
        active display terminal */
     if(term_index == act_disp_term)
         update_hw_cursor(curs_pos);
+    restore_flags(flags);
  }
 
 void update_hw_cursor(uint32_t curs_pos) 
@@ -428,6 +447,8 @@ void update_hw_cursor(uint32_t curs_pos)
  */
 void check_scroll()
 {
+    int32_t flags;
+    cli_and_save(flags);
     uint32_t i;
     // check if the print location has run past the end display 
     if(print_inds[act_disp_term] >= NUM_COLS*NUM_ROWS) {
@@ -443,6 +464,7 @@ void check_scroll()
         // begin printing at left-most position of lowest row 
         print_inds[act_disp_term] -= NUM_COLS;
     }
+    restore_flags(flags);
 }
 
  /*
@@ -454,17 +476,18 @@ void check_scroll()
   *   SIDE EFFECTS: none
   */
 int32_t get_read_buf(void* ptr, int32_t bytes) {
+    int32_t flags;
     int dummy=0;
     clear_read_buf();
     //while(read_buffs[act_ops_term][buff_inds[act_ops_term]-1] != ENT_ASC); //wait until enter key is pressed
     while(last_chars[act_ops_term] != '\n')
         dummy++; //wait until enter key is pressed
-    cli(); //make sure not to interrupt memcpy
+    cli_and_save(flags); //make sure not to interrupt memcpy
     last_chars[act_ops_term] = '\0';
     if(bytes > buff_inds[act_ops_term])
         bytes = buff_inds[act_ops_term];
     memcpy(ptr, (void*) read_buffs[act_ops_term], bytes);
-    sti();
+    restore_flags(flags);
     return bytes;
 }
 
@@ -477,10 +500,11 @@ int32_t get_read_buf(void* ptr, int32_t bytes) {
   *   SIDE EFFECTS: none
   */
 void clear_read_buf() {
-    cli(); //make sure not writing to buffer while clearing it
+    int32_t flags;
+    cli_and_save(flags); //make sure not writing to buffer while clearing it
     buff_inds[act_ops_term] = 0; //reset buffer index
     read_buffs[act_ops_term][0] = '\0'; //clear buffer
-    sti();
+    restore_flags(flags);
  }
 
  /*
@@ -493,9 +517,10 @@ void clear_read_buf() {
   */
 int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     int i; //loop iterator
+    int32_t flags;
     char* buf = (char*) wrt_buf;
     if(buf[0] == '\0') return 0;
-    cli(); //clear interrupts to ensure buffer correctly printed to screen
+    cli_and_save(flags); //clear interrupts to ensure buffer correctly printed to screen
     for(i = 0; i < bytes; i++) {
         switch(buf[i]) {
             case '\0': break;
@@ -512,7 +537,7 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
         }
         check_scroll();
     }
-    sti();
+    restore_flags(flags);
     update_cursor(print_inds[act_ops_term], act_ops_term);
     return bytes;
  }
