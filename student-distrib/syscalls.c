@@ -267,7 +267,11 @@ int32_t sys_open(const uint8_t* filename)
         return -1;
 
     if(-1 == read_dentry_by_name(filename, &myfiledentry))
+    {
+        //on failure, release assigned fd and return error.
+        cur_proc->available_fds &= (~(1 << fd));
         return -1;
+    }
     switch(myfiledentry.ftype)
     {
         case TYPE_USER:

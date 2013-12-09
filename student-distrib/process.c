@@ -263,4 +263,7 @@ int32_t remap_4KB_user_page(uint32_t term_index, uint32_t phys_addr, uint32_t vi
     return 0;
 }
 
-
+uint32_t get_num_processes()
+{
+    return num_proc;
+}
