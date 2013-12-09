@@ -12,7 +12,6 @@
 
 #define TEXT_COLOR CYAN
 #define PROG_COLOR GREEN //program color
-#define CURSOR_COLOR GREEN
 
 //text color codes for text-mode VGA attribute byte (LT == light, DK == dark)
 #define BLACK       0
