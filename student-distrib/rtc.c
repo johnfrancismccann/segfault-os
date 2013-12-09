@@ -148,7 +148,7 @@ int32_t rtc_read(int32_t* buffer, int32_t nbytes)
     //reset interrupt_flag to wait for interrupt
     //First case for when process is reading, let
     //it use it's own flag for abstraction
-    if(get_cur_proc != NULL)
+    if(get_cur_proc() != NULL)
     {
         uint32_t pid = get_cur_proc()->pid;
         // uint32_t pid = 0;

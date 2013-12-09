@@ -222,6 +222,9 @@ SOLUTION:   In our terminal/keyboard driver, we had overgeneralized the referenc
             To fix it, we added support for foreground and background tasks separately.
 
 22.
-SYMPTOM:
-TIME SPENT:
-SOLUTION
+SYMPTOM:    Command history would occasionally overwrite other text on screen
+            in the backwards direction.
+TIME SPENT: 3 hours
+SOLUTION:   Like (21), this also had to do with some indecies and video memory, but
+            it also had some corner cases when there were no more commands in history.
+            By plugging these holes, in the words of Dr Frankenstein, "IT LIVES!"
