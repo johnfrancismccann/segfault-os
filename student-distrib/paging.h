@@ -17,6 +17,9 @@
 
 #define PG_TBL_ALIGN            0x1000 //to align pages on 4kB boundaries
 #define PG_DIR_ALIGN            0x1000
+#define PG_TBL_FIELD_SZ			12
+#define PG_TBL_FIELD_MSK		0x3FF
+#define PG_TBL_ADDR_MSK			0xFFFFF000
 
 #define FOUR_MB                 0x400000
 #define EIGHT_MB                0x800000

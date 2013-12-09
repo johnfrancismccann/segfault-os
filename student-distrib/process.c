@@ -19,23 +19,33 @@ static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((align
 #define TEST_MULT 1
 #define SCED_ON 1
 
+#define NON_VID_MAPPED 0
+#define VID_MAPPED 1
+
 /* program time slice in milliseconds */
 #define TIME_SLICE 20
 #define HZ (1000 / TIME_SLICE)
 #define CLOCK_TICK_RATE 1193182
 #define LATCH (CLOCK_TICK_RATE/HZ)
 
-#define PIT_CHAN_0_PORT 0x40
+#define PIT_CHAN_0_PORT  0x40
 #define PIT_COMMAND_PORT 0x43
+#define PIT_IRQ_NUM      0
+#define PIT_IDT_NUM      0x20
+#define PIT_LO_HIGH_ACC  0x30
+#define PIT_MODE_3       0x6
+#define PIT_CHANNEL_0    0x0
+/* */
+#define LOW_BYTE 0xff
+#define BYTE_SZ 8
 
-#define PIT_IRQ_NUM 0
-#define PIT_IDT_NUM 0x20
+#define NON_EXIST_TERM -1
+#define FIRST_TERM 0
 
-#define PIT_LO_HIGH_ACC 0x30
-#define PIT_MODE_3  0x6
+
 
 /* terminal with the currently executing process */
-static int32_t active_term = -1;
+static int32_t active_term = NON_EXIST_TERM;
 
 /* pointer to current pcb running in each terminal */
 static pcb_t* cur_proc[NUM_TERMS] = {NULL};
@@ -65,21 +75,17 @@ void schedul();
 void init_pit()
 {
     cli();
-
-    /* select channel 0 */
-    outb(0x36, PIT_COMMAND_PORT);
-    //nop();
-
-    /* load low byte reload value */
-    outb(LATCH & 0xff, PIT_CHAN_0_PORT);
+    /* for pit, select channel 0, accessmode mode lobyte/highbyte, and 
+       and mode 3 (square wave generator) */
+    outb(PIT_CHANNEL_0 | PIT_LO_HIGH_ACC | PIT_MODE_3, PIT_COMMAND_PORT);
+    /* reload value is contained in LATCH. load low byte reload value */
+    outb(LATCH & LOW_BYTE, PIT_CHAN_0_PORT);
     /* load high byte reload value */
-    outb(LATCH >> 8, PIT_CHAN_0_PORT);
-
+    outb(LATCH >> BYTE_SZ, PIT_CHAN_0_PORT);
     /* set up pit interrup in idt */
     set_interrupt_gate(PIT_IDT_NUM, pit_wrapper);
     /* enable pit interrupt */
     enable_irq(PIT_IRQ_NUM);
-
     sti();
 
 }
@@ -109,14 +115,14 @@ void schedul()
     pcb_t* new_proc = NULL;
     pcb_t* old_proc = NULL; 
     /* if old process exists, get its pcb */
-    if(active_term != -1)
+    if(active_term != NON_EXIST_TERM)
         old_proc = cur_proc[active_term];
  
     /* move to process in next terminal */
     active_term++;
     /* wrap to first terminal if on last terminal */
     if(active_term == NUM_TERMS)
-        active_term = 0;
+        active_term = FIRST_TERM;
     /* set active operations terminal to terminal of new process */
     set_act_ops_term(active_term);
     /* get new process pcb */
@@ -169,7 +175,7 @@ void launch_scheduler()
 #if SCED_ON
     init_pit();
 #else
-    active_term = 0;
+    active_term = FIRST_TERM;
     test_execute((uint8_t*)"shell");
 #endif
 }
@@ -188,7 +194,7 @@ void launch_scheduler()
  */
 pcb_t* get_cur_proc()
 {
-    if(active_term < 0 || active_term >= NUM_TERMS)
+    if(active_term < FIRST_TERM || active_term >= NUM_TERMS)
         return NULL;
     return cur_proc[active_term];
 }
@@ -219,15 +225,15 @@ int32_t create_proc()
     child_proc->pid = num_proc-1;
     child_proc->par_proc = cur_proc[active_term];
     //Set keyboard/display as already used on fd 0 & 1
-    child_proc->available_fds = 3;
+    child_proc->available_fds = STDIN_MSK | STDOUT_MSK;
 
     /* init child's standard i/o */
     child_proc->file_desc_arr[STDOUT].file_ops_table = termfops_table;
     child_proc->file_desc_arr[STDIN].file_ops_table = termfops_table;
-    child_proc->file_desc_arr[STDOUT].flags = 1;
-    child_proc->file_desc_arr[STDIN].flags = 1;
+    child_proc->file_desc_arr[STDOUT].flags = FL_IN_USE;
+    child_proc->file_desc_arr[STDIN].flags = FL_IN_USE;
     /* set child proc as not video mapped */
-    child_proc->vid_mapped = 0;
+    child_proc->vid_mapped = NON_VID_MAPPED;
 
     /* set up child's paging. set processor to child's page directory */
     child_proc->page_dir = proc_page_dir[child_proc->pid];
@@ -271,7 +277,7 @@ void destroy_proc()
     if(num_proc == 0)
         return;
     int i;
-    //ensure all files closed.
+    //ensure all files closed except std i/o
     for(i = 2; i < MAX_OPEN_FILES; i++)
         test_close(i);
     num_proc--;
@@ -410,19 +416,15 @@ uint32_t get_vid_mapped(uint32_t term_index)
 int32_t remap_4KB_user_page(uint32_t term_index, uint32_t phys_addr, uint32_t virt_addr)
 {
     uint32_t page_table;
-    /* get page table for phys_addr  */
-
-    page_table = (cur_proc[term_index]->page_dir[virt_addr/FOUR_MB]) & 0xFFFFF000;
-    //page_table = cur_page_dir[virt_addr/FOUR_MB] & 0xFFFFF000;
+    /* get virt_addr's page table */
+    page_table = (cur_proc[term_index]->page_dir[virt_addr/FOUR_MB]) & PG_TBL_ADDR_MSK;
 
     /* set corresponding entry in page table to physical address provided */
-    ((uint32_t*)page_table)[(virt_addr>>12) & (0x3FF)] 
-    //((uint32_t*)page_table)[0]
+    ((uint32_t*)page_table)[(virt_addr>>PG_TBL_FIELD_SZ) & (PG_TBL_FIELD_MSK)] 
     = phys_addr | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
-    //= phys_addr | SET_PAGE_RW | SET_PAGE_USER;
-    /* just for testing */
-    //set_CR3((uint32_t)cur_proc[term_index]->page_dir);
 
+    /* just for testing when not running scheduler */
+    //set_CR3((uint32_t)cur_proc[term_index]->page_dir);
     return 0;
 }
 

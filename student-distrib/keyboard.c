@@ -498,7 +498,8 @@ void kbd_handle()
   *   INPUTS: none
   *   OUTPUTS: none
   *   RETURN VALUE: none
-  *   SIDE EFFECTS: none
+  *   SIDE EFFECTS: the terminal will be switched if the user pressed
+  *                 an ALT+FUNC combination
   */
 void check_term_switch()
 {
@@ -611,7 +612,8 @@ uint32_t get_act_ops_disp()
   * update_cursor(int index), adapted from wiki.osdev.org (by Dark Fiber)
   *   DESCRIPTION: moves blinking cursor to designated row and column when
   *                characters typed/deleted or tab/enter
-  *   INPUTS: index-- index in video memory
+  *   INPUTS: term_index--terminal to update cursor in 
+  *           curs_pos--index in video memory
   *   OUTPUTS: none
   *   RETURN VALUE: none
   *   SIDE EFFECTS: cursor moves
