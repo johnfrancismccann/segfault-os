@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+#define MAX_PROCESSES 9
+
 void launch_scheduler();
 
 int32_t create_proc();
