@@ -13,9 +13,16 @@
 #include "i8259.h"
 #include "lib.h"
 #include "idt_functions.h"
+#include "process.h"
+#include "types.h"
 
 //Flag indicating an interrupt has occured
-uint8_t interrupt_flag;
+//intr array is for virtualization so every process
+//can use every interrupt despite the schduler's nefarious
+//plot to prevent this.
+volatile uint8_t interrupt_flag = 0;
+volatile uint32_t intr[MAX_PROCESSES] = {0};
+uint32_t num_open = 0;
 
 syscall_func_t rtcfops_table[4] = {(syscall_func_t)rtc_open, 
                                    (syscall_func_t)rtc_read,
@@ -83,7 +90,8 @@ void rtc_idt_handle()
 {
     // test_interrupts();
     //Set flag to indicate a new interrupt
-    interrupt_flag |= 1;
+    interrupt_flag &= 0;
+    memset((void*)intr, 0, sizeof(intr[0]) * MAX_PROCESSES);
     send_eoi(RTC_IRQ_NUM);
     //Register C on RTC must be read to re-enable interrupts
     //on IRQ_8.  See OS Dev Wiki.
@@ -95,14 +103,24 @@ void rtc_idt_handle()
 /*
  * rtc_open()
  *   DESCRIPTION: Runs init_rtc() if not already done.
- *   INPUTS: 
- *   OUTPUTS: 
- *   RETURN VALUE: 
- *   SIDE EFFECTS: 
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: returns 0 on success (always)
+ *   SIDE EFFECTS: increases number of open instances
+ *                 counter, may reset interrupt flag
+ *                 for opening process.
  */
 int32_t rtc_open()
 {
     init_rtc();
+    if(get_cur_proc() != NULL)
+    {
+        uint32_t pid = get_cur_proc()->pid;
+        // uint32_t pid = 0;
+        if(pid < MAX_PROCESSES)
+            intr[pid] = 0;
+    }
+    num_open++;
     return 0;
 }
 
@@ -120,10 +138,28 @@ int32_t rtc_open()
 int32_t rtc_read(int32_t* buffer, int32_t nbytes)
 {
     //reset interrupt_flag to wait for interrupt
-    interrupt_flag &= 0;
-    //wait for interrupt
-    while(!interrupt_flag);
-    //return after interrupt
+    //First case for when process is reading, let
+    //it use it's own flag for abstraction
+    if(get_cur_proc != NULL)
+    {
+        uint32_t pid = get_cur_proc()->pid;
+        // uint32_t pid = 0;
+        if(pid < MAX_PROCESSES)
+        {
+            intr[pid] += 1;
+            //wait for interrupt
+            while(intr[pid]);
+        }
+    }
+    //Otherwise, use common variable, which leads to
+    //jerky motions.
+    else
+    {    
+        interrupt_flag += 1;
+        //wait for interrupt
+        while(interrupt_flag);
+    }
+    // return after interrupt
     return 0;
 }
 
@@ -194,7 +230,14 @@ int32_t rtc_write(void* buffer, int32_t nbytes)
  */
 int32_t rtc_close()
 {
-    int32_t frequency = 2;
-    rtc_write(&frequency, 1);
+    //Only reset frequency once all users of rtc are done.
+    //This prevents weird slowing of rtc with multiple terminals.
+    if(num_open < 2)
+    {
+        int32_t frequency = 2;
+        rtc_write(&frequency, 1);
+    }
+    if(num_open > 0)
+        num_open--;
     return 0;
 }
