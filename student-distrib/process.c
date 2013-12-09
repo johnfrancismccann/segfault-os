@@ -131,6 +131,8 @@ void launch_scheduler()
 
 pcb_t* get_cur_proc()
 {
+    if(active_term < 0 || active_term >= NUM_TERMS)
+        return NULL;
     return cur_proc[active_term];
 }
 
