@@ -1,6 +1,5 @@
 #include "paging.h"
 #include "lib.h"
-//#include "process.h"
 
 static uint32_t *cur_page_dir = NULL;
 
@@ -36,6 +35,29 @@ void enable_paging()
                 );
 }
 
+/*
+ * 
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ *
+ */
+
+
+/*
+ * set_CR3
+ *   DESCRIPTION: Uses inline assembly to set the processor's control 
+ *                register 3 to the value supplied by the caller
+ *   INPUTS: page_dir_address: the address that will be placed in cr3      
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Changes the processor's control register 3 so that
+ *                 the supplied pointer is set as the current page directory
+ *                 referenced by the memory unit. Also causes a TLB flush.
+ *
+ */
 void set_CR3(uint32_t page_dir_address)
 {
     cur_page_dir = (uint32_t*)page_dir_address;
@@ -45,18 +67,6 @@ void set_CR3(uint32_t page_dir_address)
         :
         : "r"(page_dir_address)
         );    
-}
-
-uint32_t get_CR3()
-{
-        uint32_t cr3_ptr;
-        asm volatile(
-        /* load address of page directory into CR3 */
-        "movl %%cr3,%0\n\t"
-        : "=r"(cr3_ptr)
-        : 
-        );
-        return cr3_ptr;  
 }
 
 /*
