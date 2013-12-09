@@ -179,7 +179,7 @@ entry (unsigned long magic, unsigned long addr)
 
     sti(); //enable rtc timing for start screen
 
-    // print_start_screen();
+    print_start_screen();
 
     cli(); //for other kernel initialization
 
