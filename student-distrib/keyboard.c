@@ -512,13 +512,13 @@ void check_term_switch()
             /* change display to correct terminal if any of the first
                3 function keys are pressed */
             case F1:
-                set_display_term(0);
+                set_display_term(TERM_ZERO);
                 break;
             case F2:
-                set_display_term(1);
+                set_display_term(TERM_ONE);
                 break;
             case F3:
-                set_display_term(2);
+                set_display_term(TERM_TWO);
                 break;
             default:
                 break;
