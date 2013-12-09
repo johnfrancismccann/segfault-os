@@ -31,6 +31,9 @@ static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((align
 #define PIT_IRQ_NUM 0
 #define PIT_IDT_NUM 0x20
 
+#define PIT_LO_HIGH_ACC 0x30
+#define PIT_MODE_3  0x6
+
 /* terminal with the currently executing process */
 static int32_t active_term = -1;
 
@@ -45,7 +48,20 @@ static uint32_t num_proc = 0;
 
 void schedul();
 
-/* */
+/*
+ *   init_pit
+ *   DESCRIPTION: initialize the programmable interval timer 
+ *                so that it generates an interrupt every
+ *                TIME_SLICE milliseconds
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: the pit will be generating interrupts at the
+ *                 specified rate, calling the interrupt handler
+ *                 schedul to preempt the current process and 
+ *                 schedulule another one
+ *
+ */
 void init_pit()
 {
     cli();
@@ -68,7 +84,23 @@ void init_pit()
 
 }
 
-/* */
+/*
+ *   schedul
+ *   DESCRIPTION: preempts the currently executing process, and 
+ *                scheduls the process that has been waiting the 
+ *                the longest to execute. this is equivalent to swithcing
+ *                between the terminals' prrocesses in round robin fashion.
+ *                if a process doesn't exist within a terminal, the shell is
+ *                launched in that shell
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: setup as an interrupt handler for the pit, which
+ *                 is the highest priority interrupt. as such, will
+ *                 will be triggered in any context in which interrupts
+ *                 are not disabled, and cause a context switch to occur. 
+ *
+ */
 void schedul()
 {
 
@@ -119,6 +151,19 @@ void schedul()
     }
 }
 
+/*
+ *   launch_scheduler
+ *   DESCRIPTION: calls the init_pit function to initialize the pit,
+ *                and set up the scheduler function as an interrupt 
+ *                handler for PIT interrupts
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: in enabling the pit to generate interrupts and thus
+ *                 call the scheduler, this function also launches an 
+ *                 instance of shell in each terminal
+ *
+ */
 void launch_scheduler()
 {
 #if SCED_ON
@@ -129,6 +174,18 @@ void launch_scheduler()
 #endif
 }
 
+/*
+ *   get_cur_proc
+ *   DESCRIPTION: returns a pointer to the currently executing 
+ *                process' pcb structure
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: in returning a pointer to the currently executing
+ *                 process, this function enables the caller to modify
+ *                 the current pcb, which could have significant consequences
+ *                 on the execution of that process
+ */
 pcb_t* get_cur_proc()
 {
     if(active_term < 0 || active_term >= NUM_TERMS)
@@ -136,6 +193,19 @@ pcb_t* get_cur_proc()
     return cur_proc[active_term];
 }
 
+/*
+ *   create_proc
+ *   DESCRIPTION: creates a new child process of the currently executing
+ *                process, and sets that child process as the currently
+ *                executing process 
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 on successful creation of new process. -1 on failure
+ *   SIDE EFFECTS: causes a new process to be created and loads the processor
+ *                 control register 3 with the process' new page directory
+ *                 interrupts are disabled for most of the duration of this
+ *                 function. increments the number of processes running
+ */
 int32_t create_proc()
 {
     /* check that max number of processes isn't exceeded */
@@ -180,6 +250,19 @@ int32_t create_proc()
     return 0;
 }
 
+/*
+ *   destroy_proc
+ *   DESCRIPTION: destroys the currently executing process in the active terminal,
+ *                and sets the destroyed process' parent process as the currently 
+ *                executing process in the active terminal
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: decrements the number of processes running and loads the tss 
+ *                 esp0 and cr3 with the corresponding paramters of destroyed 
+ *                 process' parent. interrupts are disabled for almost all of this
+ *                 function's execution
+ */
 void destroy_proc()
 {
     int32_t flags;
@@ -215,30 +298,86 @@ void destroy_proc()
     print_status_bar();
 }
 
+/*
+ *   set_arguments
+ *   DESCRIPTION: sets the arguments in the currenlty executing 
+ *                process' pcb struct
+ *   INPUTS: arguments--buffer containing the arguments to set the
+ *                      process' pcb
+ *           size--size of arguments in bytes
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: the currently executing process has its arguments
+ *                 field according to the supplied parameters
+ */
 void set_arguments(const int8_t* arguments, uint8_t size)
 {
     strcpy((int8_t*)cur_proc[active_term]->arg_buffer, arguments);
     cur_proc[active_term]->arg_buffer_size = size;
 }
 
+/*
+ *   set_par_ebp 
+ *   DESCRIPTION: sets the top_kstack field of the currently executing
+ *                process' parent's pcb
+ *   INPUTS: par_ebp--unsigned integer containing the value to set to the 
+ *                    current proc's parent's top_kstack field
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: sets the parents top_kstack field so that the parent
+ *                 can be returned to after the current process finishes
+ *                 execution
+ */
 void set_par_ebp(uint32_t par_ebp)
 {
     if(cur_proc[active_term]->par_proc)
         cur_proc[active_term]->par_proc->top_kstack = par_ebp;
 }
 
-/* get the current process' ebp */
+/*
+ *   get_ebp
+ *   DESCRIPTION: returns the currently executing process' pcb's top_kstack 
+ *                field
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: the currently executing process' pcb's top_kstack field
+ *   SIDE EFFECTS: the currently executing process' pcb's top_kstack field 
+ *                 is returned to the caller, giving it access to the process'
+ *                 kernel stack
+ */
 uint32_t get_ebp()
 {
     return cur_proc[active_term]->top_kstack;
 }
 
-/* get the page directory of the process running in terminal term_ind */
+/*
+ *   get_page_dir
+ *   DESCRIPTION: returns the page_dir field of the process executing in the
+ *                term_index terminal
+ *   INPUTS: term_ind--the terminal containing the process whose page directory
+ *                     will be returned
+ *   OUTPUTS: none
+ *   RETURN VALUE: the address of the page directory
+ *   SIDE EFFECTS: the page directory address of the process in the requested
+ *                 terminal is returned, enabling the caller to change the 
+ *                 system's paging
+ */
 uint32_t get_page_dir(uint32_t term_ind)
 {
     return (uint32_t)cur_proc[active_term]->page_dir;
 }
 
+/*
+ *   get_vid_mapped
+ *   DESCRIPTION: returns the video mapped status of the process
+ *                executing in the term_index terminal
+ *   INPUTS: term_index-- the terminal containing the process whose 
+ *                        video mapped status is requested
+ *   OUTPUTS: none
+ *   RETURN VALUE: the video mapped status
+ *   SIDE EFFECTS: the video mapped status of the currently executing
+ *                 terminal is made known to the caller of this function
+ */
 uint32_t get_vid_mapped(uint32_t term_index)
 {
     /* check if process in term_index exists */
@@ -249,8 +388,25 @@ uint32_t get_vid_mapped(uint32_t term_index)
         return 0;
 }
 
-/* map 4KB page at phys_addr to virt_addr. 
-   assumption: page at virt_addr is already mapped to phys. page */
+/*
+ *   remap_4KB_user_page
+ *   DESCRIPTION: remaps the 4KB page starting at virt_addr to the 4KB 
+ *                phys_addr for the page directory of the process executing 
+ *                in terminal term_index
+ *   INPUTS: term_index: the terminal whose process' page directory will be 
+ *                       changed 
+ *           phys_addr: the base address of a 4KB physical page that will be 
+ *                      mapped to the base address of the 4KB virtual page
+ *                      virt_addr 
+ *           virt_addr: the base address of a 4KB virtual page that will be 
+ *                      mapped to the base address of the 4KB physical page
+ *                      phys_addr
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 on success
+ *   SIDE EFFECTS: the page directory of the process of the requested terminal
+ *                 is changed. this page directory is set to control register 
+ *                 3 by the processor
+ */
 int32_t remap_4KB_user_page(uint32_t term_index, uint32_t phys_addr, uint32_t virt_addr)
 {
     uint32_t page_table;
@@ -270,6 +426,15 @@ int32_t remap_4KB_user_page(uint32_t term_index, uint32_t phys_addr, uint32_t vi
     return 0;
 }
 
+/*
+ *   get_num_processes
+ *   DESCRIPTION: returns the total number of processes running
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: the total number of process running
+ *   SIDE EFFECTS: the caller of this function is made known as to 
+ *                 the total number of processes currently running
+ */
 uint32_t get_num_processes()
 {
     return num_proc;
