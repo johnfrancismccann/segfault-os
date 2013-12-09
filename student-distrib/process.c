@@ -42,8 +42,6 @@ static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((align
 #define NON_EXIST_TERM -1
 #define FIRST_TERM 0
 
-
-
 /* terminal with the currently executing process */
 static int32_t active_term = NON_EXIST_TERM;
 
@@ -57,6 +55,7 @@ static uint32_t num_proc = 0;
 //static uint32_t term_proc_num[NUM_TERMS] = {0};
 
 void schedul();
+void context_switch(pcb_t* old_proc, pcb_t* new_proc);
 
 /*
  *   init_pit
@@ -109,15 +108,12 @@ void init_pit()
  */
 void schedul()
 {
-
     send_eoi(PIT_IRQ_NUM);
-
     pcb_t* new_proc = NULL;
     pcb_t* old_proc = NULL; 
     /* if old process exists, get its pcb */
     if(active_term != NON_EXIST_TERM)
         old_proc = cur_proc[active_term];
- 
     /* move to process in next terminal */
     active_term++;
     /* wrap to first terminal if on last terminal */
@@ -127,7 +123,31 @@ void schedul()
     set_act_ops_term(active_term);
     /* get new process pcb */
     new_proc = cur_proc[active_term];
+    /* switch contexts from old to new process */
+    context_switch(old_proc, new_proc);
+}
 
+/*
+ * context_switch
+ * DESCRIPTION: Performs a context switch between two processes by 
+ *              saving the preempted process' base pointer and loading
+ *              the new process' base pointer. if the new process 
+ *              doesn't exist, a new shell is launced
+ * INPUTS: old_proc--preempted process
+ *         new_proc--new process that will execute
+ * OUTPUTS: none
+ * RETURN VALUE: none
+ * SIDE EFFECTS: The preempted process will no longer run, but its context
+ *               will be saved in its process control block through the
+ *               top_kstack field. If it exists, the new process' previous
+ *               context will be restored by loading its top_kstack value 
+ *               into the base pointer. In addition, the processor's active
+ *               page directory will be set to the new process' page 
+ *               directory, and the tss esp0 will be loaded with the new 
+ *               process' initial kernel stack location
+ */
+void context_switch(pcb_t* old_proc, pcb_t* new_proc)
+{
     /* if old process exists, save its ebp */
     if(old_proc) {
         /* save old proc's base pointer in its pcb */
@@ -136,17 +156,15 @@ void schedul()
                     :"=r"(old_proc->top_kstack)
                     );
     }
-
     /* execute shell in terminal if new process doesn't exist */
     if(!new_proc) {
         test_execute((uint8_t*)"shell");
     }
     else {
-        /*  */
+        /* set kernel stack of new process in tss  */
         tss.esp0 = new_proc->tss_kstack;
         /* set new process' page directory in cr3 */
         set_CR3((uint32_t)new_proc->page_dir);
-
         /* or, new process does exist. load its base pointer in esp 
            to switch to its kernel stack */
         asm volatile(
