@@ -212,9 +212,14 @@ SOLUTION:   This issue was caused when running the "counter" program and typing 
             typed are not displayed while a long program like "counter" is executing.
 
 21.
-SYMPTOM:    
-TIME SPENT:
-SOLUTION:
+SYMPTOM:    When scheduler is running with multiple terminals, programs using
+            ece391_fputs would cause page faults on other running terminals.
+TIME SPENT: 3 hours
+SOLUTION:   In our terminal/keyboard driver, we had overgeneralized the references
+            to video memory for foreground/background tasks.  As such all processes
+            would modify a pointer used for the foreground task, eventually causing
+            a write to un-paged memory and crashing the OS with no chance of recovery.
+            To fix it, we added support for foreground and background tasks separately.
 
 22.
 SYMPTOM:

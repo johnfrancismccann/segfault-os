@@ -10,7 +10,6 @@
 #include "pit_asm.h"
 
 
-#define MAX_PROCESSES 9
 static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((aligned(PG_DIR_ALIGN)));
 
 #define ELF_MAG_NUM         0x464C457F
@@ -21,7 +20,7 @@ static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((align
 #define SCED_ON 1
 
 /* program time slice in milliseconds */
-#define TIME_SLICE 50
+#define TIME_SLICE 20
 #define HZ (1000 / TIME_SLICE)
 #define CLOCK_TICK_RATE 1193182
 #define LATCH (CLOCK_TICK_RATE/HZ)
@@ -180,6 +179,13 @@ void destroy_proc()
 {
     int32_t flags;
     cli_and_save(flags);
+    //Error case
+    if(num_proc == 0)
+        return;
+    int i;
+    //ensure all files closed.
+    for(i = 2; i < MAX_OPEN_FILES; i++)
+        test_close(i);
     num_proc--;
     if(cur_proc[active_term]->par_proc) {
 
