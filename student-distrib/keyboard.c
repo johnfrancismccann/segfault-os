@@ -59,10 +59,7 @@ static const char KBD_MAP_SHIFT[KBD_MAP_SIZE] =
 #define CHAR_DIS_SZ 2
 
 
-static uint8_t store_0[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
-static uint8_t store_1[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
-static uint8_t store_2[NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
-
+static uint8_t store[NUM_TERMS][NUM_COLS*NUM_ROWS*CHAR_DIS_SZ] __attribute__((aligned(PG_TBL_ALIGN)));
 static uint8_t* stores[NUM_TERMS];
 
 // display parameters
@@ -101,7 +98,7 @@ static int caps_lock;
 
 
 // function declarations
-void check_scroll();
+void check_scroll(uint32_t term_index);
 void check_term_switch();
 void set_display_term(uint32_t term_index);
 void update_hw_cursor(uint32_t curs_pos);
@@ -119,9 +116,8 @@ void update_cursor(uint32_t curs_pos, uint32_t term_index);
 void init_kbd()
 {
     uint32_t i,j;
-    stores[0] = store_0;
-    stores[1] = store_1;
-    stores[2] = store_2;
+    for(i=0; i<NUM_TERMS; i++)
+        stores[i] = store[i];
 
     /* initialize settings for eeach terminal */
     for(i=0; i<NUM_TERMS; i++) {
@@ -318,7 +314,7 @@ void kbd_handle()
                     *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TEXT_COLOR;
                     print_inds[act_disp_term]++;
             }
-            check_scroll();
+            check_scroll(act_disp_term);
             update_cursor(print_inds[act_disp_term], act_disp_term);
         }
     }
@@ -411,7 +407,8 @@ uint32_t get_act_ops_disp()
 
  /*
   * update_cursor(int index), adapted from wiki.osdev.org (by Dark Fiber)
-  *   DESCRIPTION: moves blinking cursor to designated row and column when characters typed/deleted or tab/enter
+  *   DESCRIPTION: moves blinking cursor to designated row and column when
+  *                characters typed/deleted or tab/enter
   *   INPUTS: index-- index in video memory
   *   OUTPUTS: none
   *   RETURN VALUE: none
@@ -445,24 +442,24 @@ void update_hw_cursor(uint32_t curs_pos)
  *
  *
  */
-void check_scroll()
+void check_scroll(uint32_t term_index)
 {
     int32_t flags;
     cli_and_save(flags);
     uint32_t i;
     // check if the print location has run past the end display 
-    if(print_inds[act_disp_term] >= NUM_COLS*NUM_ROWS) {
+    if(print_inds[term_index] >= NUM_COLS*NUM_ROWS) {
         // copy every row to the row above it 
         for(i=0; i<(NUM_ROWS-1); i++)
-            memcpy(write_buffs[act_disp_term]+(2*i*NUM_COLS), write_buffs[act_disp_term]+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
-            memcpy(write_buffs[act_disp_term]+(2*i*NUM_COLS+1), write_buffs[act_disp_term]+(2*(i+1)*NUM_COLS+1), 2*NUM_COLS);
+            memcpy(write_buffs[term_index]+(2*i*NUM_COLS), write_buffs[term_index]+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
+            memcpy(write_buffs[term_index]+(2*i*NUM_COLS+1), write_buffs[term_index]+(2*(i+1)*NUM_COLS+1), 2*NUM_COLS);
          // clear newly inserted line 
         for(i=0; i < NUM_COLS; i++) {
-            *(uint8_t *)(write_buffs[act_disp_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
-            *(uint8_t *)(write_buffs[act_disp_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) = TEXT_COLOR;
+            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
+            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) = TEXT_COLOR;
         }
         // begin printing at left-most position of lowest row 
-        print_inds[act_disp_term] -= NUM_COLS;
+        print_inds[term_index] -= NUM_COLS;
     }
     restore_flags(flags);
 }
@@ -535,10 +532,10 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
                 *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) = PROG_COLOR;
                 print_inds[act_ops_term]++;
         }
-        check_scroll();
+        check_scroll(act_ops_term);
     }
-    restore_flags(flags);
     update_cursor(print_inds[act_ops_term], act_ops_term);
+    restore_flags(flags);
     return bytes;
  }
 
