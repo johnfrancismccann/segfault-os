@@ -118,14 +118,13 @@ void set_display_term(uint32_t term_index);
 void update_hw_cursor(uint32_t curs_pos);
 void set_term_mapped(uint32_t term_index);
 void update_cursor(uint32_t curs_pos, uint32_t term_index);
+void change_text_colors(uint8_t color_combo);
+void change_background(uint8_t bg_color);
 static void autocomplete();
 static uint8_t* get_prev_word(uint8_t endindex);
 static uint8_t partial_strcmp(uint8_t* partial, uint8_t* full);
 static void type_char(uint8_t input);
 static void type_str(uint8_t* input);
-static void ins_cmd_hist(uint8_t* input);
-static void update_cmd_hist(uint8_t* input, uint32_t index);
-static void newline_to_null(uint8_t* input);
 
 /*
  * init_kbd()
@@ -164,10 +163,26 @@ void init_kbd()
     /* set all modifier keys as not pressed */
     ctrl_flag = OFF; 
     shift_flag = OFF; 
+    alt_flag = OFF;
     caps_lock = OFF; 
     /* initialize cursor to top left corner of video display */
     update_cursor(0, act_disp_term); 
     /* init keyboard handler to echo incoming characters to display */
+    //initialize color schemes and status bar
+
+#if COLORS_ENABLED
+    for(i=0; i<NUM_TERMS; i++) {
+        bg_scheme[i] = 0;
+        color_scheme[i] = 0;
+        // max_lines_up[i] = 0;
+        // max_lines_down[i] = 0;
+    }
+
+    change_background(bg_scheme[act_disp_term]); //initialize background to default color
+    change_text_colors(color_scheme[act_disp_term]); //initialize keyboard color
+    print_status_bar();
+#endif
+
     set_interrupt_gate(KBD_IDT_NUM, kbd_wrapper);
     enable_irq(KBD_IRQ_NUM);
 }
@@ -186,6 +201,9 @@ void kbd_handle()
     scancodes[act_disp_term] = inb(KBD_PORT); //get key press
     cli_and_save(flags);
     int16_t i;
+// #if COLORS_ENABLED
+    uint8_t clr_combo; //color combination number
+// #endif
 
 #if 0
     if(print_inds[act_disp_term] == 0) {
@@ -193,12 +211,34 @@ void kbd_handle()
     }
 #endif
 
+// #if C0LORS_ENABLED
+    //change background color with alt+num
+    if (alt_flag == ON && ctrl_flag == OFF && (scancodes[act_disp_term] >= ONE_ASC && scancodes[act_disp_term] <= ZERO_ASC)) {
+        if (scancodes[act_disp_term] == ZERO_ASC) clr_combo = 0;
+        else clr_combo = scancodes[act_disp_term] - NUM_SCANCODE_OFFSET;
+        change_background(clr_combo);
+        print_status_bar(); //update status bar background color info field
+        send_eoi(KBD_IRQ_NUM);
+        return;
+    }
+
+    //change color scheme with ctrl+num
+    else if (ctrl_flag == ON && alt_flag == OFF && (scancodes[act_disp_term] >= ONE_ASC && scancodes[act_disp_term] <= ZERO_ASC)) {
+        if (scancodes[act_disp_term] == ZERO_ASC) clr_combo = 0;
+        else clr_combo = scancodes[act_disp_term] - NUM_SCANCODE_OFFSET;
+        change_text_colors(clr_combo);
+        print_status_bar(); //update status bar text color info field
+        send_eoi(KBD_IRQ_NUM);
+        return;
+    }
+// #endif
+
     switch(scancodes[act_disp_term]) {
         case ALT_PRS:
-            alt_flag = ON;
+            alt_flag = ON; //set alt flag
             break;
         case ALT_RLS:
-            alt_flag = OFF;
+            alt_flag = OFF; //clear alt flag
             break;
         case CTRL_PRS:
             ctrl_flag = ON; //set control flag
@@ -263,7 +303,8 @@ void kbd_handle()
                                 break;
                             default: //for regular characters (only increment print index)
                                 *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = read_buffs[act_disp_term][buff_inds[act_disp_term] - num_to_print + i]; // "<< 1" because each character is 2 bytes
-                                *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TEXT_COLOR; //change text color (accessing attribute byte)
+                                *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) &= 0xF0; //maintain background color
+                                *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]]; //change text color (accessing attribute byte)
                                 print_inds[act_disp_term]++;
                         }
                     }
@@ -283,7 +324,8 @@ void kbd_handle()
                     default: //for backspacing regular characters
                         print_inds[act_disp_term]--;
                         *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = ' '; //delete character and move print index back 1 char
-                        *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TEXT_COLOR; //clear character's attribute byte
+                        *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) &= 0xF0;
+                        *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]]; //clear character's attribute byte
                 }
                 read_buffs[act_disp_term][buff_inds[act_disp_term]] = '\0'; //remove character from buffer
             }
@@ -299,6 +341,12 @@ void kbd_handle()
     if (ctrl_flag == ON && scancodes[act_disp_term] == L_KEY) { //ctrl+L
         clear();
         clear_read_buf();
+        #if COLORS_ENABLED
+        for(i = 0; i < STATUS_BAR_START; i++) { //reset screen to background color
+            *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) &= 0x0F;
+            *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4);
+        }
+        #endif
         print_inds[act_disp_term] = 0; //reset print location to top left corner
         update_cursor(0, act_disp_term);
         send_eoi(KBD_IRQ_NUM);
@@ -338,7 +386,10 @@ void kbd_handle()
                     break;
                 default: //for regular characters (only increment print index)
                     *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = last_chars[act_disp_term];
-                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TEXT_COLOR;
+                    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
+                    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]];
+                    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0x0F; //clear background color
+                    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
                     print_inds[act_disp_term]++;
             }
             check_scroll(act_disp_term);
@@ -413,6 +464,12 @@ void set_display_term(uint32_t term_index)
     /* test multiple terminals */
     //act_ops_term = act_disp_term;
 
+#if COLORS_ENABLED
+    change_background(bg_scheme[act_disp_term]); //initialize background to default color
+    change_text_colors(color_scheme[act_disp_term]); //initialize keyboard color
+    print_status_bar();
+#endif
+
     restore_flags(flags);
 }
 
@@ -447,7 +504,7 @@ uint32_t get_act_ops_disp()
     /* update active ops terminal's virtual cursor */
     cursors[term_index] = curs_pos;
     /* set the cursor color in active ops terminal's virtual display */
-    *(uint8_t *)(write_buffs[term_index] + ((curs_pos << 1) + 1)) = CURSOR_COLOR[0];
+    *(uint8_t *)(write_buffs[term_index] + ((curs_pos << 1) + 1)) = CURSOR_COLOR[color_scheme[act_disp_term]];
     /* update real cursor's location if term_index is also the 
        active display terminal */
     if(term_index == act_disp_term)
@@ -461,7 +518,12 @@ void update_hw_cursor(uint32_t curs_pos)
     outb((unsigned char)(curs_pos & 0xFF), VGA_HIGH);
     outb(0x0E, VGA_LOW);
     outb((unsigned char)((curs_pos >> 8) & 0xFF), VGA_HIGH);
-    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) = CURSOR_COLOR[0];
+    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) &= 0xF0; //maintain background color
+    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) = CURSOR_COLOR[color_scheme[act_disp_term]];
+#if COLORS_ENABLED
+    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) &= 0x0F; //clear background color
+    *(uint8_t *)(video_mem + ((curs_pos << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
+#endif
 }
 
 /* 
@@ -479,11 +541,15 @@ void check_scroll(uint32_t term_index)
         // copy every row to the row above it 
         for(i=0; i<(NUM_ROWS-1); i++)
             memcpy(write_buffs[term_index]+(2*i*NUM_COLS), write_buffs[term_index]+(2*(i+1)*NUM_COLS), 2*NUM_COLS);
-            memcpy(write_buffs[term_index]+(2*i*NUM_COLS+1), write_buffs[term_index]+(2*(i+1)*NUM_COLS+1), 2*NUM_COLS);
          // clear newly inserted line 
         for(i=0; i < NUM_COLS; i++) {
             *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1)) = ' ';
-            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) = TEXT_COLOR;
+            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) &= 0xF0; //maintain background color
+            *(uint8_t *)(write_buffs[term_index] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + (i << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]];
+        #if COLORS_ENABLED
+            *(uint8_t *)(write_buffs[act_disp_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) &= 0x0F; //clear background color
+            *(uint8_t *)(write_buffs[act_disp_term] + ((NUM_COLS*(NUM_ROWS-1)) << 1) + ((i << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
+        #endif
         }
         // begin printing at left-most position of lowest row 
         print_inds[term_index] -= NUM_COLS;
@@ -540,7 +606,7 @@ void clear_read_buf() {
   *   SIDE EFFECTS: none
   */
 int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
-    int i; //loop iterator
+    int i, j; //loop iterator
     int32_t flags;
     char* buf = (char*) wrt_buf;
     if(buf[0] == '\0') return 0;
@@ -549,14 +615,31 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
         switch(buf[i]) {
             case '\0': break;
             case TAB_ASC:
+                #if COLORS_ENABLED
+                for(j = print_inds[act_ops_term]; j < TAB_LEN; j++) {
+                    *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) &= 0x0F; //clear background color
+                    *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_ops_term]] << 4); //change to new background color
+                }
+                #endif
                 print_inds[act_ops_term] += TAB_LEN; //add 5 spaces/tab
                 break;
             case ENT_ASC:
+            #if COLORS_ENABLED
+                for(j = 0; j < (NUM_COLS - (print_inds[act_ops_term] % NUM_COLS)); j++) {
+                    *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) &= 0x0F; //clear background color
+                    *(uint8_t *)(write_buffs[act_ops_term] + (((print_inds[act_ops_term] + j) << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_ops_term]] << 4); //change to new background color
+                }
+            #endif
                 print_inds[act_ops_term] += NUM_COLS - (print_inds[act_ops_term] % NUM_COLS);
                 break;
             default: //for regular characters (only increment print index)
                 *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = buf[i]; // "<< 1" because each character is 2 bytes
-                *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) = PROG_COLOR;
+                *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0xF0; //maintain background color
+                *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) = PRINTED_COLOR[color_scheme[act_ops_term]];
+            #if COLORS_ENABLED
+                *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0x0F;
+                *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_ops_term]] << 4);
+            #endif
                 print_inds[act_ops_term]++;
         }
         check_scroll(act_ops_term);
@@ -565,6 +648,176 @@ int32_t print_write_buf(const void* wrt_buf, int32_t bytes) {
     restore_flags(flags);
     return bytes;
  }
+
+ /*
+  * change_text_colors(int8_t color_combo)
+  *   DESCRIPTION: change colors of terminal output, typed text, and cursor
+  *   INPUTS: color combination number (0 is default)
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: terminal text colors changed
+  */
+void change_text_colors(uint8_t color_combo) {
+    if (color_combo > 9) return; //must be 1-digit number
+    color_scheme[act_disp_term] = color_combo;
+    update_cursor(print_inds[act_disp_term], act_disp_term); //update cursor with new color ///
+    // if(max_lines_down[act_disp_term] == 0) update_cursor(print_inds[act_disp_term], act_disp_term); //update cursor with new color ///
+ }
+
+ /*
+  * change_background(bg_color)
+  *   DESCRIPTION: change terminal background color
+  *   INPUTS: background color number (0 is default)
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: terminal background color changed
+  */
+void change_background(uint8_t bg_color) {
+    uint16_t i; //loop iterator
+
+    if (bg_color > 9) return; //must be 1-digit number
+    bg_scheme[act_disp_term] = bg_color;
+
+    cli(); //clear interrupts to make sure background fully written before anything is typed
+
+    //change background color
+    for(i = 0; i < STATUS_BAR_START; i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) &= 0x0F; //clear background color
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4);
+    }
+
+    //change status bar color
+    for(i = STATUS_BAR_START; i <= STATUS_BAR_END; i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) &= 0xF0; //maintain background color
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1) + 1) = SBAR_TEXT_COLOR[bg_scheme[act_disp_term]];
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) &= 0x0F; //clear background color
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) |= (STATUS_BAR_COLOR[bg_scheme[act_disp_term]] << 4);
+    }
+
+    sti();
+ }
+
+  /*
+  * print_status_bar()
+  *   DESCRIPTION: print status bar at bottom of terminal with color according to
+                    background scheme
+  *   INPUTS: none
+  *   OUTPUTS: none
+  *   RETURN VALUE: none
+  *   SIDE EFFECTS: status bar updated
+  */
+void print_status_bar() {
+    uint16_t i, j; //loop iterator
+    char* os_name = "SegFault OS";
+
+    char term_num_text[12]; //exactly 11 chars needed
+    char term_char[2]; //buffer to hold act_disp_term in ASCII (1 for num, 1 for '\0')
+    char* term_num_info; //string of "Terminal: act_disp_term"
+
+    char processes_text[13];
+    char processes_char[2]; //buffer to hold num_proc in ASCII (1 for num, 1 for '\0')
+    char* processes_info; //string of "Processes: num_proc"
+
+    char bg_color_text[19];
+    char bg_scheme_char[2]; //buffer to hold bg_scheme in ASCII (1 for num, 1 for '\0')
+    char* bg_color_info; //string of "Bakcground Color: bg_scheme"
+
+    char text_color_text[13];
+    char text_scheme_char[2]; //buffer to hold bg_scheme in ASCII
+    char* text_color_info;
+
+    //set status bar background and text color
+    for(i = STATUS_BAR_START; i <= STATUS_BAR_END; i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) &= 0xF0; //maintain background color
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1) + 1) = SBAR_TEXT_COLOR[bg_scheme[act_disp_term]];
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) &= 0x0F; //clear background color
+        *(uint8_t *)(write_buffs[act_disp_term] + ((i << 1) + 1)) |= (STATUS_BAR_COLOR[bg_scheme[act_disp_term]] << 4);
+    }
+
+    strcpy(term_num_text, "Terminal: ");
+    strcpy(processes_text, "Processes: ");
+    strcpy(bg_color_text, "Background Color: ");
+    strcpy(text_color_text, "Text Color: ");
+
+    // convert number to ASCII and copy to info buffer
+    itoa(act_disp_term, term_char, (int32_t) 10);
+    term_num_info = strcat(term_num_text, (char*) term_char);
+    // itoa(get_num_processes(), processes_char, (int32_t) 10);
+    itoa(1, processes_char, (int32_t) 10);
+    processes_info = strcat(processes_text, (char*) processes_char);
+    itoa(bg_scheme[act_disp_term], bg_scheme_char, (int32_t) 10);
+    bg_color_info = strcat(bg_color_text, (char*) bg_scheme_char);
+    itoa(color_scheme[act_disp_term], text_scheme_char, (int32_t) 10);
+    text_color_info = strcat(text_color_text, (char*) text_scheme_char);
+
+    // print OS name in status bar
+    for(i = STATUS_BAR_START; i < (STATUS_BAR_START+strlen(os_name)); i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = os_name[i-STATUS_BAR_START];
+    }
+
+    j = 0;
+    //print terminal number
+    for(i = TERM_INFO_START; i < (TERM_INFO_START+strlen(term_num_info)); i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = term_num_info[j];
+        j++;
+    }
+
+    j = 0;
+    //print number of running processes
+    for(i = PROC_INFO_START; i < (PROC_INFO_START+strlen(processes_info)); i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = processes_info[j];
+        j++;
+    }
+
+    j = 0;
+    //print background color scheme number
+    for(i = BG_CLR_INFO_START; i < (BG_CLR_INFO_START+strlen(bg_color_info)); i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = bg_color_info[j];
+        j++;
+    }
+
+    j = 0;
+    //print text color scheme number
+    for(i = TXT_CLR_INFO_START; i < (TXT_CLR_INFO_START+strlen(text_color_info)); i++) {
+        *(uint8_t *)(write_buffs[act_disp_term] + (i << 1)) = text_color_info[j];
+        j++;
+    }
+ }
+
+  /*
+  * strcat(char *dest, char *src)
+  *   DESCRIPTION: concatenates 2 strings, adapted from http://stackoverflow.com/questions/2488563/strcat-implementation
+  *   INPUTS: dest is string that will end up first, src is string that will end up second
+  *   OUTPUTS: none
+  *   RETURN VALUE: concatenation of the 2 strings (order dest, src)
+  *   SIDE EFFECTS: none
+  */
+char* strcat(char *dest, char *src)
+{
+    uint8_t i,j;
+    for (i = 0; dest[i] != '\0'; i++)
+        ;
+    for (j = 0; src[j] != '\0'; j++)
+        dest[i+j] = src[j];
+    dest[i+j] = '\0';
+    return dest;
+}
+
+/*
+* remove_hw_cursor() 
+*   DESCRIPTION: Delete cursor by printing it off-screen
+*   INPUTS: none
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*   SIDE EFFECTS: cursor gone
+*/
+void remove_hw_cursor()
+{
+    outb(0x0F, VGA_LOW);
+    outb((unsigned char)((STATUS_BAR_END+1) & 0xFF), VGA_HIGH);
+    outb(0x0E, VGA_LOW);
+    outb((unsigned char)(((STATUS_BAR_END+1) >> 8) & 0xFF), VGA_HIGH);
+}
 
 /*
 * autocomplete
@@ -707,7 +960,6 @@ uint8_t partial_strcmp(uint8_t* partial, uint8_t* full)
     return 1;
 }
 
-
 /*
 * type_char
 *   DESCRIPTION: helper function to write user-colored text to the
@@ -721,17 +973,15 @@ uint8_t partial_strcmp(uint8_t* partial, uint8_t* full)
 */
 void type_char(uint8_t input)
 {
-    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1)) = input;
-    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0xF0; //maintain background color
-    *(uint8_t *)(write_buffs[act_disp_term] + (print_inds[act_disp_term] << 1) + 1) = TYPED_COLOR[color_scheme[act_disp_term]];
-    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) &= 0x0F; //clear background color
-    *(uint8_t *)(write_buffs[act_disp_term] + ((print_inds[act_disp_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
-    if(input != '\0')
-        print_inds[act_disp_term]++;
+    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1)) = input;
+    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0xF0; //maintain background color
+    *(uint8_t *)(write_buffs[act_ops_term] + (print_inds[act_ops_term] << 1) + 1) |= TYPED_COLOR[color_scheme[act_disp_term]];
+    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) &= 0x0F; //clear background color
+    *(uint8_t *)(write_buffs[act_ops_term] + ((print_inds[act_ops_term] << 1) + 1)) |= (BACKGROUND_COLOR[bg_scheme[act_disp_term]] << 4); //change to new background color
+    print_inds[act_ops_term]++;
     check_scroll(act_disp_term);
-    update_cursor(print_inds[act_disp_term], act_disp_term);
+    update_cursor(print_inds[act_ops_term], act_ops_term);
 }
-
 
 /*
 * type_str
@@ -756,4 +1006,3 @@ void type_str(uint8_t* input)
     }
     type_char('\0');
 }
-
