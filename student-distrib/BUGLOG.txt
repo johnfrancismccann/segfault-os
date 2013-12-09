@@ -158,23 +158,50 @@ SOLUTION:   It was forgotten that grep is larger than one filesystem block and t
             dump.  When this was considered, the last bytes in grep were actually
             being read correctly.
 
-I will add in more detailed descriptions for these later. Just wrote them down here so I don't
-forget.
-
-Execute 
-  1) wrong beginning address
-  2) system call jump table 1 too high
-  3) syserr 4
-  4) cat not printing abnormal failure
-Halt
-  1) crashing system bc of page dir assignment from invalid pointer in pcb
-  2) page fault after halt
-
-Commands
-   1) changing locations of globals in keyboard.c crashes shell
-   2) can't execute two ls commands upon booting shell
-
 17.
+SYMPTOM:    In harding coding a call to execute "testprint", a page fault occurs.
+TIME SPENT: 4 hours
+SOLUTION:   To pinpoint the problem, we ran through the sequence of statements 
+            in a debugger. The page fault occurred right after the iret 
+            instruction executed. The stack was examined and the location of 
+            eip, user code segment, eflags value, and user stack segment value 
+            were double checked with the intel system programming guide. The 
+            values for the user CS, eflags, and user SS were also all double 
+            checked for correctness. In looking through the code in sys_execute,
+            it was noticed that the base location of the program image was type 
+            cast to a uint32_t* after it had been dereferenced by 24 locations,
+            not after. In fixing this, a page fault no longer occurred right 
+            after the iret instruction executed. 
+
+18.
+SYMPTOM:    After determining that we could step through user level code after 
+            correcting the previous bug, the user level program still produced 
+            a page fault.  
+TIME SPENT: 1 hour
+SOLUTION:   In stepping through the sequence of execute in a gdb, it was 
+            determined that a system call was made to sys_open by testprint. In 
+            looking through the source code of testprint, it was noticed that no
+            open system call is made. It was then deduced that we had made an 
+            error in how system calls were jumped to. It was then noticed that 
+            open is one system call below write in the list of system calls in
+            spec. It was then determined that the user level programs made 
+            system calls beginning at sytem call 0, not system call 1. In simply
+            decrementing the system call number in the assembly linkage, the bug
+            was fixed. We were finally able to run user level programs.
+
+19.
+SYMPTOM:    When syserr 4 was run, no output was displayed as to whether we had 
+            failed or passed the test
+TIME SPENT: 15 minutes
+SOLUTION:   It was noticed in sys_open that read_dentry_by_name was not checked 
+            for success or failure. The type of the resulting dentry object was 
+            then checked. The problem was that the filesystem driver could have
+            returned failure on the original read_dentry_by_name call, resulting
+            in an  could therefore be an invalid dentry object, one that should 
+            not be checked for file type. In checking the return value of the 
+            read_dentry_by_name call, the bug was fixed. 
+
+20.
 SYMPTOM:    Attempting to execute a non-executable file would result in either a
             shell crash or a page fault.
 TIME SPENT: 15 minutes
@@ -184,7 +211,7 @@ SOLUTION:   We were checking the magic number after loading the file, which coul
             following the parsing of the command string, we are able to exit
             on bad files.
 
-18.
+21.
 SYMPTOM:    The 'fish' program did not print anything to the screen.
 TIME SPENT: 2 hours
 SOLUTION:   When mapping a page to the physical address of video memory, an incorrect
@@ -192,7 +219,7 @@ SOLUTION:   When mapping a page to the physical address of video memory, an inco
             address, which caused the memory to be mapped to an incorrect location
             and never to be printed to the screen.
 
-19.
+22.
 SYMPTOM:    Attempting to run 'rtc' as the first program doesn't write
             the bad file error message.
 TIME SPENT: 30 minutes
@@ -200,7 +227,7 @@ SOLUTION:   We checked file type as ==directory is a problem, but we needed
             !=regular file causes an error.  Changing the compare in fs.c fixed
             the bug.
 
-20.
+23.
 SYMPTOM:    Backspacing deleted "391OS>" when running "shell".
 TIME SPENT: 20 min
 SOLUTION:   This issue was caused when running the "counter" program and typing while
@@ -211,7 +238,177 @@ SOLUTION:   This issue was caused when running the "counter" program and typing 
             from the screen, which happen to be "391OS>" since the actual characters
             typed are not displayed while a long program like "counter" is executing.
 
-21.
+24.
+SYMPTOM:    When cat was supplied an invalid file name, the shell did not print
+            "file not found\nprogram terminated abnormally to the terminal" 
+            which would have been the correct behavior per the source code of 
+            shell.
+TIME SPENT: 15 minutes
+SOLUTION:   It was realized that this problem resulted from not getting halt fully
+            working. Because we were simply restarting a new instance of shell after
+            user programs halt, it was impossible for the original shell to receive
+            the halt status of cat. When halt was successfully implemented, the 
+            correct status message of user programs was printed to the terminal.
+ 
+25.
+SYMPTOM:    In getting the user level programs to work previously, we simply restarted 
+            the shell, whenever a user level program issued a halt system call. In 
+            attempting to get halt working, the entire operating system crashed after a
+            user level program halts.             
+TIME SPENT: 2 hours
+SOLUTION:   The page directory of the shell was not saved properly within the 
+            pcb of the new child process before the child process begun 
+            execution. This resulted in the processor's control register 3 being
+            set to an invalid pointer when the child process halted, causing the 
+            processor to reboot.
+
+26.
+SYMPTOM:    While we were able to prevent the processor from rebooting after a 
+            user level program halts, the processor still generates a page fault 
+            exception.
+TIME SPENT: 6 hours
+SOLUTION:   In stepping through the sequence of instructions after a halt in 
+            gdb, it was determined that control could reach back to shell's 
+            original execute system call and execute more instructions. (restore
+            shell's paging, tss kernel stack, etc.) The page fault occurred when
+            the iret instruction was executed in the assembly linkage. In 
+            examining the stack, it was determined that the stack was identical 
+            to the user level program's original kernel stack when it entered 
+            the assembly linkage with a system halt call. It was then remembered
+            that the c convention for leaving a function is to assign the value
+            of ebp to esp, followed by a ret instruction. By changing the 
+            execute/halt design to save/restore the parents ebp value instead of 
+            esp value, we were able to successfully return to the shell after a 
+            user program halts
+
+27.
+SYMPTOM:    The first step in checkpoint 4 was to implement multiple terminals.
+            The problem was that global variables could not be declared at the 
+            top of the keyboard driver file without the system generating a 
+            page fault after the shell executes a program. 
+TIME SPENT: 4 hours
+SOLUTION:   In stepping through the code with gdb, it was determined that 
+            the sys_execute function could be entered, as could the seperate 
+            function parse_commands that is called from sys_exec. It was then 
+            noticed that this function reads past the length of the command 
+            passed to sys_execute (eg. 5 for hello). The shell source was then
+            examined, and it was noticed that the shell terminates the command
+            with an end of string, a character not checked in parse_command. 
+            In adding this check, global variables could be rearranged and 
+            added to the top of the keyboard file. It is possible that by 
+            placing the input buffer as the first global variable declarition, 
+            the parse_commands function was reading past then end of it, and 
+            was able to find an end of string character.
+
+28. 
+SYMPTON:    If two ls commands are issued to the shell upon the boot of the 
+            shell, the shell hangs. 
+TIME SPENT: 2 hours
+SOLUTION:   It was determined using gdb that the shell is hanging in the while
+            loop waiting for the user's last character to equal an end of line.
+            In stepping again through gdb, it was determined that this end of 
+            line character is indeed being assigned as an eol character at the 
+            start of the keyboard handler. In stepping through the code, it was
+            noticed that the value of last_character was being changed by a 
+            seemingly unrelated piece of code that indexes a separate array 
+            used for implementing the scrolling functionality. It turns out that
+            the implementation of scrolling was actually causing out of bounds
+            array indices, overwriting the previous contents of the 
+            last_character variable. In reimplementing the scrolling 
+            functionality to not use the separate arrays, ls as many times as 
+            the user pleases from the shell.
+
+29.
+SYMPTOM:    In getting multiple terminals implemented, it was noticed that 
+            keyboard input was always writting to terminal 1.
+TIME SPENT: 15 minutes
+SOLUTION:   In looking through the keyboard code again, it was noticed that 
+            the keyboard driver echos the input to the active operations 
+            terminal, not to the active display terminal. In making a small 
+            change so that keyboard input is always echoed to the active display
+            terminal, the problem was fixed. 
+
+30.
+SYMPTOM:    Before changing the page directory when the user changes from a 
+            terminal running fish to a terminal not running fish, it was noticed
+            that fish was not printed to the terminal. 
+TIME SPENT: 4 hours
+SOLUTION:   Obviously, the idea of multiple terminals is to be able to display 
+            seperate programs in seperate terminals, but this bug was noticed
+            at a stage before the scheduler ran multiple processes. The fish 
+            program should always print to video memory unless the paging has 
+            been remapped. After spending a long time trying to understand how 
+            the fish program works, it was finally noticed that the backing 
+            stores' foreground colors were initialized to black. Upon a terminal
+            switch the new terminal's backing store is copied into video memory.
+            It turns out that the fish was printing in black the whole time.
+
+31.         
+SYMPTOM:    After understanding why the second terminal gave the appearance of 
+            not printing to the display, fish still did print to display even 
+            after we thought paging had remapped fish's virtual video memory to 
+            a backing store.
+TIME SPENT: 1.5 hours
+SOLUTION :  After spending a long time verifying that the remapping was corrctly
+            changing fish's page directory, we tried just resetting control 
+            register 3 of the processor to fish's page directory, even though 
+            we understood that control register 3 was already pointing to it.
+            This solved the problem, and prevented fish from printing to video 
+            memory after a terminal switch. We forgot to take account of the 
+            fact that the processor caches the page directory and corresponding
+            page entries in the translation look aside buffer. 
+
+32. 
+SYMPTOM:    When fish is run on terminal 2, and the user switches to terminal 1, 
+            a still image of the fish is printed to terminal 1. 
+TIME SPENT: 15 minutes
+SOLUTION:   It was remembered that the backing stores have to be aligned to 
+            4KB bytes. This is the case because when the terminal switch occurs, 
+            fish's virtual video memory is mapped to its backing store. And 
+            because video memory is mapped to a 4KB boundary, fish's virtual 
+            video memory address expects video memory to begin at the start of a
+            four kilobyte page.
+
+33.
+SYMPTOM:    After configuring the PIT to generate interrupts, a page fault 
+            occurs as soon as the system is booted.
+TIME SPENT: 1 hour
+SOLUTION:   In configuring the PIT, the interrupt gate is setup so that when a 
+            pit interrupt occurs, control immediately goes to the schedul 
+            function. In looking back at how the keyboard and rtc were setup, it
+            was noticed that an assembly wrapper is a necessary intermediate 
+            step required in between the interrupt and schedul. This is the case
+            because the assembly wrapper returns to the interrupted context with
+            an iret instruction, unlike a c function. Using gdb, it was then 
+            confirmed that schedul was repeatedly called while the shell 
+            was operating. 
+
+34.
+SYMPTOM:    Scheduling function causes page fault.
+TIME SPENT: 15 minutes
+SOLUTION:   Our scheduler switches in round robin fashion between the three 
+            terminal processes. If a process does not exist yet in a terminal 
+            (a shell has not been launched), the scheduler launches a new shell for 
+            the terminal. The scheduler was implemented such that the old process' ebp 
+            was saved while the new process' ebp was loaded. Or at least this would
+            be the case after three shells are launched. We forgot to save the 
+            old process' ebp if the new terminal's process doesn't exist yet. 
+            Saving the old ebp solved the problem, and enabled an ls command to 
+            be issued while a fish process was running.
+            
+
+35.
+SYMPTOM:    Although a context switch was successfully implemented as explained 
+            in the previous bug, all terminals printed to the same terminal.
+TIME SPENT: 5 minutes
+SOLUTION:   In switching between the three processes, we forgot to notify the 
+            terminal driver that the active terminal had changed. As such, 
+            all three running processes had the same active terminal and would 
+            print to the same terminal. In simply notifying the termianl driver
+            that it should print to a different terminal, the problem was 
+            resolved.
+
+36.
 SYMPTOM:    When scheduler is running with multiple terminals, programs using
             ece391_fputs would cause page faults on other running terminals.
 TIME SPENT: 3 hours
@@ -221,7 +418,7 @@ SOLUTION:   In our terminal/keyboard driver, we had overgeneralized the referenc
             a write to un-paged memory and crashing the OS with no chance of recovery.
             To fix it, we added support for foreground and background tasks separately.
 
-22.
+37.
 SYMPTOM:    Command history would occasionally overwrite other text on screen
             in the backwards direction.
 TIME SPENT: 3 hours
