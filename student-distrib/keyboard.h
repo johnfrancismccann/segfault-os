@@ -83,10 +83,12 @@
 #define PG_UP       0x49 //page up press
 #define PG_DN       0x51 //page down press
 /* ALT_FX found on stanislavs.org/helppc/scan_codes.html */
-#define F1     0x3B 
-#define F2     0x3C
-#define F3     0x3D
-
+#define F1     		0x3B 
+#define F2     		0x3C
+#define F3     		0x3D
+#define TERM_ZERO	0
+#define TERM_ONE	1
+#define TERM_TWO	2
 
 //for changing color scheme
 #define NUM_SCANCODE_OFFSET 1 //1 has scancode 0x02, 2 is 0x03, etc.
