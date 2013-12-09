@@ -23,6 +23,7 @@
 volatile uint8_t interrupt_flag = 0;
 volatile uint32_t intr[MAX_PROCESSES] = {0};
 uint32_t num_open = 0;
+uint8_t initialized = 0;
 
 syscall_func_t rtcfops_table[4] = {(syscall_func_t)rtc_open, 
                                    (syscall_func_t)rtc_read,
@@ -44,6 +45,13 @@ void init_rtc()
     uint32_t flags;
     uint8_t idt_num = RTC_IDT_NUM;
     uint8_t  prev_b_val;
+    //Set initialization to only one time.
+    //This should have a lock, but I don't have locks.
+    if(initialized != 0)
+    {
+        return;
+    }
+    initialized++;
     //Block interrupts and save flags
     cli_and_save(flags);
     //Set interrupt flag to 0 indicating no interrupts
