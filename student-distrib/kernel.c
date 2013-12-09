@@ -16,6 +16,7 @@
 #include "tests.h"
 #include "test_syscalls.h"
 #include "process.h"
+#include "startup.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -174,9 +175,15 @@ entry (unsigned long magic, unsigned long addr)
      * PIC, any other initialization stuff... */
     init_idt();
 
-    init_kbd();
-
     rtc_open();
+
+    sti(); //enable rtc timing for start screen
+
+    // print_start_screen();
+
+    cli(); //for other kernel initialization
+
+    init_kbd();
 
     term_open();
 
