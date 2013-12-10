@@ -15,19 +15,15 @@ static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((align
 #define ELF_MAG_NUM         0x464C457F
 #define KERNEL_STACK_SZ     EIGHT_KB
 #define MB_128              0x8000000
-
 #define TEST_MULT 1
-#define SCED_ON 1
-
 #define NON_VID_MAPPED 0
 #define VID_MAPPED 1
-
 /* program time slice in milliseconds */
 #define TIME_SLICE 20
 #define HZ (1000 / TIME_SLICE)
 #define CLOCK_TICK_RATE 1193182
 #define LATCH (CLOCK_TICK_RATE/HZ)
-
+/* PIT related  */
 #define PIT_CHAN_0_PORT  0x40
 #define PIT_COMMAND_PORT 0x43
 #define PIT_IRQ_NUM      0
@@ -35,10 +31,9 @@ static uint32_t proc_page_dir[MAX_PROCESSES][PAGE_DIR_SIZE] __attribute__((align
 #define PIT_LO_HIGH_ACC  0x30
 #define PIT_MODE_3       0x6
 #define PIT_CHANNEL_0    0x0
-/* */
 #define LOW_BYTE 0xff
 #define BYTE_SZ 8
-
+/* terminals */
 #define NON_EXIST_TERM -1
 #define FIRST_TERM 0
 
@@ -126,6 +121,33 @@ void schedul()
     /* switch contexts from old to new process */
     context_switch(old_proc, new_proc);
 }
+
+#if !(SCED_ON)
+/* 
+ * switch_term_proc
+ * DESCRIPTION: does a context switch from the currently executing
+ *              process to a the one in the specified terminal
+ * INPUTS: new_term--the terminal containing the process the caller 
+ *                   wishes to switch to 
+ * OUTPUTS: none
+ * RETURN VALUE: none
+ * SIDE EFFECTS: the process running in the caller requested terminal
+ *               resumes execution, and the previously executing process
+ *               is preempted
+ */
+void switch_term_proc(uint32_t new_term)
+{
+    /* init the old, new pcb pointers */
+    pcb_t* old_term_proc = cur_proc[active_term];
+    pcb_t* new_term_proc = cur_proc[new_term]; 
+    /* set the requested process as the active process */
+    active_term = new_term;
+    /* notify the terminal that the active terminal has changed */
+    set_act_ops_term(active_term);
+    /* finally switch contexts to the new process */
+    context_switch(old_term_proc, new_term_proc);
+}
+#endif
 
 /*
  * context_switch
@@ -440,9 +462,7 @@ int32_t remap_4KB_user_page(uint32_t term_index, uint32_t phys_addr, uint32_t vi
     /* set corresponding entry in page table to physical address provided */
     ((uint32_t*)page_table)[(virt_addr>>PG_TBL_FIELD_SZ) & (PG_TBL_FIELD_MSK)] 
     = phys_addr | SET_PAGE_PRES | SET_PAGE_RW | SET_PAGE_USER;
-
-    /* just for testing when not running scheduler */
-    //set_CR3((uint32_t)cur_proc[term_index]->page_dir);
+    
     return 0;
 }
 
