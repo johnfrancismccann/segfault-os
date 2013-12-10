@@ -11,7 +11,12 @@
 //#include "syscalls.h"
 
 /*
- *
+ *  do_idt_div_error
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_div_error(uint32_t error_code)
 {
@@ -24,7 +29,12 @@ void do_idt_div_error(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_debug
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_debug(uint32_t error_code)
 {
@@ -37,7 +47,12 @@ void do_idt_debug(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_nmi
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_nmi(uint32_t error_code)
 {
@@ -50,7 +65,12 @@ void do_idt_nmi(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_breakpoint
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_breakpoint(uint32_t error_code)
 {
@@ -63,7 +83,12 @@ void do_idt_breakpoint(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_overflow
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_overflow(uint32_t error_code)
 {
@@ -76,7 +101,12 @@ void do_idt_overflow(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_bound
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_bound(uint32_t error_code)
 {
@@ -89,7 +119,12 @@ void do_idt_bound(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_invalid_op
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_invalid_op(uint32_t error_code)
 {
@@ -102,7 +137,12 @@ void do_idt_invalid_op(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_device_not_available
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_device_not_available(uint32_t error_code)
 {
@@ -115,7 +155,12 @@ void do_idt_device_not_available(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_double_fault
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_double_fault(uint32_t error_code)
 {
@@ -128,7 +173,12 @@ void do_idt_double_fault(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_coprocessor_segment_overrun
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_coprocessor_segment_overrun(uint32_t error_code)
 {
@@ -141,7 +191,12 @@ void do_idt_coprocessor_segment_overrun(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_invalid_TSS
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_invalid_TSS(uint32_t error_code)
 {
@@ -154,7 +209,12 @@ void do_idt_invalid_TSS(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_segment_not_present
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_segment_not_present(uint32_t error_code)
 {
@@ -167,7 +227,12 @@ void do_idt_segment_not_present(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_stack_segment
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_stack_segment(uint32_t error_code)
 {
@@ -180,7 +245,12 @@ void do_idt_stack_segment(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_general_protection
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_general_protection(uint32_t error_code)
 {
@@ -193,7 +263,12 @@ void do_idt_general_protection(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_page_fault
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_page_fault(uint32_t error_code_a, uint32_t error_code_b)
 {
@@ -207,7 +282,12 @@ void do_idt_page_fault(uint32_t error_code_a, uint32_t error_code_b)
 
 
 /*
- *
+ *  do_idt_coprocessor_error
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_coprocessor_error(uint32_t error_code)
 {
@@ -220,7 +300,12 @@ void do_idt_coprocessor_error(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_alignment_check
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_alignment_check(uint32_t error_code)
 {
@@ -233,7 +318,12 @@ void do_idt_alignment_check(uint32_t error_code)
 
 
 /*
- *
+ *  do_idt_system_call
+ *  DESCRIPTION:
+ *  INPUTS: error_code--the error code sent to the interrupt
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: the interrupt is entered
  */
 void do_idt_system_call(uint32_t error_code)
 {
