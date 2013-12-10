@@ -576,6 +576,13 @@ void set_display_term(uint32_t term_index)
     print_status_bar();
 
     restore_flags(flags);
+
+#if !(SCED_ON)
+    sti();
+    send_eoi(KBD_IRQ_NUM);
+    switch_term_proc(term_index);
+#endif
+
 }
 
  /*
