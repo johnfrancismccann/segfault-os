@@ -11,7 +11,15 @@ uint8_t master_mask; /* IRQs 0-7 */
 uint8_t slave_mask;  /* IRQs 8-15 */
 
 
-/* Initialize the 8259 PIC */
+/*
+ * i8259_init
+ *  DESCRIPTION: intializes the 8259 PIC to be able to generate interrupts
+ *  INPUTS: none
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: a slave PIC is chained to a master PIC so that hardware
+ *                interrupts can occur
+ */
 void
 i8259_init(void)
 {
@@ -45,7 +53,24 @@ i8259_init(void)
     outb(slave_mask, SLAVE_8259_PORT + 1);   //Restore Interrupt mask for slave
 }
 
-/* Enable (unmask) the specified IRQ */
+/*
+ *  enable_irq
+ *  DESCRIPTION:
+ *  INPUTS: none
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: 
+ */
+
+/*
+ *  enable_irq
+ *  DESCRIPTION: enables the specified interrupt to occur 
+ *  INPUTS: irq_num--the interrupt request number of the desired interrupt to be
+ *                   disabled
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: The PIC is configured so that the specified interrupt can occur
+ */
 void
 enable_irq(uint32_t irq_num)
 {
@@ -61,7 +86,16 @@ enable_irq(uint32_t irq_num)
     }
 }
 
-/* Disable (mask) the specified IRQ */
+/*
+ *  disable_irq
+ *  DESCRIPTION: disables the specified interrupt to occur
+ *  INPUTS: irq_num--the interrupt request number of the desired interrupt to be
+ *                   disabled
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: The PIC is configured so that the specified interrupt can not
+ *                occur.
+ */
 void
 disable_irq(uint32_t irq_num)
 {
@@ -78,6 +112,18 @@ disable_irq(uint32_t irq_num)
 }
 
 /* Send end-of-interrupt signal for the specified IRQ */
+
+/*
+ *  send_eoi
+ *  DESCRIPTION: Sends an end of interrupt to the specified
+ *               interrupt.
+ *  INPUTS: irq_num--the interrupt for which an eoi signal is sent
+ *  OUTPUTS: none
+ *  RETURN VALUE: none
+ *  SIDE EFFECTS: The specified interrupt is communicated to the
+ *                PIC as being serviced. The PIC can then regenerate 
+ *                this interrupt
+ */
 void
 send_eoi(uint32_t irq_num)
 {
