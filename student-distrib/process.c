@@ -46,11 +46,16 @@ static pcb_t* cur_proc[NUM_TERMS] = {NULL};
 /* total number of processes running */
 static uint32_t num_proc = 0;
 
+/* bit mask for running processes */
+static uint32_t procs_mask = 0;
+
 /* number of processes running in each terminal */
 //static uint32_t term_proc_num[NUM_TERMS] = {0};
 
 void schedul();
 void context_switch(pcb_t* old_proc, pcb_t* new_proc);
+int32_t get_avail_pid();
+void free_pid(uint32_t pid);
 
 /*
  *   init_pit
@@ -198,6 +203,50 @@ void context_switch(pcb_t* old_proc, pcb_t* new_proc)
 }
 
 /*
+ *   get_avail_pid
+ *   DESCRIPTION: returns the least significant pid available 
+ *                in the procs_mask
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: pid or not available
+ *   SIDE EFFECTS: the returned pid is marked as not available 
+ *                 until it is freed again
+ *
+ */
+int32_t get_avail_pid()
+{
+    /* iterate through pid mask */
+    uint32_t i;
+    for(i=0; i<MAX_PROCESSES; i++)
+        /* check each bit's availability */
+        if(!((1 << i) & procs_mask)) {
+            /* mark as used */
+            procs_mask = procs_mask | (1 << i);
+            /* return pid */
+            return i;
+        }
+    /* no pids available */
+    return -1;
+}
+
+/*
+ *   free_pid
+ *   DESCRIPTION: frees the specified bit in the procs_mask
+ *   INPUTS: pid--pid to free
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: enables the number of the freed pid to be
+ *                 to be used as the pid for a new process.
+ *                 a newly created process can thus be stored
+ *                 in the 4MB page of the freed process
+ *
+ */
+void free_pid(uint32_t pid)
+{
+    procs_mask = procs_mask & ~(1<<pid);
+}
+
+/*
  *   launch_scheduler
  *   DESCRIPTION: calls the init_pit function to initialize the pit,
  *                and set up the scheduler function as an interrupt 
@@ -219,6 +268,8 @@ void launch_scheduler()
     test_execute((uint8_t*)"shell");
 #endif
 }
+
+
 
 /*
  *   get_cur_proc
@@ -260,9 +311,12 @@ int32_t create_proc()
     int32_t flags;
     cli_and_save(flags);
     num_proc++;
+
     /* create new pcb for child in memory */
-    pcb_t* child_proc = (pcb_t*)(EIGHT_MB-(num_proc)*KERNEL_STACK_SZ);
-    child_proc->pid = num_proc-1;
+    uint32_t child_pid = get_avail_pid();
+    pcb_t* child_proc = (pcb_t*)(EIGHT_MB-(child_pid+1)*KERNEL_STACK_SZ);
+    child_proc->pid = child_pid;
+
     child_proc->par_proc = cur_proc[active_term];
     //Set keyboard/display as already used on fd 0 & 1
     child_proc->available_fds = STDIN_MSK | STDOUT_MSK;
@@ -277,12 +331,12 @@ int32_t create_proc()
 
     /* set up child's paging. set processor to child's page directory */
     child_proc->page_dir = proc_page_dir[child_proc->pid];
-    get_proc_page_dir(child_proc->page_dir, EIGHT_MB+(num_proc-1)*FOUR_MB,
+    get_proc_page_dir(child_proc->page_dir, EIGHT_MB+(child_proc->pid)*FOUR_MB,
                       MB_128);
     set_CR3((uint32_t)child_proc->page_dir);
 
     /* set child's initial kernel stack in pcb and in tss */
-    child_proc->tss_kstack = EIGHT_MB-(num_proc-1)*KERNEL_STACK_SZ-BYTE;
+    child_proc->tss_kstack = EIGHT_MB-(child_proc->pid)*KERNEL_STACK_SZ-BYTE;
     tss.esp0 = child_proc->tss_kstack;
     tss.ss0 =  KERNEL_DS;
 
@@ -320,7 +374,10 @@ void destroy_proc()
     //ensure all files closed except std i/o
     for(i = 2; i < MAX_OPEN_FILES; i++)
         test_close(i);
+    /* decrement processs number and free pid */
     num_proc--;
+    free_pid(cur_proc[active_term]->pid);
+
     if(cur_proc[active_term]->par_proc) {
 
         /* execution of child process completed. null par_proc handled in halt. 

@@ -3,8 +3,8 @@
 
 #include "types.h"
 
-#define MAX_PROCESSES 9
-#define SCED_ON 1
+#define MAX_PROCESSES 8
+#define SCED_ON 0
 
 void launch_scheduler();
 
