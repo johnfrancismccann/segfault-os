@@ -49,6 +49,7 @@ int32_t term_close() {
  *   SIDE EFFECTS: none
  */
 int32_t term_read(void* read_ptr, int32_t nbytes) {
+    sti();
     if(read_ptr == NULL) return -1;
     // if(nbytes > BUF_SIZE) return -1;
     int bytes_copied;

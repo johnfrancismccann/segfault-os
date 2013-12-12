@@ -84,6 +84,7 @@ int32_t sys_halt(uint8_t status)
  */
 int32_t sys_execute(const uint8_t* command)
 {
+    int32_t flags;
     /* check for invalid argument */
     if(command == NULL)
         return -1;
@@ -99,6 +100,7 @@ int32_t sys_execute(const uint8_t* command)
     /* although temp_file is allocated on stack, only needs to exist for 
        the two subsequent fs_open_file, fs_read_file calls */
     file_desc_t temp_file;
+    cli_and_save(flags);
     cur_file = &temp_file;
     /* try to open extracted filename */
     if(-1 == fs_open_file((uint8_t*)mycommand))
@@ -131,6 +133,8 @@ int32_t sys_execute(const uint8_t* command)
     /* load child's executable into contiguous memory at base location */
     load_file((int8_t*)mycommand, (void*)prog_loc, MAX_PRGRM_SZ);
 
+    restore_flags(flags);
+
     /* begin execution of new process with first program instruction */
     asm volatile(
         "movl %0, %%eax\n\t"
@@ -161,6 +165,8 @@ int32_t sys_execute(const uint8_t* command)
  */
 int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
 {
+    int32_t flags;
+    int32_t retval;
 
     pcb_t* cur_proc = get_cur_proc();
 
@@ -179,11 +185,14 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
     //Error on negative number of bytes
     if(nbytes < 0)
         return -1;
+    cli_and_save(flags);
     //Set current file for read function to use
     cur_file = &(cur_proc->file_desc_arr[fd]);
     //Call read function
-    return((syscall_read_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_READ]))
+    retval = ((syscall_read_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_READ]))
             (buf,nbytes);
+    restore_flags(flags);
+    return retval;
     // printf("This is the %s call\n",__func__);
 }
 
@@ -201,6 +210,8 @@ int32_t sys_read(int32_t fd, void* buf, int32_t nbytes)
  */
 int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
 {
+    int32_t flags;
+    int32_t retval;
 
     pcb_t* cur_proc = get_cur_proc();
 
@@ -220,10 +231,13 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
     if(nbytes < 0)
         return -1;
     //Set current file for read function to use
+    cli_and_save(flags);
     cur_file = &(cur_proc->file_desc_arr[fd]);
     //Call read function
-    return((syscall_write_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_WRITE]))
+    retval = ((syscall_write_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_WRITE]))
             (buf,nbytes);
+    restore_flags(flags);
+    return retval;
     // printf("This is the %s call\n",__func__);
 }
 
@@ -238,6 +252,7 @@ int32_t sys_write(int32_t fd, const void* buf, int32_t nbytes)
  */
 int32_t sys_open(const uint8_t* filename)
 {
+    int32_t flags;
     pcb_t* cur_proc = get_cur_proc();
 
     dentry_t myfiledentry;
@@ -293,9 +308,11 @@ int32_t sys_open(const uint8_t* filename)
             return -1;
     }
     //Attempt to open file
+    cli_and_save(flags);
     cur_file = &(cur_proc->file_desc_arr[fd]);
     int32_t retval = ((syscall_open_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_OPEN]))
                      (filename);
+    restore_flags(flags);
     if(retval == -1)
     {
         //on failure, release assigned fd and return error.
@@ -322,7 +339,7 @@ int32_t sys_open(const uint8_t* filename)
  */
 int32_t sys_close(int32_t fd)
 {
-
+    int32_t flags;
     pcb_t* cur_proc = get_cur_proc();
     // printf("This is the %s call\n",__func__);
     //Error on out-of-range fd
@@ -335,9 +352,11 @@ int32_t sys_close(int32_t fd)
     if((cur_proc->available_fds & (1 << fd)) == 0)
         return -1;
     cur_proc->available_fds &= (~(1 << fd));
+    cli_and_save(flags);
     cur_file = &(cur_proc->file_desc_arr[fd]);
     int32_t retval = ((syscall_close_t)(cur_proc->file_desc_arr[fd].file_ops_table[FOPS_CLOSE]))
                       (fd);
+    restore_flags(flags);
     //Error on failed close; must undo mark as available fd
     if(retval == -1)
     {

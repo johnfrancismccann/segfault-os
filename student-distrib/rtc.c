@@ -145,6 +145,8 @@ int32_t rtc_open()
  */
 int32_t rtc_read(int32_t* buffer, int32_t nbytes)
 {
+    //ensure interrupts enabled.
+    sti();
     //reset interrupt_flag to wait for interrupt
     //First case for when process is reading, let
     //it use it's own flag for abstraction

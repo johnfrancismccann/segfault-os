@@ -38,6 +38,6 @@ int32_t rtc_write(void* buffer, int32_t nbytes);
 
 int32_t rtc_close();
 
-syscall_func_t rtcfops_table[4];
+extern syscall_func_t rtcfops_table[4];
 
 #endif

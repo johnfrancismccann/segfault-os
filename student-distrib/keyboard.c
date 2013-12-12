@@ -568,6 +568,9 @@ void set_display_term(uint32_t term_index)
     /* update video memory's cursor with saved viruatl, cursor */
     update_hw_cursor(cursors[act_disp_term]); 
 
+    /*Flush TLB*/
+    set_CR3(get_page_dir());
+
     //if have scrolled up, scroll back down to typing location
     while(max_lines_down[act_disp_term] > 0) scroll_down();
 

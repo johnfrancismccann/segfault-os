@@ -18,6 +18,6 @@ int32_t term_read(void* read_ptr, int32_t nbytes);
 
 int32_t term_write(const void* wrt_ptr, int32_t nbytes);
 
-syscall_func_t termfops_table[4];
+extern syscall_func_t termfops_table[4];
 
 #endif
