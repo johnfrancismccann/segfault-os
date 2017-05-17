@@ -1,6 +1,22 @@
 SegFault-OS
 ===========
 
+Overview
+-----------
+Segfault-OS is a basic operating system that was originally built for the final, team-project in ECE 391 at UIUC. Before starting the project, we named it Segfault OS as a joke in anticipation of the many segfaults that would be encountered while developing and testing, but, as it stands, it's actually reasonably stable. The OS is written for an i386 processor, and provides concurrent process execution, virtual memory abstraction, a basic file system, and drivers for the keyboard, display, and real-time clock.
+
+Running
+-----------
+To run Segfault OS, boot from student-distrib/mp3.img file. Segfault-OS should be run with 256 MB of memory, and can be run within VirtualBox and QEMU.
+
+Building
+-----------
+Change into student-distrib function and run "sudo make dep" followed by "sudo make" to build mp3.img. The Makefile was written for compilation on a 32-bit Linux machine. I have had success compiling on a 32-bit Lubuntu system.
+
+Video
+-----------
+A video of Segfault-OS in action and more information can be found on my personal website at [www.johnmccann.io](http://www.johnmccann.io).
+
 Files
 -----------
 
