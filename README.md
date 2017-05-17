@@ -7,7 +7,7 @@ Segfault-OS is a basic operating system that was originally built for the final,
 
 Running
 -----------
-To run Segfault OS, boot from student-distrib/mp3.img file. Segfault-OS should be run with 256 MB of memory, and can be run within VirtualBox and QEMU.
+To run Segfault OS, boot from student-distrib/mp3.img disk image on a computer with ideally at least 256 MB of memory. The easiest thing is to just run the OS in a virtual machine such as QEMU or VirtualBox.
 
 Building
 -----------
