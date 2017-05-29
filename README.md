@@ -13,9 +13,9 @@ Building
 -----------
 Change into student-distrib function and run "sudo make dep" followed by "sudo make" to build mp3.img. The Makefile was written for compilation on a 32-bit Linux machine. I have had success compiling on a 32-bit Lubuntu system.
 
-Video
+More Information
 -----------
-A video of Segfault-OS in action and more information can be found on my personal website at [www.johnmccann.io](http://www.johnmccann.io).
+More information, including a video of Sefault-OS in action, can be found [here](http://www.johnmccann.io/#segfault-os) on my personal website.
 
 Files
 -----------
