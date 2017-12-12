@@ -1,9 +1,9 @@
-SegFault-OS
+Segfault OS
 ===========
 
 Overview
 -----------
-Segfault-OS is a basic operating system that was originally built for the final, team-project in ECE 391 at UIUC. Before starting the project, we named it Segfault OS as a joke in anticipation of the many segfaults that would be encountered while developing and testing, but, as it stands, it's actually reasonably stable. The OS is written for an i386 processor, and provides concurrent process execution, virtual memory abstraction, a basic file system, and drivers for the keyboard, display, and real-time clock.
+Segfault OS is a basic operating system that was originally built for the final, team-project in ECE 391 at UIUC. Before starting the project, we named it Segfault OS as a joke in anticipation of the many segfaults that would be encountered while developing and testing, but, as it stands, it's actually reasonably stable. The OS is written for an i386 processor, and provides concurrent process execution, virtual memory abstraction, a basic file system, and drivers for the keyboard, display, and real-time clock.
 
 Running
 -----------
